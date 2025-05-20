@@ -1,6 +1,6 @@
 # Time Tracker
 
-A personal time tracking application built with Electron and SQLite, designed for easy time tracking and activity management.
+A personal time tracking application built with React and SQLite, designed for easy time tracking and activity management.
 
 ## Project Overview
 
@@ -110,6 +110,3 @@ timetracker/
 - name
 - created_at
 - updated_at
-
-## License
-MIT License
