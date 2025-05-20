@@ -85,6 +85,7 @@ interface ActivityFormData {
 interface TrackingSettings {
   maxDuration: number; // in seconds
   warningThreshold: number; // in seconds
+  firstDayOfWeek: 'monday' | 'sunday';
 }
 
 interface ImportData {
@@ -137,13 +138,15 @@ export const TimeTracker: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [trackingSettings, setTrackingSettings] = useState<TrackingSettings>({
     maxDuration: 12 * 3600, // 12 hours in seconds
-    warningThreshold: 3600 // 1 hour warning
+    warningThreshold: 3600, // 1 hour warning
+    firstDayOfWeek: 'monday'
   });
   const [showWarning, setShowWarning] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [settingsFormData, setSettingsFormData] = useState<TrackingSettings>({
     maxDuration: 12 * 3600,
-    warningThreshold: 3600
+    warningThreshold: 3600,
+    firstDayOfWeek: 'monday'
   });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showResetSuccess, setShowResetSuccess] = useState(false);
@@ -513,32 +516,29 @@ export const TimeTracker: React.FC = () => {
     try {
       await db.updateTrackingSettings(
         settingsFormData.maxDuration,
-        settingsFormData.warningThreshold
+        settingsFormData.warningThreshold,
+        settingsFormData.firstDayOfWeek
       );
       setTrackingSettings(settingsFormData);
       setShowSettingsDialog(false);
-      setShowSaveSuccess(true);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Failed to save settings:', error);
     }
   };
 
   const handleResetSettings = async () => {
-    try {
-      const defaultSettings = {
-        maxDuration: 12 * 3600, // 12 hours in seconds
-        warningThreshold: 3600 // 1 hour warning
-      };
-      await db.updateTrackingSettings(
-        defaultSettings.maxDuration,
-        defaultSettings.warningThreshold
-      );
-      setTrackingSettings(defaultSettings);
-      setSettingsFormData(defaultSettings);
-      setShowResetSuccess(true);
-    } catch (error) {
-      console.error('Error resetting settings:', error);
-    }
+    const defaultSettings = {
+      maxDuration: 12 * 3600, // 12 hours in seconds
+      warningThreshold: 3600, // 1 hour warning
+      firstDayOfWeek: 'monday' as const
+    };
+    await db.updateTrackingSettings(
+      defaultSettings.maxDuration,
+      defaultSettings.warningThreshold,
+      defaultSettings.firstDayOfWeek
+    );
+    setSettingsFormData(defaultSettings);
+    setTrackingSettings(defaultSettings);
   };
 
   const handleExtendTime = () => {
@@ -676,6 +676,15 @@ export const TimeTracker: React.FC = () => {
         });
       }
 
+      // Get the newly added activities to map old IDs to new ones
+      const newActivities = await db.getActivities();
+      const activityIdMap = new Map();
+      data.activities.forEach((oldActivity: Activity, index: number) => {
+        if (newActivities[index]) {
+          activityIdMap.set(oldActivity.id, newActivities[index].id);
+        }
+      });
+
       // Import time entries
       for (const entry of data.timeEntries) {
         // Skip if time entry already exists (when merging)
@@ -685,15 +694,19 @@ export const TimeTracker: React.FC = () => {
         )) {
           continue;
         }
-        await db.addTimeEntry({
-          activity_id: entry.activity_id,
-          start_time: new Date(entry.start_time),
-          end_time: entry.end_time ? new Date(entry.end_time) : null,
-          duration: entry.duration,
-          notes: entry.notes || '',
-          created_at: new Date(entry.created_at),
-          updated_at: new Date(entry.updated_at)
-        });
+        // Map the old activity_id to the new one
+        const newActivityId = activityIdMap.get(entry.activity_id);
+        if (newActivityId) {
+          await db.addTimeEntry({
+            activity_id: newActivityId,
+            start_time: new Date(entry.start_time),
+            end_time: entry.end_time ? new Date(entry.end_time) : null,
+            duration: entry.duration,
+            notes: entry.notes || '',
+            created_at: new Date(entry.created_at),
+            updated_at: new Date(entry.updated_at)
+          });
+        }
       }
 
       // Refresh the UI
@@ -732,7 +745,11 @@ export const TimeTracker: React.FC = () => {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
     } else {
       startDate = new Date(now);
-      startDate.setDate(now.getDate() - now.getDay()); // Start from Sunday
+      const day = startDate.getDay();
+      const diff = trackingSettings.firstDayOfWeek === 'monday'
+        ? (day === 0 ? -6 : 1 - day) // If Sunday, go back 6 days, otherwise go back to Monday
+        : -day; // Go back to Sunday
+      startDate.setDate(now.getDate() + diff);
       startDate.setHours(0, 0, 0, 0);
     }
 
@@ -796,27 +813,29 @@ export const TimeTracker: React.FC = () => {
 
   const handleResetDatabase = async () => {
     try {
+      // Clear all data first
       await db.clearAllData();
+
+      // Close the database connection
+      if (db) {
+        await db.close();
+      }
+
       // Reinitialize the database
       await db.init();
-      // Refresh activities and categories
-      const loadedActivities = await db.getActivities();
-      const activitiesWithStats = await Promise.all(
-        loadedActivities.map(async (activity) => ({
-          ...activity,
-          totalDuration: await db.getTotalDurationByActivity(activity.id!),
-        }))
-      );
-      setActivities(activitiesWithStats);
 
-      const loadedCategories = await db.getCategories();
-      setCategories(loadedCategories.map(cat => cat.name));
-
-      // Reset tracking state
+      // Reset all state
+      setActivities([]);
+      setCategories([]);
       setIsTracking(false);
       setCurrentActivity(null);
       setStartTime(null);
       setElapsedTime(0);
+
+      // Load default settings
+      const settings = await db.getTrackingSettings();
+      setTrackingSettings(settings);
+      setSettingsFormData(settings);
 
       setShowResetConfirm(false);
       setShowResetSuccess(true);
@@ -1251,6 +1270,27 @@ export const TimeTracker: React.FC = () => {
                 inputProps={{ min: 5, max: 60 }}
                 fullWidth
               />
+              <FormControl>
+                <FormLabel>First Day of Week</FormLabel>
+                <RadioGroup
+                  value={settingsFormData.firstDayOfWeek}
+                  onChange={(e) => setSettingsFormData(prev => ({
+                    ...prev,
+                    firstDayOfWeek: e.target.value as 'monday' | 'sunday'
+                  }))}
+                >
+                  <FormControlLabel
+                    value="monday"
+                    control={<Radio />}
+                    label="Monday"
+                  />
+                  <FormControlLabel
+                    value="sunday"
+                    control={<Radio />}
+                    label="Sunday"
+                  />
+                </RadioGroup>
+              </FormControl>
               <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
                 <Button
                   variant="outlined"

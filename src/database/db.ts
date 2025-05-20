@@ -44,6 +44,7 @@ interface TimeTrackerDB extends DBSchema {
       id?: string;
       max_duration: number; // in seconds
       warning_threshold: number; // in seconds
+      first_day_of_week: 'monday' | 'sunday';
       created_at: Date;
       updated_at: Date;
     };
@@ -84,6 +85,13 @@ class DatabaseService {
         }
       },
     });
+  }
+
+  async close(): Promise<void> {
+    if (this.db) {
+      await this.db.close();
+      this.db = null;
+    }
   }
 
   // Activity methods
@@ -174,7 +182,7 @@ class DatabaseService {
     return this.db.getAll('categories');
   }
 
-  async getTrackingSettings(): Promise<{ maxDuration: number; warningThreshold: number }> {
+  async getTrackingSettings(): Promise<{ maxDuration: number; warningThreshold: number; firstDayOfWeek: 'monday' | 'sunday' }> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
@@ -187,18 +195,34 @@ class DatabaseService {
           id: 'default',
           max_duration: 12 * 3600, // 12 hours in seconds
           warning_threshold: 3600, // 1 hour warning
+          first_day_of_week: 'monday' as const,
           created_at: new Date(),
           updated_at: new Date()
         };
-        await this.db.add('settings', defaultSettings);
+        try {
+          await this.db.add('settings', defaultSettings);
+        } catch (error) {
+          // If settings already exist, try to get them
+          const existingSettings = await this.db.getAll('settings');
+          if (existingSettings.length > 0) {
+            return {
+              maxDuration: existingSettings[0].max_duration,
+              warningThreshold: existingSettings[0].warning_threshold,
+              firstDayOfWeek: existingSettings[0].first_day_of_week
+            };
+          }
+          throw error;
+        }
         return {
           maxDuration: defaultSettings.max_duration,
-          warningThreshold: defaultSettings.warning_threshold
+          warningThreshold: defaultSettings.warning_threshold,
+          firstDayOfWeek: defaultSettings.first_day_of_week
         };
       }
       return {
         maxDuration: settings[0].max_duration,
-        warningThreshold: settings[0].warning_threshold
+        warningThreshold: settings[0].warning_threshold,
+        firstDayOfWeek: settings[0].first_day_of_week
       };
     } catch (error) {
       console.error('Error getting tracking settings:', error);
@@ -206,7 +230,11 @@ class DatabaseService {
     }
   }
 
-  async updateTrackingSettings(maxDuration: number, warningThreshold: number): Promise<void> {
+  async updateTrackingSettings(
+    maxDuration: number,
+    warningThreshold: number,
+    firstDayOfWeek: 'monday' | 'sunday'
+  ): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
@@ -218,6 +246,7 @@ class DatabaseService {
           id: 'default',
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
+          first_day_of_week: firstDayOfWeek,
           created_at: new Date(),
           updated_at: new Date()
         });
@@ -226,6 +255,7 @@ class DatabaseService {
           id: settings[0].id,
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
+          first_day_of_week: firstDayOfWeek,
           created_at: settings[0].created_at,
           updated_at: new Date()
         });
