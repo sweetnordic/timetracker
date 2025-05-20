@@ -99,6 +99,11 @@ interface WeeklyStats {
   byActivity: { [key: string]: number };
   byCategory: { [key: string]: number };
   byExternalSystem: { [key: string]: number };
+  dailyBreakdown: {
+    [key: string]: { // activity name
+      [key: string]: number // day of week -> duration
+    }
+  };
 }
 
 export const TimeTracker: React.FC = () => {
@@ -155,7 +160,8 @@ export const TimeTracker: React.FC = () => {
     totalTime: 0,
     byActivity: {},
     byCategory: {},
-    byExternalSystem: {}
+    byExternalSystem: {},
+    dailyBreakdown: {}
   });
 
   useEffect(() => {
@@ -740,8 +746,11 @@ export const TimeTracker: React.FC = () => {
       totalTime: 0,
       byActivity: {},
       byCategory: {},
-      byExternalSystem: {}
+      byExternalSystem: {},
+      dailyBreakdown: {}
     };
+
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     for (const entry of filteredEntries) {
       if (entry.duration) {
@@ -749,11 +758,21 @@ export const TimeTracker: React.FC = () => {
 
         const activity = activities.find(a => a.id === entry.activity_id);
         if (activity) {
+          // Update activity totals
           stats.byActivity[activity.name] = (stats.byActivity[activity.name] || 0) + entry.duration;
           stats.byCategory[activity.category] = (stats.byCategory[activity.category] || 0) + entry.duration;
           if (activity.external_system) {
             stats.byExternalSystem[activity.external_system] = (stats.byExternalSystem[activity.external_system] || 0) + entry.duration;
           }
+
+          // Update daily breakdown
+          const entryDate = new Date(entry.start_time);
+          const dayOfWeek = daysOfWeek[entryDate.getDay()];
+
+          if (!stats.dailyBreakdown[activity.name]) {
+            stats.dailyBreakdown[activity.name] = {};
+          }
+          stats.dailyBreakdown[activity.name][dayOfWeek] = (stats.dailyBreakdown[activity.name][dayOfWeek] || 0) + entry.duration;
         }
       }
     }
@@ -1559,6 +1578,46 @@ export const TimeTracker: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Weekly Activity Breakdown
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Activity</TableCell>
+                              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                                <TableCell key={day} align="right">{day}</TableCell>
+                              ))}
+                              <TableCell align="right">Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(weeklyStats.byActivity)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([activity, totalDuration]) => (
+                                <TableRow key={activity}>
+                                  <TableCell>{activity}</TableCell>
+                                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                                    <TableCell key={day} align="right">
+                                      {weeklyStats.dailyBreakdown[activity]?.[day]
+                                        ? formatDuration(weeklyStats.dailyBreakdown[activity][day])
+                                        : '-'}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell align="right">{formatDuration(totalDuration)}</TableCell>
+                                </TableRow>
+                              ))}
                           </TableBody>
                         </Table>
                       </TableContainer>
