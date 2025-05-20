@@ -38,6 +38,13 @@ interface TimeTrackerDB extends DBSchema {
       updated_at: Date;
     };
   };
+  settings: {
+    id?: number;
+    max_duration: number; // in seconds
+    warning_threshold: number; // in seconds
+    created_at: Date;
+    updated_at: Date;
+  };
 }
 
 class DatabaseService {
@@ -65,6 +72,12 @@ class DatabaseService {
 
         // Create categories store
         db.createObjectStore('categories', {
+          keyPath: 'id',
+          autoIncrement: true,
+        });
+
+        // Create settings store
+        db.createObjectStore('settings', {
           keyPath: 'id',
           autoIncrement: true,
         });
@@ -158,6 +171,65 @@ class DatabaseService {
   async getCategories(): Promise<TimeTrackerDB['categories']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.getAll('categories');
+  }
+
+  async getTrackingSettings(): Promise<{ maxDuration: number; warningThreshold: number }> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const settings = await this.db.getAll('settings');
+      if (settings.length === 0) {
+        // Return default settings if none exist
+        const defaultSettings = {
+          max_duration: 12 * 3600, // 12 hours in seconds
+          warning_threshold: 3600, // 1 hour warning
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+        await this.db.add('settings', defaultSettings);
+        return {
+          maxDuration: defaultSettings.max_duration,
+          warningThreshold: defaultSettings.warning_threshold
+        };
+      }
+      return {
+        maxDuration: settings[0].max_duration,
+        warningThreshold: settings[0].warning_threshold
+      };
+    } catch (error) {
+      console.error('Error getting tracking settings:', error);
+      throw error;
+    }
+  }
+
+  async updateTrackingSettings(maxDuration: number, warningThreshold: number): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      const settings = await this.db.getAll('settings');
+      if (settings.length === 0) {
+        await this.db.add('settings', {
+          max_duration: maxDuration,
+          warning_threshold: warningThreshold,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      } else {
+        await this.db.put('settings', {
+          id: settings[0].id,
+          max_duration: maxDuration,
+          warning_threshold: warningThreshold,
+          updated_at: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Error updating tracking settings:', error);
+      throw error;
+    }
   }
 }
 

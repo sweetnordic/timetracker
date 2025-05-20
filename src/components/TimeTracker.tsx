@@ -26,9 +26,10 @@ import {
   TextField,
   Stack,
   Alert,
-  MenuItem
+  MenuItem,
+  Snackbar
 } from '@mui/material';
-import { PlayArrow, Stop, History, Add, Edit, Delete, Settings } from '@mui/icons-material';
+import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -72,6 +73,11 @@ interface ActivityFormData {
   external_system: string;
 }
 
+interface TrackingSettings {
+  maxDuration: number; // in seconds
+  warningThreshold: number; // in seconds
+}
+
 export const TimeTracker: React.FC = () => {
   const [activities, setActivities] = useState<ActivityWithStats[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
@@ -101,6 +107,18 @@ export const TimeTracker: React.FC = () => {
     external_system: ''
   });
   const [categories, setCategories] = useState<string[]>([]);
+  const [trackingSettings, setTrackingSettings] = useState<TrackingSettings>({
+    maxDuration: 12 * 3600, // 12 hours in seconds
+    warningThreshold: 3600 // 1 hour warning
+  });
+  const [showWarning, setShowWarning] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [settingsFormData, setSettingsFormData] = useState<TrackingSettings>({
+    maxDuration: 12 * 3600,
+    warningThreshold: 3600
+  });
+  const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   useEffect(() => {
     const initDb = async () => {
@@ -117,6 +135,11 @@ export const TimeTracker: React.FC = () => {
       // Load categories
       const loadedCategories = await db.getCategories();
       setCategories(loadedCategories.map(cat => cat.name));
+
+      // Load tracking settings
+      const settings = await db.getTrackingSettings();
+      setTrackingSettings(settings);
+      setSettingsFormData(settings);
 
       // Check for in-progress time entries
       const allTimeEntries = await db.getTimeEntries();
@@ -146,10 +169,20 @@ export const TimeTracker: React.FC = () => {
         const now = new Date();
         const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
         setElapsedTime(elapsed);
+
+        // Check for warning threshold
+        if (trackingSettings.maxDuration - elapsed <= trackingSettings.warningThreshold) {
+          setShowWarning(true);
+        }
+
+        // Auto-stop if max duration reached
+        if (elapsed >= trackingSettings.maxDuration) {
+          stopTracking();
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTracking, startTime]);
+  }, [isTracking, startTime, trackingSettings]);
 
   const startTracking = async (activity: Activity) => {
     if (isTracking) return;
@@ -418,12 +451,67 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
+  const handleOpenSettings = () => {
+    setSettingsFormData(trackingSettings);
+    setShowSettingsDialog(true);
+  };
+
+  const handleCloseSettings = () => {
+    setShowSettingsDialog(false);
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      await db.updateTrackingSettings(
+        settingsFormData.maxDuration,
+        settingsFormData.warningThreshold
+      );
+      setTrackingSettings(settingsFormData);
+      setShowSettingsDialog(false);
+      setShowSaveSuccess(true);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const handleResetSettings = async () => {
+    try {
+      const defaultSettings = {
+        maxDuration: 12 * 3600, // 12 hours in seconds
+        warningThreshold: 3600 // 1 hour warning
+      };
+      await db.updateTrackingSettings(
+        defaultSettings.maxDuration,
+        defaultSettings.warningThreshold
+      );
+      setTrackingSettings(defaultSettings);
+      setSettingsFormData(defaultSettings);
+      setShowResetSuccess(true);
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+    }
+  };
+
+  const handleExtendTime = () => {
+    setShowWarning(false);
+    // Extend the max duration by the warning threshold
+    setTrackingSettings(prev => ({
+      ...prev,
+      maxDuration: prev.maxDuration + prev.warningThreshold
+    }));
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Time Tracker
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Time Tracker
+          </Typography>
+          <IconButton onClick={handleOpenSettings} color="primary">
+            <Timer />
+          </IconButton>
+        </Box>
 
         <Paper
           elevation={3}
@@ -580,12 +668,48 @@ export const TimeTracker: React.FC = () => {
                 </TableHead>
                 <TableBody>
                   {timeEntries.map((entry) => (
-                    <TableRow key={entry.id}>
+                    <TableRow
+                      key={entry.id}
+                      sx={{
+                        bgcolor: !entry.end_time ? 'action.hover' : 'inherit',
+                        '&:hover': {
+                          bgcolor: !entry.end_time ? 'action.selected' : 'action.hover'
+                        }
+                      }}
+                    >
                       <TableCell>
-                        {new Date(entry.start_time).toLocaleString()}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {!entry.end_time && (
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: 'primary.main',
+                                animation: 'pulse 2s infinite',
+                                '@keyframes pulse': {
+                                  '0%': {
+                                    opacity: 1,
+                                  },
+                                  '50%': {
+                                    opacity: 0.4,
+                                  },
+                                  '100%': {
+                                    opacity: 1,
+                                  },
+                                },
+                              }}
+                            />
+                          )}
+                          {new Date(entry.start_time).toLocaleString()}
+                        </Box>
                       </TableCell>
                       <TableCell>
-                        {entry.end_time ? new Date(entry.end_time).toLocaleString() : 'In Progress'}
+                        {entry.end_time ? new Date(entry.end_time).toLocaleString() : (
+                          <Typography color="primary" sx={{ fontWeight: 'medium' }}>
+                            In Progress
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         {entry.duration ? formatDuration(entry.duration) : '-'}
@@ -596,14 +720,12 @@ export const TimeTracker: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleOpenEntryDialog(entry)}
-                            disabled={!entry.end_time}
                           >
                             <Edit />
                           </IconButton>
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick(entry)}
-                            disabled={!entry.end_time}
                             color="error"
                           >
                             <Delete />
@@ -752,6 +874,97 @@ export const TimeTracker: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Snackbar
+          open={showWarning}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            severity="warning"
+            action={
+              <Button color="inherit" size="small" onClick={handleExtendTime}>
+                Extend Time
+              </Button>
+            }
+          >
+            Warning: Time tracking will stop in {Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)} minutes
+          </Alert>
+        </Snackbar>
+
+        <Dialog
+          open={showSettingsDialog}
+          onClose={handleCloseSettings}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Tracking Settings</DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              <TextField
+                label="Maximum Tracking Duration (hours)"
+                type="number"
+                value={settingsFormData.maxDuration / 3600}
+                onChange={(e) => setSettingsFormData(prev => ({
+                  ...prev,
+                  maxDuration: Number(e.target.value) * 3600
+                }))}
+                inputProps={{ min: 1, max: 24 }}
+                fullWidth
+              />
+              <TextField
+                label="Warning Threshold (minutes)"
+                type="number"
+                value={settingsFormData.warningThreshold / 60}
+                onChange={(e) => setSettingsFormData(prev => ({
+                  ...prev,
+                  warningThreshold: Number(e.target.value) * 60
+                }))}
+                inputProps={{ min: 5, max: 60 }}
+                fullWidth
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleResetSettings} color="secondary">
+              Reset to Defaults
+            </Button>
+            <Box sx={{ flex: 1 }} />
+            <Button onClick={handleCloseSettings}>Cancel</Button>
+            <Button onClick={handleSaveSettings} variant="contained">
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar
+          open={showResetSuccess}
+          autoHideDuration={3000}
+          onClose={() => setShowResetSuccess(false)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setShowResetSuccess(false)}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            Settings have been reset to defaults
+          </Alert>
+        </Snackbar>
+
+        <Snackbar
+          open={showSaveSuccess}
+          autoHideDuration={3000}
+          onClose={() => setShowSaveSuccess(false)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setShowSaveSuccess(false)}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            Settings have been saved successfully
+          </Alert>
+        </Snackbar>
       </Box>
     </Container>
   );
