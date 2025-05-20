@@ -32,9 +32,12 @@ import {
   FormLabel,
   RadioGroup,
   FormControlLabel,
-  Radio
+  Radio,
+  Grid,
+  Divider,
+  Switch
 } from '@mui/material';
-import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload } from '@mui/icons-material';
+import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload, BarChart } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -90,6 +93,13 @@ interface ImportData {
   exportDate: string;
 }
 
+interface WeeklyStats {
+  totalTime: number;
+  byActivity: { [key: string]: number };
+  byCategory: { [key: string]: number };
+  byExternalSystem: { [key: string]: number };
+}
+
 export const TimeTracker: React.FC = () => {
   const [activities, setActivities] = useState<ActivityWithStats[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
@@ -137,6 +147,14 @@ export const TimeTracker: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importMode, setImportMode] = useState<'clear' | 'merge'>('clear');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [isMonthlyView, setIsMonthlyView] = useState(false);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
+    totalTime: 0,
+    byActivity: {},
+    byCategory: {},
+    byExternalSystem: {}
+  });
 
   useEffect(() => {
     const initDb = async () => {
@@ -339,7 +357,7 @@ export const TimeTracker: React.FC = () => {
     if (!selectedActivity) return;
 
     const entry: TimeEntry = {
-      id: editingEntry?.id,
+      id: editingEntry?.id || Date.now(),
       activity_id: selectedActivity.id!,
       start_time: entryFormData.start_time,
       end_time: entryFormData.end_time,
@@ -699,6 +717,63 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
+  const calculateStats = async () => {
+    const now = new Date();
+    let startDate: Date;
+
+    if (isMonthlyView) {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+    } else {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - now.getDay()); // Start from Sunday
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const allEntries = await db.getTimeEntries();
+    const filteredEntries = allEntries.filter(entry =>
+      new Date(entry.start_time) >= startDate &&
+      entry.end_time !== null
+    );
+
+    const stats: WeeklyStats = {
+      totalTime: 0,
+      byActivity: {},
+      byCategory: {},
+      byExternalSystem: {}
+    };
+
+    for (const entry of filteredEntries) {
+      if (entry.duration) {
+        stats.totalTime += entry.duration;
+
+        const activity = activities.find(a => a.id === entry.activity_id);
+        if (activity) {
+          stats.byActivity[activity.name] = (stats.byActivity[activity.name] || 0) + entry.duration;
+          stats.byCategory[activity.category] = (stats.byCategory[activity.category] || 0) + entry.duration;
+          if (activity.external_system) {
+            stats.byExternalSystem[activity.external_system] = (stats.byExternalSystem[activity.external_system] || 0) + entry.duration;
+          }
+        }
+      }
+    }
+
+    setWeeklyStats(stats);
+  };
+
+  const handleOpenAnalytics = async () => {
+    await calculateStats();
+    setShowAnalytics(true);
+  };
+
+  const handleCloseAnalytics = () => {
+    setShowAnalytics(false);
+  };
+
+  const handleViewChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsMonthlyView(event.target.checked);
+    await calculateStats();
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ py: 4 }}>
@@ -706,9 +781,14 @@ export const TimeTracker: React.FC = () => {
           <Typography variant="h4" gutterBottom>
             Time Tracker
           </Typography>
-          <IconButton onClick={handleOpenSettings} color="primary">
-            <Timer />
-          </IconButton>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton onClick={handleOpenAnalytics} color="primary">
+              <BarChart />
+            </IconButton>
+            <IconButton onClick={handleOpenSettings} color="primary">
+              <Timer />
+            </IconButton>
+          </Box>
         </Box>
 
         <Paper
@@ -1275,6 +1355,148 @@ export const TimeTracker: React.FC = () => {
             >
               Import
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={showAnalytics}
+          onClose={handleCloseAnalytics}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6">Analytics</Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isMonthlyView}
+                    onChange={handleViewChange}
+                    color="primary"
+                  />
+                }
+                label={isMonthlyView ? "Monthly View" : "Weekly View"}
+              />
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {isMonthlyView ? "This Month's Overview" : "This Week's Overview"}
+                  </Typography>
+                  <Typography variant="h4" color="primary">
+                    {formatDuration(weeklyStats.totalTime)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total time tracked {isMonthlyView ? "this month" : "this week"}
+                  </Typography>
+                </CardContent>
+              </Card>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Time by Activity
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Activity</TableCell>
+                              <TableCell align="right">Time</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(weeklyStats.byActivity)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([activity, duration]) => (
+                                <TableRow key={activity}>
+                                  <TableCell>{activity}</TableCell>
+                                  <TableCell align="right">{formatDuration(duration)}</TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Time by Category
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Category</TableCell>
+                              <TableCell align="right">Time</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(weeklyStats.byCategory)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([category, duration]) => (
+                                <TableRow key={category}>
+                                  <TableCell>{category}</TableCell>
+                                  <TableCell align="right">{formatDuration(duration)}</TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Time by External System
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>External System</TableCell>
+                              <TableCell align="right">Time</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(weeklyStats.byExternalSystem)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([system, duration]) => (
+                                <TableRow key={system}>
+                                  <TableCell>{system}</TableCell>
+                                  <TableCell align="right">{formatDuration(duration)}</TableCell>
+                                </TableRow>
+                              ))}
+                            {Object.keys(weeklyStats.byExternalSystem).length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={2} align="center">
+                                  No external systems tracked this week
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseAnalytics}>Close</Button>
           </DialogActions>
         </Dialog>
       </Box>
