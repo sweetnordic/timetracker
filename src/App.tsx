@@ -1,30 +1,35 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+import { TimeTracker } from './components/TimeTracker'
+import { ActivityManager } from './components/ActivityManager'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState<'tracker' | 'manager'>('tracker')
 
   return (
-    <>
-      <div>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="app">
+      <header>
+        <h1>Time Tracker</h1>
+        <nav>
+          <button
+            className={activeTab === 'tracker' ? 'active' : ''}
+            onClick={() => setActiveTab('tracker')}
+          >
+            Time Tracker
+          </button>
+          <button
+            className={activeTab === 'manager' ? 'active' : ''}
+            onClick={() => setActiveTab('manager')}
+          >
+            Activity Manager
+          </button>
+        </nav>
+      </header>
+
+      <main>
+        {activeTab === 'tracker' ? <TimeTracker /> : <ActivityManager />}
+      </main>
+    </div>
   )
 }
 

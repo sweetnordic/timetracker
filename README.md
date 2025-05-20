@@ -9,6 +9,7 @@ Time Tracker is a desktop application that helps you track time spent on various
 ## Core Features (v1.0)
 
 ### Time Tracking
+
 - Start/stop time tracking for a single activity
 - Manual time entry addition and editing
 - Time tracking in hours and minutes
@@ -21,12 +22,14 @@ Time Tracker is a desktop application that helps you track time spent on various
   - Option to extend tracking time if needed
 
 ### Activity Management
+
 - Create and manage activity categories
 - Add notes to time entries
 - Edit existing time entries
 - Delete time entries
 
 ### Analytics
+
 - Overview of total time spent per activity
 - Yearly time tracking summary
 - Monthly time tracking summary
@@ -34,11 +37,13 @@ Time Tracker is a desktop application that helps you track time spent on various
 - Tabular data presentation
 
 ### Data Storage
+
 - SQLite database for persistent storage
 - Automatic data saving
 - Local storage only (no cloud sync)
 
 ## Future Features
+
 - Multiple simultaneous activity tracking
 - System notifications for reminders
 - Data export functionality (CSV/JSON)
@@ -50,18 +55,20 @@ Time Tracker is a desktop application that helps you track time spent on various
 ## Technical Architecture
 
 ### Frontend
-- Electron for cross-platform desktop application
+
+- Web Application
 - React for UI components
 - Material-UI for consistent design
 - TypeScript for type safety
 
 ### Backend
-- SQLite for data storage
-- Node.js for application logic
+
+- IndexeDB for data storage
 - TypeScript for type safety
 
 ### Project Structure
-```
+
+```sh
 timetracker/
 ├── src/
 │   ├── main/           # Electron main process
@@ -70,17 +77,19 @@ timetracker/
 │   └── types/          # TypeScript type definitions
 ├── public/             # Static assets
 ├── package.json        # Project dependencies
-└── README.md          # Project documentation
+└── README.md           # Project documentation
 ```
 
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
 - npm or yarn
 - Git
 
 ### Installation
+
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Start development server: `npm run dev`
@@ -89,6 +98,7 @@ timetracker/
 ## Database Schema
 
 ### Activities
+
 - id (PRIMARY KEY)
 - name
 - category
@@ -96,6 +106,7 @@ timetracker/
 - updated_at
 
 ### TimeEntries
+
 - id (PRIMARY KEY)
 - activity_id (FOREIGN KEY)
 - start_time
@@ -106,6 +117,7 @@ timetracker/
 - updated_at
 
 ### Categories
+
 - id (PRIMARY KEY)
 - name
 - created_at
