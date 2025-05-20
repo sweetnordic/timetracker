@@ -231,6 +231,19 @@ class DatabaseService {
       throw error;
     }
   }
+
+  async getOpenTimeEntries(): Promise<TimeTrackerDB['timeEntries']['value'][]> {
+    if (!this.db) throw new Error('Database not initialized');
+    try {
+      const allEntries = await this.db.getAll('timeEntries');
+      return allEntries
+        .filter(entry => entry.end_time === null)
+        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+    } catch (error) {
+      console.error('Error getting open time entries:', error);
+      throw error;
+    }
+  }
 }
 
 export const db = new DatabaseService();

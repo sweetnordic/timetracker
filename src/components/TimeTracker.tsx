@@ -123,6 +123,12 @@ export const TimeTracker: React.FC = () => {
   useEffect(() => {
     const initDb = async () => {
       await db.init();
+
+      // Check for in-progress time entries first
+      const openEntries = await db.getOpenTimeEntries();
+      const inProgressEntry = openEntries[0]; // Get the most recent open entry
+
+      // Load activities
       const loadedActivities = await db.getActivities();
       const activitiesWithStats = await Promise.all(
         loadedActivities.map(async (activity) => ({
@@ -141,13 +147,7 @@ export const TimeTracker: React.FC = () => {
       setTrackingSettings(settings);
       setSettingsFormData(settings);
 
-      // Check for in-progress time entries
-      const allTimeEntries = await db.getTimeEntries();
-      const sortedEntries = allTimeEntries.sort((a, b) =>
-        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
-      );
-      const inProgressEntry = sortedEntries.find(entry => entry.end_time === null);
-
+      // Set up in-progress entry if found
       if (inProgressEntry) {
         const activity = activitiesWithStats.find(a => a.id === inProgressEntry.activity_id);
         if (activity) {
