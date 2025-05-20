@@ -102,6 +102,8 @@ timetracker/
 - id (PRIMARY KEY)
 - name
 - category
+- description
+- external_system
 - created_at
 - updated_at
 
