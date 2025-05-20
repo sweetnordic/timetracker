@@ -3,9 +3,9 @@ import type { DBSchema, IDBPDatabase } from 'idb';
 
 interface TimeTrackerDB extends DBSchema {
   activities: {
-    key: number;
+    key: string;
     value: {
-      id?: number;
+      id?: string;
       name: string;
       category: string;
       description: string;
@@ -16,10 +16,10 @@ interface TimeTrackerDB extends DBSchema {
     indexes: { 'by-category': string };
   };
   timeEntries: {
-    key: number;
+    key: string;
     value: {
-      id?: number;
-      activity_id: number;
+      id?: string;
+      activity_id: string;
       start_time: Date;
       end_time: Date | null;
       duration: number | null;
@@ -27,66 +27,67 @@ interface TimeTrackerDB extends DBSchema {
       created_at: Date;
       updated_at: Date;
     };
-    indexes: { 'by-activity': number; 'by-date': Date };
+    indexes: { 'by-activity': string; 'by-date': Date };
   };
   categories: {
-    key: number;
+    key: string;
     value: {
-      id?: number;
+      id?: string;
       name: string;
       created_at: Date;
       updated_at: Date;
     };
   };
   settings: {
-    id?: number;
-    max_duration: number; // in seconds
-    warning_threshold: number; // in seconds
-    created_at: Date;
-    updated_at: Date;
+    key: string;
+    value: {
+      id?: string;
+      max_duration: number; // in seconds
+      warning_threshold: number; // in seconds
+      created_at: Date;
+      updated_at: Date;
+    };
   };
 }
 
 class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
   private readonly DB_NAME = 'TimeTrackerDB';
-  private readonly DB_VERSION = 1;
+  private readonly DB_VERSION = 2; // Increment version to trigger upgrade
 
   async init(): Promise<void> {
     this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
-      upgrade(db) {
-        // Create activities store
-        const activitiesStore = db.createObjectStore('activities', {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
-        activitiesStore.createIndex('by-category', 'category');
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          // Create activities store
+          const activitiesStore = db.createObjectStore('activities', {
+            keyPath: 'id',
+          });
+          activitiesStore.createIndex('by-category', 'category');
 
-        // Create time entries store
-        const timeEntriesStore = db.createObjectStore('timeEntries', {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
-        timeEntriesStore.createIndex('by-activity', 'activity_id');
-        timeEntriesStore.createIndex('by-date', 'start_time');
+          // Create time entries store
+          const timeEntriesStore = db.createObjectStore('timeEntries', {
+            keyPath: 'id',
+          });
+          timeEntriesStore.createIndex('by-activity', 'activity_id');
+          timeEntriesStore.createIndex('by-date', 'start_time');
 
-        // Create categories store
-        db.createObjectStore('categories', {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
+          // Create categories store
+          db.createObjectStore('categories', {
+            keyPath: 'id',
+          });
 
-        // Create settings store
-        db.createObjectStore('settings', {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
+          // Create settings store
+          db.createObjectStore('settings', {
+            keyPath: 'id',
+          });
+        }
       },
     });
   }
 
   // Activity methods
-  async addActivity(activity: Omit<TimeTrackerDB['activities']['value'], 'id'>): Promise<number> {
+  async addActivity(activity: Omit<TimeTrackerDB['activities']['value'], 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     try {
       return await this.db.add('activities', {
@@ -125,7 +126,7 @@ class DatabaseService {
   }
 
   // Time entry methods
-  async addTimeEntry(entry: Omit<TimeTrackerDB['timeEntries']['value'], 'id'>): Promise<number> {
+  async addTimeEntry(entry: Omit<TimeTrackerDB['timeEntries']['value'], 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.add('timeEntries', entry);
   }
@@ -135,7 +136,7 @@ class DatabaseService {
     await this.db.put('timeEntries', entry);
   }
 
-  async deleteTimeEntry(entryId: number): Promise<void> {
+  async deleteTimeEntry(entryId: string): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.delete('timeEntries', entryId);
   }
@@ -145,13 +146,13 @@ class DatabaseService {
     return this.db.getAll('timeEntries');
   }
 
-  async getTimeEntriesByActivity(activityId: number): Promise<TimeTrackerDB['timeEntries']['value'][]> {
+  async getTimeEntriesByActivity(activityId: string): Promise<TimeTrackerDB['timeEntries']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     const index = this.db.transaction('timeEntries').store.index('by-activity');
     return index.getAll(activityId);
   }
 
-  async getTotalDurationByActivity(activityId: number): Promise<number> {
+  async getTotalDurationByActivity(activityId: string): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
     const entries = await this.getTimeEntriesByActivity(activityId);
     return entries.reduce((total, entry) => {
@@ -163,7 +164,7 @@ class DatabaseService {
   }
 
   // Category methods
-  async addCategory(category: Omit<TimeTrackerDB['categories']['value'], 'id'>): Promise<number> {
+  async addCategory(category: Omit<TimeTrackerDB['categories']['value'], 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.add('categories', category);
   }
@@ -183,6 +184,7 @@ class DatabaseService {
       if (settings.length === 0) {
         // Return default settings if none exist
         const defaultSettings = {
+          id: 'default',
           max_duration: 12 * 3600, // 12 hours in seconds
           warning_threshold: 3600, // 1 hour warning
           created_at: new Date(),
@@ -213,6 +215,7 @@ class DatabaseService {
       const settings = await this.db.getAll('settings');
       if (settings.length === 0) {
         await this.db.add('settings', {
+          id: 'default',
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
           created_at: new Date(),
@@ -223,6 +226,7 @@ class DatabaseService {
           id: settings[0].id,
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
+          created_at: settings[0].created_at,
           updated_at: new Date()
         });
       }

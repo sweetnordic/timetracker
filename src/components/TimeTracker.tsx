@@ -41,9 +41,10 @@ import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download,
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Activity {
-  id?: number;
+  id?: string;
   name: string;
   category: string;
   description: string;
@@ -53,8 +54,8 @@ interface Activity {
 }
 
 interface TimeEntry {
-  id?: number;
-  activity_id: number;
+  id?: string;
+  activity_id: string;
   start_time: Date;
   end_time: Date | null;
   duration: number | null;
@@ -139,6 +140,7 @@ export const TimeTracker: React.FC = () => {
     maxDuration: 12 * 3600,
     warningThreshold: 3600
   });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -357,7 +359,7 @@ export const TimeTracker: React.FC = () => {
     if (!selectedActivity) return;
 
     const entry: TimeEntry = {
-      id: editingEntry?.id || Date.now(),
+      id: editingEntry?.id || uuidv4(),
       activity_id: selectedActivity.id!,
       start_time: entryFormData.start_time,
       end_time: entryFormData.end_time,
@@ -461,7 +463,7 @@ export const TimeTracker: React.FC = () => {
 
     try {
       const activity: Activity = {
-        id: editingActivity?.id,
+        id: editingActivity?.id || uuidv4(),
         name: activityFormData.name,
         category: activityFormData.category,
         description: activityFormData.description,
@@ -489,7 +491,6 @@ export const TimeTracker: React.FC = () => {
       handleCloseActivityDialog();
     } catch (error) {
       console.error('Error saving activity:', error);
-      // You might want to show an error message to the user here
     }
   };
 
@@ -772,6 +773,37 @@ export const TimeTracker: React.FC = () => {
   const handleViewChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsMonthlyView(event.target.checked);
     await calculateStats();
+  };
+
+  const handleResetDatabase = async () => {
+    try {
+      await db.clearAllData();
+      // Reinitialize the database
+      await db.init();
+      // Refresh activities and categories
+      const loadedActivities = await db.getActivities();
+      const activitiesWithStats = await Promise.all(
+        loadedActivities.map(async (activity) => ({
+          ...activity,
+          totalDuration: await db.getTotalDurationByActivity(activity.id!),
+        }))
+      );
+      setActivities(activitiesWithStats);
+
+      const loadedCategories = await db.getCategories();
+      setCategories(loadedCategories.map(cat => cat.name));
+
+      // Reset tracking state
+      setIsTracking(false);
+      setCurrentActivity(null);
+      setStartTime(null);
+      setElapsedTime(0);
+
+      setShowResetConfirm(false);
+      setShowResetSuccess(true);
+    } catch (error) {
+      console.error('Error resetting database:', error);
+    }
   };
 
   return (
@@ -1225,6 +1257,14 @@ export const TimeTracker: React.FC = () => {
                   ref={fileInputRef}
                 />
               </Box>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setShowResetConfirm(true)}
+                fullWidth
+              >
+                Reset Database
+              </Button>
               {importError && (
                 <Alert severity="error" onClose={() => setImportError(null)}>
                   {importError}
@@ -1244,6 +1284,24 @@ export const TimeTracker: React.FC = () => {
           </DialogActions>
         </Dialog>
 
+        <Dialog
+          open={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+        >
+          <DialogTitle>Reset Database</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to reset the database? This will delete all activities, time entries, and categories. This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
+            <Button onClick={handleResetDatabase} color="error" variant="contained">
+              Reset Database
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         <Snackbar
           open={showResetSuccess}
           autoHideDuration={3000}
@@ -1255,7 +1313,7 @@ export const TimeTracker: React.FC = () => {
             severity="success"
             sx={{ width: '100%' }}
           >
-            Settings have been reset to defaults
+            Database has been reset successfully
           </Alert>
         </Snackbar>
 
@@ -1333,9 +1391,24 @@ export const TimeTracker: React.FC = () => {
                   )}
                 </>
               ) : (
-                <Typography>
-                  Please select a JSON file to import.
-                </Typography>
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                  <Typography gutterBottom>
+                    Please select a JSON file to import.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    component="label"
+                    startIcon={<Upload />}
+                  >
+                    Choose File
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
+                  </Button>
+                </Box>
               )}
               {importError && (
                 <Alert severity="error" onClose={() => setImportError(null)}>
