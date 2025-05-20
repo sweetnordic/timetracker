@@ -1585,45 +1585,47 @@ export const TimeTracker: React.FC = () => {
                   </Card>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Weekly Activity Breakdown
-                      </Typography>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>Activity</TableCell>
-                              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
-                                <TableCell key={day} align="right">{day}</TableCell>
-                              ))}
-                              <TableCell align="right">Total</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(weeklyStats.byActivity)
-                              .sort(([, a], [, b]) => b - a)
-                              .map(([activity, totalDuration]) => (
-                                <TableRow key={activity}>
-                                  <TableCell>{activity}</TableCell>
-                                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
-                                    <TableCell key={day} align="right">
-                                      {weeklyStats.dailyBreakdown[activity]?.[day]
-                                        ? formatDuration(weeklyStats.dailyBreakdown[activity][day])
-                                        : '-'}
-                                    </TableCell>
-                                  ))}
-                                  <TableCell align="right">{formatDuration(totalDuration)}</TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                {!isMonthlyView && (
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Weekly Activity Breakdown
+                        </Typography>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Activity</TableCell>
+                                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                                  <TableCell key={day} align="right">{day}</TableCell>
+                                ))}
+                                <TableCell align="right">Total</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {Object.entries(weeklyStats.byActivity)
+                                .sort(([, a], [, b]) => b - a)
+                                .map(([activity, totalDuration]) => (
+                                  <TableRow key={activity}>
+                                    <TableCell>{activity}</TableCell>
+                                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                                      <TableCell key={day} align="right">
+                                        {weeklyStats.dailyBreakdown[activity]?.[day]
+                                          ? formatDuration(weeklyStats.dailyBreakdown[activity][day])
+                                          : '-'}
+                                      </TableCell>
+                                    ))}
+                                    <TableCell align="right">{formatDuration(totalDuration)}</TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                )}
               </Grid>
             </Stack>
           </DialogContent>
