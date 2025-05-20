@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../database/db';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Stack,
+  MenuItem,
+  Divider
+} from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 
 interface Activity {
   id?: number;
@@ -69,57 +83,101 @@ export const ActivityManager: React.FC = () => {
   };
 
   return (
-    <div className="activity-manager">
-      <h2>Activity Manager</h2>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Activity Manager
+      </Typography>
 
-      <div className="category-section">
-        <h3>Categories</h3>
-        <form onSubmit={handleAddCategory}>
-          <input
-            type="text"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="New category name"
-          />
-          <button type="submit">Add Category</button>
-        </form>
-        <ul>
-          {categories.map((category) => (
-            <li key={category.id}>{category.name}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="activity-section">
-        <h3>Activities</h3>
-        <form onSubmit={handleAddActivity}>
-          <input
-            type="text"
-            value={newActivityName}
-            onChange={(e) => setNewActivityName(e.target.value)}
-            placeholder="New activity name"
-          />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="">Select a category</option>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
+        <Paper elevation={3} sx={{ p: 3, flex: 1 }}>
+          <Typography variant="h5" gutterBottom>
+            Categories
+          </Typography>
+          <Box component="form" onSubmit={handleAddCategory} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={2}>
+              <TextField
+                fullWidth
+                label="New category name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                variant="outlined"
+                size="small"
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={<AddIcon />}
+                disabled={!newCategoryName}
+              >
+                Add
+              </Button>
+            </Stack>
+          </Box>
+          <List>
             {categories.map((category) => (
-              <option key={category.id} value={category.name}>
-                {category.name}
-              </option>
+              <ListItem key={category.id}>
+                <ListItemText primary={category.name} />
+              </ListItem>
             ))}
-          </select>
-          <button type="submit">Add Activity</button>
-        </form>
-        <ul>
-          {activities.map((activity) => (
-            <li key={activity.id}>
-              {activity.name} ({activity.category})
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+          </List>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 3, flex: 1 }}>
+          <Typography variant="h5" gutterBottom>
+            Activities
+          </Typography>
+          <Box component="form" onSubmit={handleAddActivity} sx={{ mb: 3 }}>
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                label="New activity name"
+                value={newActivityName}
+                onChange={(e) => setNewActivityName(e.target.value)}
+                variant="outlined"
+                size="small"
+              />
+              <TextField
+                fullWidth
+                select
+                label="Category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                variant="outlined"
+                size="small"
+              >
+                <MenuItem value="">
+                  <em>Select a category</em>
+                </MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.name}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button
+                type="submit"
+                variant="contained"
+                startIcon={<AddIcon />}
+                disabled={!newActivityName || !selectedCategory}
+                fullWidth
+              >
+                Add Activity
+              </Button>
+            </Stack>
+          </Box>
+          <Divider sx={{ my: 2 }} />
+          <List>
+            {activities.map((activity) => (
+              <ListItem key={activity.id}>
+                <ListItemText
+                  primary={activity.name}
+                  secondary={`Category: ${activity.category}`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      </Stack>
+    </Box>
   );
 };

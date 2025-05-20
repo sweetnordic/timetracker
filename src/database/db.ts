@@ -97,6 +97,23 @@ class DatabaseService {
     return this.db.getAll('timeEntries');
   }
 
+  async getTimeEntriesByActivity(activityId: number): Promise<TimeTrackerDB['timeEntries']['value'][]> {
+    if (!this.db) throw new Error('Database not initialized');
+    const index = this.db.transaction('timeEntries').store.index('by-activity');
+    return index.getAll(activityId);
+  }
+
+  async getTotalDurationByActivity(activityId: number): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+    const entries = await this.getTimeEntriesByActivity(activityId);
+    return entries.reduce((total, entry) => {
+      if (entry.duration) {
+        return total + entry.duration;
+      }
+      return total;
+    }, 0);
+  }
+
   // Category methods
   async addCategory(category: Omit<TimeTrackerDB['categories']['value'], 'id'>): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
