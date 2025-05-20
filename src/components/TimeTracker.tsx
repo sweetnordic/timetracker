@@ -8,8 +8,6 @@ import {
   Button,
   List,
   ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Paper,
   CircularProgress,
   Dialog,
@@ -72,6 +70,27 @@ export const TimeTracker: React.FC = () => {
         }))
       );
       setActivities(activitiesWithStats);
+
+      // Check for in-progress time entries
+      const allTimeEntries = await db.getTimeEntries();
+      // Sort by start_time in descending order to get the most recent entry
+      const sortedEntries = allTimeEntries.sort((a, b) =>
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      );
+
+      // Find the most recent in-progress entry
+      const inProgressEntry = sortedEntries.find(entry => entry.end_time === null);
+
+      if (inProgressEntry) {
+        const activity = activitiesWithStats.find(a => a.id === inProgressEntry.activity_id);
+        if (activity) {
+          setCurrentActivity(activity);
+          setIsTracking(true);
+          setStartTime(new Date(inProgressEntry.start_time));
+          const elapsed = Math.floor((new Date().getTime() - new Date(inProgressEntry.start_time).getTime()) / 1000);
+          setElapsedTime(elapsed);
+        }
+      }
     };
     initDb();
   }, []);
@@ -116,16 +135,25 @@ export const TimeTracker: React.FC = () => {
     // Round to nearest 15 minutes (900 seconds)
     const roundedDuration = Math.round(duration / 900) * 900;
 
-    await db.updateTimeEntry({
-      id: currentActivity.id,
-      activity_id: currentActivity.id!,
-      start_time: startTime,
-      end_time: now,
-      duration: roundedDuration,
-      notes: '',
-      created_at: startTime,
-      updated_at: now,
-    });
+    // Get all time entries for the current activity
+    const activityEntries = await db.getTimeEntriesByActivity(currentActivity.id!);
+    // Find the most recent open entry
+    const openEntry = activityEntries
+      .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
+      .find(entry => entry.end_time === null);
+
+    if (openEntry) {
+      await db.updateTimeEntry({
+        id: openEntry.id,
+        activity_id: currentActivity.id!,
+        start_time: startTime,
+        end_time: now,
+        duration: roundedDuration,
+        notes: '',
+        created_at: startTime,
+        updated_at: now,
+      });
+    }
 
     // Update activities with new duration
     const updatedActivities = await Promise.all(
@@ -240,10 +268,12 @@ export const TimeTracker: React.FC = () => {
               component={Card}
               sx={{ mb: 2 }}
             >
-              <CardContent sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
-                <ListItemText
-                  primary={activity.name}
-                  secondary={
+              <CardContent sx={{ width: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      {activity.name}
+                    </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Typography variant="body2" color="text.secondary">
                         Category: {activity.category}
@@ -252,28 +282,27 @@ export const TimeTracker: React.FC = () => {
                         Total Time: {formatDuration(activity.totalDuration)}
                       </Typography>
                     </Box>
-                  }
-                />
-                <ListItemSecondaryAction sx={{ display: 'flex', gap: 1 }}>
-                  <Tooltip title="View History">
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleOpenDetail(activity)}
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                    <Tooltip title="View History">
+                      <IconButton
+                        onClick={() => handleOpenDetail(activity)}
+                        color="primary"
+                      >
+                        <History />
+                      </IconButton>
+                    </Tooltip>
+                    <Button
+                      variant="contained"
                       color="primary"
+                      startIcon={<PlayArrow />}
+                      onClick={() => startTracking(activity)}
+                      disabled={isTracking}
                     >
-                      <History />
-                    </IconButton>
-                  </Tooltip>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<PlayArrow />}
-                    onClick={() => startTracking(activity)}
-                    disabled={isTracking}
-                  >
-                    Start Tracking
-                  </Button>
-                </ListItemSecondaryAction>
+                      Start Tracking
+                    </Button>
+                  </Box>
+                </Box>
               </CardContent>
             </ListItem>
           ))}
