@@ -244,6 +244,21 @@ class DatabaseService {
       throw error;
     }
   }
+
+  async clearAllData(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    try {
+      await Promise.all([
+        this.db.clear('activities'),
+        this.db.clear('timeEntries'),
+        this.db.clear('categories'),
+        this.db.clear('settings')
+      ]);
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      throw error;
+    }
+  }
 }
 
 export const db = new DatabaseService();

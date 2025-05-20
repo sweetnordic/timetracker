@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../database/db';
 import {
   Box,
@@ -27,9 +27,14 @@ import {
   Stack,
   Alert,
   MenuItem,
-  Snackbar
+  Snackbar,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio
 } from '@mui/material';
-import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer } from '@mui/icons-material';
+import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -78,6 +83,13 @@ interface TrackingSettings {
   warningThreshold: number; // in seconds
 }
 
+interface ImportData {
+  activities: Activity[];
+  timeEntries: TimeEntry[];
+  categories: { id?: number; name: string; created_at: Date; updated_at: Date; }[];
+  exportDate: string;
+}
+
 export const TimeTracker: React.FC = () => {
   const [activities, setActivities] = useState<ActivityWithStats[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
@@ -119,6 +131,12 @@ export const TimeTracker: React.FC = () => {
   });
   const [showResetSuccess, setShowResetSuccess] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [showImportSuccess, setShowImportSuccess] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importMode, setImportMode] = useState<'clear' | 'merge'>('clear');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const initDb = async () => {
@@ -499,6 +517,170 @@ export const TimeTracker: React.FC = () => {
       ...prev,
       maxDuration: prev.maxDuration + prev.warningThreshold
     }));
+  };
+
+  const handleExportData = async () => {
+    try {
+      const [activities, timeEntries, categories] = await Promise.all([
+        db.getActivities(),
+        db.getTimeEntries(),
+        db.getCategories()
+      ]);
+
+      const exportData = {
+        activities,
+        timeEntries,
+        categories,
+        exportDate: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `timetracker-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    }
+  };
+
+  const validateImportData = (data: any): data is ImportData => {
+    if (!data || typeof data !== 'object') return false;
+    if (!Array.isArray(data.activities) || !Array.isArray(data.timeEntries) || !Array.isArray(data.categories)) return false;
+    if (typeof data.exportDate !== 'string') return false;
+
+    // Validate activities
+    for (const activity of data.activities) {
+      if (!activity.name || !activity.category) return false;
+    }
+
+    // Validate time entries
+    for (const entry of data.timeEntries) {
+      if (!entry.activity_id || !entry.start_time) return false;
+    }
+
+    // Validate categories
+    for (const category of data.categories) {
+      if (!category.name) return false;
+    }
+
+    return true;
+  };
+
+  const handleImportClick = () => {
+    setShowImportDialog(true);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImportFile(file);
+    }
+  };
+
+  const handleImportConfirm = async () => {
+    if (!importFile) return;
+
+    try {
+      const text = await importFile.text();
+      const data = JSON.parse(text);
+
+      if (!validateImportData(data)) {
+        setImportError('Invalid import file format');
+        return;
+      }
+
+      if (importMode === 'clear') {
+        await db.clearAllData();
+      }
+
+      // Get existing data for merging
+      const existingCategories = await db.getCategories();
+      const existingActivities = await db.getActivities();
+      const existingTimeEntries = await db.getTimeEntries();
+
+      // Import categories
+      for (const category of data.categories) {
+        // Skip if category already exists (when merging)
+        if (importMode === 'merge' && existingCategories.some(c => c.name === category.name)) {
+          continue;
+        }
+        await db.addCategory({
+          name: category.name,
+          created_at: new Date(category.created_at),
+          updated_at: new Date(category.updated_at)
+        });
+      }
+
+      // Import activities
+      for (const activity of data.activities) {
+        // Skip if activity already exists (when merging)
+        if (importMode === 'merge' && existingActivities.some(a =>
+          a.name === activity.name && a.category === activity.category
+        )) {
+          continue;
+        }
+        await db.addActivity({
+          name: activity.name,
+          category: activity.category,
+          description: activity.description || '',
+          external_system: activity.external_system || '',
+          created_at: new Date(activity.created_at),
+          updated_at: new Date(activity.updated_at)
+        });
+      }
+
+      // Import time entries
+      for (const entry of data.timeEntries) {
+        // Skip if time entry already exists (when merging)
+        if (importMode === 'merge' && existingTimeEntries.some(e =>
+          e.activity_id === entry.activity_id &&
+          new Date(e.start_time).getTime() === new Date(entry.start_time).getTime()
+        )) {
+          continue;
+        }
+        await db.addTimeEntry({
+          activity_id: entry.activity_id,
+          start_time: new Date(entry.start_time),
+          end_time: entry.end_time ? new Date(entry.end_time) : null,
+          duration: entry.duration,
+          notes: entry.notes || '',
+          created_at: new Date(entry.created_at),
+          updated_at: new Date(entry.updated_at)
+        });
+      }
+
+      // Refresh the UI
+      const loadedActivities = await db.getActivities();
+      const activitiesWithStats = await Promise.all(
+        loadedActivities.map(async (activity) => ({
+          ...activity,
+          totalDuration: await db.getTotalDurationByActivity(activity.id!),
+        }))
+      );
+      setActivities(activitiesWithStats);
+
+      const loadedCategories = await db.getCategories();
+      setCategories(loadedCategories.map(cat => cat.name));
+
+      setShowImportSuccess(true);
+      setImportError(null);
+      setShowImportDialog(false);
+      setImportFile(null);
+    } catch (error) {
+      console.error('Error importing data:', error);
+      setImportError('Error importing data. Please check the file format.');
+    }
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -922,6 +1104,36 @@ export const TimeTracker: React.FC = () => {
                 inputProps={{ min: 5, max: 60 }}
                 fullWidth
               />
+              <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Download />}
+                  onClick={handleExportData}
+                  fullWidth
+                >
+                  Export Data
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Upload />}
+                  onClick={handleImportClick}
+                  fullWidth
+                >
+                  Import Data
+                </Button>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  ref={fileInputRef}
+                />
+              </Box>
+              {importError && (
+                <Alert severity="error" onClose={() => setImportError(null)}>
+                  {importError}
+                </Alert>
+              )}
             </Stack>
           </DialogContent>
           <DialogActions>
@@ -965,6 +1177,104 @@ export const TimeTracker: React.FC = () => {
             Settings have been saved successfully
           </Alert>
         </Snackbar>
+
+        <Snackbar
+          open={showImportSuccess}
+          autoHideDuration={3000}
+          onClose={() => setShowImportSuccess(false)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setShowImportSuccess(false)}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            Data imported successfully
+          </Alert>
+        </Snackbar>
+
+        <Dialog
+          open={showImportDialog}
+          onClose={() => {
+            setShowImportDialog(false);
+            setImportFile(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+          }}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Import Data</DialogTitle>
+          <DialogContent>
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              {importFile ? (
+                <>
+                  <Typography>
+                    Selected file: {importFile.name}
+                  </Typography>
+                  <FormControl>
+                    <FormLabel>Import Mode</FormLabel>
+                    <RadioGroup
+                      value={importMode}
+                      onChange={(e) => setImportMode(e.target.value as 'clear' | 'merge')}
+                    >
+                      <FormControlLabel
+                        value="clear"
+                        control={<Radio />}
+                        label="Clear existing data and import"
+                      />
+                      <FormControlLabel
+                        value="merge"
+                        control={<Radio />}
+                        label="Merge with existing data"
+                      />
+                    </RadioGroup>
+                  </FormControl>
+                  {importMode === 'clear' && (
+                    <Alert severity="warning">
+                      This will delete all existing data before importing.
+                    </Alert>
+                  )}
+                  {importMode === 'merge' && (
+                    <Alert severity="info">
+                      Duplicate entries will be skipped during import.
+                    </Alert>
+                  )}
+                </>
+              ) : (
+                <Typography>
+                  Please select a JSON file to import.
+                </Typography>
+              )}
+              {importError && (
+                <Alert severity="error" onClose={() => setImportError(null)}>
+                  {importError}
+                </Alert>
+              )}
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setShowImportDialog(false);
+                setImportFile(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImportConfirm}
+              variant="contained"
+              disabled={!importFile}
+            >
+              Import
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Container>
   );
