@@ -8,6 +8,8 @@ interface TimeTrackerDB extends DBSchema {
       id?: number;
       name: string;
       category: string;
+      description: string;
+      external_system: string;
       created_at: Date;
       updated_at: Date;
     };
@@ -73,12 +75,40 @@ class DatabaseService {
   // Activity methods
   async addActivity(activity: Omit<TimeTrackerDB['activities']['value'], 'id'>): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
-    return this.db.add('activities', activity);
+    try {
+      return await this.db.add('activities', {
+        ...activity,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    } catch (error) {
+      console.error('Error adding activity:', error);
+      throw error;
+    }
+  }
+
+  async updateActivity(activity: TimeTrackerDB['activities']['value']): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!activity.id) throw new Error('Activity ID is required for update');
+    try {
+      await this.db.put('activities', {
+        ...activity,
+        updated_at: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      throw error;
+    }
   }
 
   async getActivities(): Promise<TimeTrackerDB['activities']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
-    return this.db.getAll('activities');
+    try {
+      return await this.db.getAll('activities');
+    } catch (error) {
+      console.error('Error getting activities:', error);
+      throw error;
+    }
   }
 
   // Time entry methods
@@ -90,6 +120,11 @@ class DatabaseService {
   async updateTimeEntry(entry: TimeTrackerDB['timeEntries']['value']): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.put('timeEntries', entry);
+  }
+
+  async deleteTimeEntry(entryId: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.delete('timeEntries', entryId);
   }
 
   async getTimeEntries(): Promise<TimeTrackerDB['timeEntries']['value'][]> {
