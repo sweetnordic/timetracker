@@ -403,10 +403,10 @@ export const TimeTracker: React.FC = () => {
     if (activity) {
       setEditingActivity(activity);
       setActivityFormData({
-        name: activity.name,
-        category: activity.category,
-        description: activity.description,
-        external_system: activity.external_system
+        name: activity.name || '',
+        category: activity.category || '',
+        description: activity.description || '',
+        external_system: activity.external_system || ''
       });
     } else {
       setEditingActivity(null);
@@ -423,6 +423,12 @@ export const TimeTracker: React.FC = () => {
   const handleCloseActivityDialog = () => {
     setIsActivityDialogOpen(false);
     setEditingActivity(null);
+    setActivityFormData({
+      name: '',
+      category: '',
+      description: '',
+      external_system: ''
+    });
   };
 
   const handleActivityFormChange = (field: keyof ActivityFormData, value: string) => {
@@ -573,13 +579,23 @@ export const TimeTracker: React.FC = () => {
 
   const handleImportClick = () => {
     setShowImportDialog(true);
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Reset the input value
+    }
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImportFile(file);
+    }
+  };
+
+  const handleCloseImportDialog = () => {
+    setShowImportDialog(false);
+    setImportFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Reset the input value
     }
   };
 
@@ -1195,13 +1211,7 @@ export const TimeTracker: React.FC = () => {
 
         <Dialog
           open={showImportDialog}
-          onClose={() => {
-            setShowImportDialog(false);
-            setImportFile(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }}
+          onClose={handleCloseImportDialog}
           maxWidth="sm"
           fullWidth
         >
@@ -1255,15 +1265,7 @@ export const TimeTracker: React.FC = () => {
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button
-              onClick={() => {
-                setShowImportDialog(false);
-                setImportFile(null);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = '';
-                }
-              }}
-            >
+            <Button onClick={handleCloseImportDialog}>
               Cancel
             </Button>
             <Button
