@@ -180,6 +180,7 @@ export const TimeTracker: React.FC = () => {
     activity: Activity;
     goal: GoalWithProgress;
     timestamp: Date;
+    isCompletion?: boolean;
   } | null>(null);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [notificationHistory, setNotificationHistory] = useState<Array<{
@@ -187,6 +188,7 @@ export const TimeTracker: React.FC = () => {
     activity: Activity;
     goal: GoalWithProgress;
     timestamp: Date;
+    isCompletion?: boolean;
   }>>([]);
 
   useEffect(() => {
@@ -265,6 +267,7 @@ export const TimeTracker: React.FC = () => {
             const progress = await db.getGoalProgress(goal.id!);
             const progressPercentage = (progress / goal.target_hours) * 100;
 
+            // Check for threshold notification
             if (progressPercentage >= goal.notification_threshold &&
                 progressPercentage < goal.notification_threshold + 1) {
               const notification = {
@@ -278,7 +281,24 @@ export const TimeTracker: React.FC = () => {
                 timestamp: new Date()
               };
               setGoalNotification(notification);
-              setNotificationHistory(prev => [notification, ...prev].slice(0, 50)); // Keep last 50 notifications
+              setNotificationHistory(prev => [notification, ...prev].slice(0, 50));
+            }
+
+            // Check for goal completion notification
+            if (progressPercentage >= 100 && progressPercentage < 100.1) {
+              const notification = {
+                id: uuidv4(),
+                activity: currentActivity,
+                goal: {
+                  ...goal,
+                  progress,
+                  progressPercentage
+                },
+                timestamp: new Date(),
+                isCompletion: true
+              };
+              setGoalNotification(notification);
+              setNotificationHistory(prev => [notification, ...prev].slice(0, 50));
             }
           }
         }
@@ -1859,11 +1879,13 @@ export const TimeTracker: React.FC = () => {
         >
           <Alert
             onClose={() => setGoalNotification(null)}
-            severity="success"
+            severity={goalNotification?.isCompletion ? "success" : "info"}
             sx={{ width: '100%' }}
           >
-            Goal Progress Alert! You reached {goalNotification?.goal.progressPercentage.toFixed(1)}% of your{' '}
-            {goalNotification?.goal.period} goal for {goalNotification?.activity.name}
+            {goalNotification?.isCompletion
+              ? `🎉 Congratulations! You've completed your ${goalNotification.goal.period} goal for ${goalNotification.activity.name}!`
+              : `Goal Progress Alert! You reached ${goalNotification?.goal.progressPercentage.toFixed(1)}% of your ${goalNotification?.goal.period} goal for ${goalNotification?.activity.name}`
+            }
           </Alert>
         </Snackbar>
 
@@ -2366,13 +2388,13 @@ export const TimeTracker: React.FC = () => {
                 notificationHistory.map((notification) => (
                   <Paper key={notification.id} sx={{ p: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
-                      Goal Progress Alert!
+                      {notification.isCompletion ? "🎉 Goal Completed!" : "Goal Progress Alert!"}
                     </Typography>
                     <Typography variant="body2">
-                      You reached{' '}
-                      {notification.goal.progressPercentage.toFixed(1)}% of your{' '}
-                      {notification.goal.period} goal for{' '}
-                      {notification.activity.name}
+                      {notification.isCompletion
+                        ? `You've completed your ${notification.goal.period} goal for ${notification.activity.name}!`
+                        : `You reached ${notification.goal.progressPercentage.toFixed(1)}% of your ${notification.goal.period} goal for ${notification.activity.name}`
+                      }
                     </Typography>
                     <Typography variant="body2">
                       {formatDuration(notification.goal.progress * 3600)} /{' '}
