@@ -34,35 +34,15 @@ import {
   FormControlLabel,
   Radio,
   Grid,
-  Divider,
   Switch
 } from '@mui/material';
 import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload, BarChart } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import type { Activity, TrackingSettings, ImportData, TimeEntry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-interface Activity {
-  id?: string;
-  name: string;
-  category: string;
-  description: string;
-  external_system: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-interface TimeEntry {
-  id?: string;
-  activity_id: string;
-  start_time: Date;
-  end_time: Date | null;
-  duration: number | null;
-  notes: string;
-  created_at: Date;
-  updated_at: Date;
-}
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;
@@ -82,18 +62,6 @@ interface ActivityFormData {
   external_system: string;
 }
 
-interface TrackingSettings {
-  maxDuration: number; // in seconds
-  warningThreshold: number; // in seconds
-  firstDayOfWeek: 'monday' | 'sunday';
-}
-
-interface ImportData {
-  activities: Activity[];
-  timeEntries: TimeEntry[];
-  categories: { id?: number; name: string; created_at: Date; updated_at: Date; }[];
-  exportDate: string;
-}
 
 interface WeeklyStats {
   totalTime: number;
@@ -477,6 +445,7 @@ export const TimeTracker: React.FC = () => {
         category: activityFormData.category,
         description: activityFormData.description,
         external_system: activityFormData.external_system,
+        order: editingActivity?.order || 0,
         created_at: editingActivity?.created_at || new Date(),
         updated_at: new Date()
       };
@@ -653,6 +622,7 @@ export const TimeTracker: React.FC = () => {
         }
         await db.addCategory({
           name: category.name,
+          order: category.order || 0,
           created_at: new Date(category.created_at),
           updated_at: new Date(category.updated_at)
         });
@@ -671,6 +641,7 @@ export const TimeTracker: React.FC = () => {
           category: activity.category,
           description: activity.description || '',
           external_system: activity.external_system || '',
+          order: activity.order || 0,
           created_at: new Date(activity.created_at),
           updated_at: new Date(activity.updated_at)
         });

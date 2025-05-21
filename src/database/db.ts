@@ -1,7 +1,19 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
+import { v4 as uuidv4 } from 'uuid';
+
 
 interface TimeTrackerDB extends DBSchema {
+  categories: {
+    key: string;
+    value: {
+      id?: string;
+      name: string;
+      order: number;
+      created_at: Date;
+      updated_at: Date;
+    };
+  };
   activities: {
     key: string;
     value: {
@@ -10,6 +22,7 @@ interface TimeTrackerDB extends DBSchema {
       category: string;
       description: string;
       external_system: string;
+      order: number;
       created_at: Date;
       updated_at: Date;
     };
@@ -29,15 +42,6 @@ interface TimeTrackerDB extends DBSchema {
     };
     indexes: { 'by-activity': string; 'by-date': Date };
   };
-  categories: {
-    key: string;
-    value: {
-      id?: string;
-      name: string;
-      created_at: Date;
-      updated_at: Date;
-    };
-  };
   settings: {
     key: string;
     value: {
@@ -54,7 +58,7 @@ interface TimeTrackerDB extends DBSchema {
 class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
   private readonly DB_NAME = 'TimeTrackerDB';
-  private readonly DB_VERSION = 2; // Increment version to trigger upgrade
+  private readonly DB_VERSION = 1; // Increment version to trigger upgrade
 
   async init(): Promise<void> {
     this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
@@ -99,9 +103,10 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     try {
       return await this.db.add('activities', {
+        id: uuidv4(),
         ...activity,
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: activity.created_at || new Date(),
+        updated_at: activity.updated_at || new Date(),
       });
     } catch (error) {
       console.error('Error adding activity:', error);
@@ -136,7 +141,12 @@ class DatabaseService {
   // Time entry methods
   async addTimeEntry(entry: Omit<TimeTrackerDB['timeEntries']['value'], 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    return this.db.add('timeEntries', entry);
+    return this.db.add('timeEntries', {
+      id: uuidv4(),
+      ...entry,
+      created_at: entry.created_at || new Date(),
+      updated_at: entry.updated_at || new Date()
+    });
   }
 
   async updateTimeEntry(entry: TimeTrackerDB['timeEntries']['value']): Promise<void> {
@@ -174,7 +184,12 @@ class DatabaseService {
   // Category methods
   async addCategory(category: Omit<TimeTrackerDB['categories']['value'], 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    return this.db.add('categories', category);
+    return this.db.add('categories', {
+      id: uuidv4(),
+      ...category,
+      created_at: category.created_at || new Date(),
+      updated_at: category.updated_at || new Date(),
+    });
   }
 
   async getCategories(): Promise<TimeTrackerDB['categories']['value'][]> {

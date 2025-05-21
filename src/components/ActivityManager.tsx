@@ -14,21 +14,8 @@ import {
   Divider
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
+import type { Activity, Category } from '../types';
 
-interface Activity {
-  id?: number;
-  name: string;
-  category: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-interface Category {
-  id?: number;
-  name: string;
-  created_at: Date;
-  updated_at: Date;
-}
 
 export const ActivityManager: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -55,6 +42,9 @@ export const ActivityManager: React.FC = () => {
     const newActivity: Omit<Activity, 'id'> = {
       name: newActivityName,
       category: selectedCategory,
+      description: '',
+      external_system: '',
+      order: 0,
       created_at: now,
       updated_at: now,
     };
@@ -72,6 +62,7 @@ export const ActivityManager: React.FC = () => {
     const now = new Date();
     const newCategory: Omit<Category, 'id'> = {
       name: newCategoryName,
+      order: 1,
       created_at: now,
       updated_at: now,
     };
