@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../database/db';
+import { DatabaseService } from '../database/db';
 import {
   Box,
   Typography,
@@ -17,7 +17,11 @@ import { Add as AddIcon } from '@mui/icons-material';
 import type { Activity, Category } from '../database/types';
 import { DEFAULT_ORDER } from '../database/types';
 
-export const ActivityManager: React.FC = () => {
+interface ActivityManagerProps {
+  db: DatabaseService;
+}
+
+export const ActivityManager: React.FC<ActivityManagerProps> = ({ db }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [newActivityName, setNewActivityName] = useState('');
@@ -26,13 +30,15 @@ export const ActivityManager: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      await db.init();
+
       const loadedActivities = await db.getActivities();
       const loadedCategories = await db.getCategories();
       setActivities(loadedActivities);
       setCategories(loadedCategories);
     };
     loadData();
-  }, []);
+  }, [db]);
 
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();

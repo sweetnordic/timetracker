@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { TimeTracker } from './components/TimeTracker'
-import { ActivityManager } from './components/ActivityManager'
-import { HelpCenter } from './components/HelpCenter'
+import { useEffect, useState } from 'react';
+import { TimeTracker } from './components/TimeTracker';
+import { ActivityManager } from './components/ActivityManager';
+import { HelpCenter } from './components/HelpCenter';
 import {
   AppBar,
   Toolbar,
@@ -14,13 +14,11 @@ import {
   createTheme,
   CssBaseline,
   IconButton,
-  Tooltip
-} from '@mui/material'
-import {
-  Timer,
-  Help as HelpIcon
-} from '@mui/icons-material';
-import './App.css'
+  Tooltip,
+} from '@mui/material';
+import { Timer, Help as HelpIcon } from '@mui/icons-material';
+import './App.css';
+import { db } from './database/db';
 
 const theme = createTheme({
   palette: {
@@ -53,14 +51,28 @@ const theme = createTheme({
       },
     }, **/
   },
-})
+});
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'tracker' | 'manager' | 'help'>('tracker')
+  const [activeTab, setActiveTab] = useState<'tracker' | 'manager' | 'help'>( 'tracker' );
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: 'tracker' | 'manager' | 'help') => {
-    setActiveTab(newValue)
-  }
+  useEffect(() => {
+    const initializeDb = async () => {
+      try {
+        await db.init();
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+      }
+    };
+    initializeDb();
+  }, []);
+
+  const handleTabChange = (
+    _: React.SyntheticEvent,
+    newValue: 'tracker' | 'manager' | 'help'
+  ) => {
+    setActiveTab(newValue);
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -97,9 +109,9 @@ function App() {
 
           <Box sx={{ mt: 2 }}>
             {activeTab === 'tracker' ? (
-              <TimeTracker />
+              <TimeTracker db={db} />
             ) : activeTab === 'manager' ? (
-              <ActivityManager />
+              <ActivityManager db={db} />
             ) : (
               <HelpCenter />
             )}
@@ -110,4 +122,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../database/db';
+import { DatabaseService } from '../database/db';
 import {
   Box,
   Card,
@@ -41,11 +41,15 @@ import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress } from '../database/types';
+import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress, WeeklyStats, FirstDayOfWeek, Period } from '../database/types';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../database/types';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK, WEEKDAYS } from '../database/types';
 import { WorkScheduleConfig } from './WorkScheduleConfig';
 import { OffTimeManager } from './OffTimeManager';
+
+interface TimeTrackerProps {
+  db: DatabaseService;
+}
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;
@@ -65,44 +69,12 @@ interface ActivityFormData {
   external_system: string;
   goal?: {
     target_hours: number;
-    period: 'daily' | 'weekly' | 'monthly';
+    period: Period;
     notification_threshold: number;
   };
 }
 
-
-interface WeeklyStats {
-  totalTime: number;
-  byActivity: { [key: string]: number };
-  byCategory: { [key: string]: number };
-  byExternalSystem: { [key: string]: number };
-  dailyBreakdown: {
-    [key: string]: { // activity name
-      [key: string]: number // day of week -> duration
-    }
-  };
-  goalStats: {
-    totalGoals: number;
-    completedGoals: number;
-    inProgressGoals: number;
-    byPeriod: {
-      daily: { total: number; completed: number };
-      weekly: { total: number; completed: number };
-      monthly: { total: number; completed: number };
-    };
-    byActivity: {
-      [key: string]: {
-        name: string;
-        target: number;
-        progress: number;
-        percentage: number;
-        period: 'daily' | 'weekly' | 'monthly';
-      };
-    };
-  };
-}
-
-export const TimeTracker: React.FC = () => {
+export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
   const [activities, setActivities] = useState<ActivityWithStats[]>([]);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -134,7 +106,7 @@ export const TimeTracker: React.FC = () => {
   const [trackingSettings, setTrackingSettings] = useState<TrackingSettings>({
     maxDuration: 12 * 3600, // 12 hours in seconds
     warningThreshold: 3600, // 1 hour warning
-    firstDayOfWeek: 'monday',
+    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
   });
@@ -143,7 +115,7 @@ export const TimeTracker: React.FC = () => {
   const [settingsFormData, setSettingsFormData] = useState<TrackingSettings>({
     maxDuration: 12 * 3600,
     warningThreshold: 3600,
-    firstDayOfWeek: 'monday',
+    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
   });
@@ -247,7 +219,7 @@ export const TimeTracker: React.FC = () => {
       setGoals(goalsWithProgress);
     };
     initDb();
-  }, []);
+  }, [db]);
 
   useEffect(() => {
     let interval: number;
@@ -312,7 +284,7 @@ export const TimeTracker: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTracking, startTime, trackingSettings, currentActivity, goals]);
+  }, [isTracking, startTime, trackingSettings, currentActivity, goals, db]);
 
   const startTracking = async (activity: Activity) => {
     if (isTracking) return;
@@ -543,7 +515,7 @@ export const TimeTracker: React.FC = () => {
     });
   };
 
-  const handleActivityFormChange = (field: keyof ActivityFormData, value: string | { target_hours?: number; period?: 'daily' | 'weekly' | 'monthly'; notification_threshold?: number }) => {
+  const handleActivityFormChange = (field: keyof ActivityFormData, value: string | { target_hours?: number; period?: Period; notification_threshold?: number }) => {
     setActivityFormData(prev => ({
       ...prev,
       [field]: value
@@ -657,7 +629,7 @@ export const TimeTracker: React.FC = () => {
     const defaultSettings = {
       maxDuration: 12 * 3600, // 12 hours in seconds
       warningThreshold: 3600, // 1 hour warning
-      firstDayOfWeek: 'monday' as const,
+      firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
       defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
       notificationsEnabled: true
     };
@@ -931,7 +903,7 @@ export const TimeTracker: React.FC = () => {
     } else {
       startDate = new Date(now);
       const day = startDate.getDay();
-      const diff = trackingSettings.firstDayOfWeek === 'monday'
+      const diff = trackingSettings.firstDayOfWeek === DEFAULT_FIRST_DAY_OF_WEEK
         ? (day === 0 ? -6 : 1 - day) // If Sunday, go back 6 days, otherwise go back to Monday
         : -day; // Go back to Sunday
       startDate.setDate(now.getDate() + diff);
@@ -963,8 +935,6 @@ export const TimeTracker: React.FC = () => {
       }
     };
 
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
     for (const entry of filteredEntries) {
       if (entry.duration) {
         stats.totalTime += entry.duration;
@@ -980,7 +950,7 @@ export const TimeTracker: React.FC = () => {
 
           // Update daily breakdown
           const entryDate = new Date(entry.start_time);
-          const dayOfWeek = daysOfWeek[entryDate.getDay()];
+          const dayOfWeek = WEEKDAYS[entryDate.getDay()];
 
           if (!stats.dailyBreakdown[activity.name]) {
             stats.dailyBreakdown[activity.name] = {};
@@ -1600,10 +1570,7 @@ export const TimeTracker: React.FC = () => {
                     onChange={(e) =>
                       handleActivityFormChange('goal', {
                         ...activityFormData.goal,
-                        period: e.target.value as
-                          | 'daily'
-                          | 'weekly'
-                          | 'monthly',
+                        period: e.target.value as Period,
                       })
                     }
                     fullWidth
@@ -1675,10 +1642,14 @@ export const TimeTracker: React.FC = () => {
               <Typography variant="h6">Work Schedule</Typography>
               <WorkScheduleConfig />
 
-              <Typography variant="h6" sx={{ mt: 4 }}>Off-time Management</Typography>
+              <Typography variant="h6" sx={{ mt: 4 }}>
+                Off-time Management
+              </Typography>
               <OffTimeManager />
 
-              <Typography variant="h6" sx={{ mt: 4 }}>Tracking Settings</Typography>
+              <Typography variant="h6" sx={{ mt: 4 }}>
+                Tracking Settings
+              </Typography>
               <TextField
                 label="Maximum Tracking Duration (hours)"
                 type="number"
@@ -1726,7 +1697,7 @@ export const TimeTracker: React.FC = () => {
                   onChange={(e) =>
                     setSettingsFormData((prev) => ({
                       ...prev,
-                      firstDayOfWeek: e.target.value as 'monday' | 'sunday',
+                      firstDayOfWeek: e.target.value as FirstDayOfWeek,
                     }))
                   }
                 >
@@ -1888,13 +1859,16 @@ export const TimeTracker: React.FC = () => {
         >
           <Alert
             onClose={() => setGoalNotification(null)}
-            severity={goalNotification?.isCompletion ? "success" : "info"}
+            severity={goalNotification?.isCompletion ? 'success' : 'info'}
             sx={{ width: '100%' }}
           >
             {goalNotification?.isCompletion
               ? `🎉 Congratulations! You've completed your ${goalNotification.goal.period} goal for ${goalNotification.activity.name}!`
-              : `Goal Progress Alert! You reached ${goalNotification?.goal.progressPercentage.toFixed(1)}% of your ${goalNotification?.goal.period} goal for ${goalNotification?.activity.name}`
-            }
+              : `Goal Progress Alert! You reached ${goalNotification?.goal.progressPercentage.toFixed(
+                  1
+                )}% of your ${goalNotification?.goal.period} goal for ${
+                  goalNotification?.activity.name
+                }`}
           </Alert>
         </Snackbar>
 
@@ -2027,7 +2001,7 @@ export const TimeTracker: React.FC = () => {
               </Card>
 
               <Grid container spacing={2}>
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -2059,7 +2033,7 @@ export const TimeTracker: React.FC = () => {
                   </Card>
                 </Grid>
 
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -2091,7 +2065,7 @@ export const TimeTracker: React.FC = () => {
                   </Card>
                 </Grid>
 
-                <Grid size={{xs:12}}>
+                <Grid size={{ xs: 12 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -2132,7 +2106,7 @@ export const TimeTracker: React.FC = () => {
                 </Grid>
 
                 {!isMonthlyView && (
-                  <Grid size={{xs:12}}>
+                  <Grid size={{ xs: 12 }}>
                     <Card>
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
@@ -2143,15 +2117,7 @@ export const TimeTracker: React.FC = () => {
                             <TableHead>
                               <TableRow>
                                 <TableCell>Activity</TableCell>
-                                {[
-                                  'Sunday',
-                                  'Monday',
-                                  'Tuesday',
-                                  'Wednesday',
-                                  'Thursday',
-                                  'Friday',
-                                  'Saturday',
-                                ].map((day) => (
+                                {WEEKDAYS.map((day) => (
                                   <TableCell key={day} align="right">
                                     {day}
                                   </TableCell>
@@ -2165,15 +2131,7 @@ export const TimeTracker: React.FC = () => {
                                 .map(([activity, totalDuration]) => (
                                   <TableRow key={activity}>
                                     <TableCell>{activity}</TableCell>
-                                    {[
-                                      'Sunday',
-                                      'Monday',
-                                      'Tuesday',
-                                      'Wednesday',
-                                      'Thursday',
-                                      'Friday',
-                                      'Saturday',
-                                    ].map((day) => (
+                                    {WEEKDAYS.map((day) => (
                                       <TableCell key={day} align="right">
                                         {weeklyStats.dailyBreakdown[activity]?.[
                                           day
@@ -2207,7 +2165,7 @@ export const TimeTracker: React.FC = () => {
                     Goal Statistics
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid size={{xs:12, md:4}}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography variant="h4" color="primary">
                           {weeklyStats.goalStats.completedGoals}
@@ -2217,7 +2175,7 @@ export const TimeTracker: React.FC = () => {
                         </Typography>
                       </Paper>
                     </Grid>
-                    <Grid size={{xs:12, md:4}}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography variant="h4" color="primary">
                           {weeklyStats.goalStats.inProgressGoals}
@@ -2227,7 +2185,7 @@ export const TimeTracker: React.FC = () => {
                         </Typography>
                       </Paper>
                     </Grid>
-                    <Grid size={{xs:12, md:4}}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography variant="h4" color="primary">
                           {weeklyStats.goalStats.totalGoals}
@@ -2246,7 +2204,7 @@ export const TimeTracker: React.FC = () => {
                     <Grid container spacing={2}>
                       {Object.entries(weeklyStats.goalStats.byPeriod).map(
                         ([period, stats]) => (
-                          <Grid size={{xs:12, md:4}} key={period}>
+                          <Grid size={{ xs: 12, md: 4 }} key={period}>
                             <Paper sx={{ p: 2 }}>
                               <Typography variant="subtitle2" gutterBottom>
                                 {period.charAt(0).toUpperCase() +
@@ -2397,13 +2355,18 @@ export const TimeTracker: React.FC = () => {
                 notificationHistory.map((notification) => (
                   <Paper key={notification.id} sx={{ p: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
-                      {notification.isCompletion ? "🎉 Goal Completed!" : "Goal Progress Alert!"}
+                      {notification.isCompletion
+                        ? '🎉 Goal Completed!'
+                        : 'Goal Progress Alert!'}
                     </Typography>
                     <Typography variant="body2">
                       {notification.isCompletion
                         ? `You've completed your ${notification.goal.period} goal for ${notification.activity.name}!`
-                        : `You reached ${notification.goal.progressPercentage.toFixed(1)}% of your ${notification.goal.period} goal for ${notification.activity.name}`
-                      }
+                        : `You reached ${notification.goal.progressPercentage.toFixed(
+                            1
+                          )}% of your ${notification.goal.period} goal for ${
+                            notification.activity.name
+                          }`}
                     </Typography>
                     <Typography variant="body2">
                       {formatDuration(notification.goal.progress * 3600)} /{' '}

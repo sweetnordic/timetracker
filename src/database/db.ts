@@ -2,14 +2,16 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  DEFAULT_SCHEDULE,
+  DEFAULT_SETTINGS,
   DEFAULT_ORDER,
-  DEFAULT_NOTIFICATION_THRESHOLD,
   type OffTime,
   type WorkSchedule,
   type Category,
   type Activity,
   type TimeEntry,
   type Goal,
+  type FirstDayOfWeek,
 } from './types';
 
 interface TimeTrackerDB extends DBSchema {
@@ -68,7 +70,7 @@ export const DB_NAME = 'TimeTrackerDB';
  */
 export const DB_VERSION = 1;
 
-class DatabaseService {
+export class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
   private readonly DB_NAME = DB_NAME;
   private readonly DB_VERSION = DB_VERSION;
@@ -123,66 +125,7 @@ class DatabaseService {
           offTimeStore.createIndex('by-date', 'start_date');
 
           // Initialize default work schedule
-          const defaultSchedule: WorkSchedule[] = [
-            {
-              day_of_week: 1,
-              start_time: '09:00',
-              end_time: '17:00',
-              is_workday: true,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Monday
-            {
-              day_of_week: 2,
-              start_time: '09:00',
-              end_time: '17:00',
-              is_workday: true,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Tuesday
-            {
-              day_of_week: 3,
-              start_time: '09:00',
-              end_time: '17:00',
-              is_workday: true,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Wednesday
-            {
-              day_of_week: 4,
-              start_time: '09:00',
-              end_time: '17:00',
-              is_workday: true,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Thursday
-            {
-              day_of_week: 5,
-              start_time: '09:00',
-              end_time: '17:00',
-              is_workday: true,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Friday
-            {
-              day_of_week: 6,
-              start_time: '00:00',
-              end_time: '00:00',
-              is_workday: false,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Saturday
-            {
-              day_of_week: 0,
-              start_time: '00:00',
-              end_time: '00:00',
-              is_workday: false,
-              created_at: new Date(),
-              updated_at: new Date(),
-            }, // Sunday
-          ];
-
-          for (const schedule of defaultSchedule) {
+          for (const schedule of DEFAULT_SCHEDULE) {
             workSchedulesStore.add(schedule);
           }
         }
@@ -343,19 +286,8 @@ class DatabaseService {
     try {
       const settings = await this.db.getAll('settings');
       if (settings.length === 0) {
-        // Return default settings if none exist
-        const defaultSettings = {
-          id: 'default',
-          max_duration: 12 * 3600, // 12 hours in seconds
-          warning_threshold: 3600, // 1 hour warning
-          first_day_of_week: 'monday' as const,
-          default_goal_notification_threshold: DEFAULT_NOTIFICATION_THRESHOLD,
-          notifications_enabled: true,
-          created_at: new Date(),
-          updated_at: new Date(),
-        };
         try {
-          await this.db.add('settings', defaultSettings);
+          await this.db.add('settings', DEFAULT_SETTINGS);
         } catch (error) {
           // If settings already exist, try to get them
           const existingSettings = await this.db.getAll('settings');
@@ -372,12 +304,12 @@ class DatabaseService {
           throw error;
         }
         return {
-          maxDuration: defaultSettings.max_duration,
-          warningThreshold: defaultSettings.warning_threshold,
-          firstDayOfWeek: defaultSettings.first_day_of_week,
+          maxDuration: DEFAULT_SETTINGS.max_duration,
+          warningThreshold: DEFAULT_SETTINGS.warning_threshold,
+          firstDayOfWeek: DEFAULT_SETTINGS.first_day_of_week,
           defaultGoalNotificationThreshold:
-            defaultSettings.default_goal_notification_threshold,
-          notificationsEnabled: defaultSettings.notifications_enabled,
+            DEFAULT_SETTINGS.default_goal_notification_threshold,
+          notificationsEnabled: DEFAULT_SETTINGS.notifications_enabled,
         };
       }
       return {
@@ -397,7 +329,7 @@ class DatabaseService {
   async updateTrackingSettings(
     maxDuration: number,
     warningThreshold: number,
-    firstDayOfWeek: 'monday' | 'sunday',
+    firstDayOfWeek: FirstDayOfWeek,
     defaultGoalNotificationThreshold: number,
     notificationsEnabled: boolean
   ): Promise<void> {
