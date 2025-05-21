@@ -1,4 +1,5 @@
 export const DEFAULT_ORDER: number = 1;
+export const DEFAULT_NOTIFICATION_THRESHOLD: number = 90;
 
 export interface Activity {
   id?: string;
@@ -6,9 +7,9 @@ export interface Activity {
   category: string;
   description: string;
   external_system: string;
+  order: number;
   created_at: Date;
   updated_at: Date;
-  order: number;
 }
 
 export interface Category {
@@ -34,6 +35,8 @@ export interface TrackingSettings {
   maxDuration: number; // in seconds
   warningThreshold: number; // in seconds
   firstDayOfWeek: 'monday' | 'sunday';
+  defaultGoalNotificationThreshold: number; // percentage (0-100)
+  notificationsEnabled: boolean;
 }
 
 export interface ImportData {
@@ -42,4 +45,19 @@ export interface ImportData {
   categories: Category[];
   exportDate: string;
   databaseVersion: number;
+}
+
+export interface Goal {
+  id?: string;
+  activity_id: string;
+  target_hours: number;
+  period: 'daily' | 'weekly' | 'monthly';
+  notification_threshold: number; // percentage (0-100)
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface GoalWithProgress extends Goal {
+  progress: number;
+  progressPercentage: number;
 }

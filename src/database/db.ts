@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER } from '../types';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../types';
 
 interface TimeTrackerDB extends DBSchema {
   categories: {
@@ -52,9 +52,24 @@ interface TimeTrackerDB extends DBSchema {
       max_duration: number; // in seconds
       warning_threshold: number; // in seconds
       first_day_of_week: 'monday' | 'sunday';
+      default_goal_notification_threshold: number; // percentage (0-100)
+      notifications_enabled: boolean; // new field
       created_at: Date;
       updated_at: Date;
     };
+  };
+  goals: {
+    key: string;
+    value: {
+      id?: string;
+      activity_id: string;
+      target_hours: number;
+      period: 'daily' | 'weekly' | 'monthly';
+      notification_threshold: number; // percentage (0-100)
+      created_at: Date;
+      updated_at: Date;
+    };
+    indexes: { 'by-activity': string };
   };
 }
 
@@ -66,7 +81,7 @@ export const DB_NAME = 'TimeTrackerDB';
 /**
  * Version of the Database to trigger upgrades
  */
-export const DB_VERSION = 2;
+export const DB_VERSION = 1;
 
 class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
@@ -92,21 +107,21 @@ class DatabaseService {
           timeEntriesStore.createIndex('by-date', 'start_time');
 
           // Create categories store
-          db.createObjectStore('categories', {
+          const categoriesStore = db.createObjectStore('categories', {
             keyPath: 'id',
           });
+          categoriesStore.createIndex('by-order', 'order');
 
           // Create settings store
           db.createObjectStore('settings', {
             keyPath: 'id',
           });
-        } else if (oldVersion < 2) {
-          // Add by-order index to existing activities store
-          const activitiesStore = db.createObjectStore('activities', {
+
+          // Create goals store
+          const goalsStore = db.createObjectStore('goals', {
             keyPath: 'id',
           });
-          activitiesStore.createIndex('by-category', 'category');
-          activitiesStore.createIndex('by-order', 'order');
+          goalsStore.createIndex('by-activity', 'activity_id');
         }
       },
     });
@@ -234,7 +249,13 @@ class DatabaseService {
     return this.db.getAll('categories');
   }
 
-  async getTrackingSettings(): Promise<{ maxDuration: number; warningThreshold: number; firstDayOfWeek: 'monday' | 'sunday' }> {
+  async getTrackingSettings(): Promise<{
+    maxDuration: number;
+    warningThreshold: number;
+    firstDayOfWeek: 'monday' | 'sunday';
+    defaultGoalNotificationThreshold: number;
+    notificationsEnabled: boolean;
+  }> {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
@@ -248,6 +269,8 @@ class DatabaseService {
           max_duration: 12 * 3600, // 12 hours in seconds
           warning_threshold: 3600, // 1 hour warning
           first_day_of_week: 'monday' as const,
+          default_goal_notification_threshold: DEFAULT_NOTIFICATION_THRESHOLD,
+          notifications_enabled: true,
           created_at: new Date(),
           updated_at: new Date()
         };
@@ -260,7 +283,9 @@ class DatabaseService {
             return {
               maxDuration: existingSettings[0].max_duration,
               warningThreshold: existingSettings[0].warning_threshold,
-              firstDayOfWeek: existingSettings[0].first_day_of_week
+              firstDayOfWeek: existingSettings[0].first_day_of_week,
+              defaultGoalNotificationThreshold: existingSettings[0].default_goal_notification_threshold,
+              notificationsEnabled: existingSettings[0].notifications_enabled
             };
           }
           throw error;
@@ -268,13 +293,17 @@ class DatabaseService {
         return {
           maxDuration: defaultSettings.max_duration,
           warningThreshold: defaultSettings.warning_threshold,
-          firstDayOfWeek: defaultSettings.first_day_of_week
+          firstDayOfWeek: defaultSettings.first_day_of_week,
+          defaultGoalNotificationThreshold: defaultSettings.default_goal_notification_threshold,
+          notificationsEnabled: defaultSettings.notifications_enabled
         };
       }
       return {
         maxDuration: settings[0].max_duration,
         warningThreshold: settings[0].warning_threshold,
-        firstDayOfWeek: settings[0].first_day_of_week
+        firstDayOfWeek: settings[0].first_day_of_week,
+        defaultGoalNotificationThreshold: settings[0].default_goal_notification_threshold,
+        notificationsEnabled: settings[0].notifications_enabled
       };
     } catch (error) {
       console.error('Error getting tracking settings:', error);
@@ -285,7 +314,9 @@ class DatabaseService {
   async updateTrackingSettings(
     maxDuration: number,
     warningThreshold: number,
-    firstDayOfWeek: 'monday' | 'sunday'
+    firstDayOfWeek: 'monday' | 'sunday',
+    defaultGoalNotificationThreshold: number,
+    notificationsEnabled: boolean
   ): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -299,6 +330,8 @@ class DatabaseService {
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
           first_day_of_week: firstDayOfWeek,
+          default_goal_notification_threshold: defaultGoalNotificationThreshold,
+          notifications_enabled: notificationsEnabled,
           created_at: new Date(),
           updated_at: new Date()
         });
@@ -308,6 +341,8 @@ class DatabaseService {
           max_duration: maxDuration,
           warning_threshold: warningThreshold,
           first_day_of_week: firstDayOfWeek,
+          default_goal_notification_threshold: defaultGoalNotificationThreshold,
+          notifications_enabled: notificationsEnabled,
           created_at: settings[0].created_at,
           updated_at: new Date()
         });
@@ -344,6 +379,80 @@ class DatabaseService {
       console.error('Error clearing data:', error);
       throw error;
     }
+  }
+
+  // Goal methods
+  async addGoal(goal: Omit<TimeTrackerDB['goals']['value'], 'id'>): Promise<string> {
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db.add('goals', {
+      id: uuidv4(),
+      ...goal,
+      created_at: goal.created_at || new Date(),
+      updated_at: goal.updated_at || new Date(),
+    });
+  }
+
+  async updateGoal(goal: TimeTrackerDB['goals']['value']): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!goal.id) throw new Error('Goal ID is required for update');
+    await this.db.put('goals', {
+      ...goal,
+      updated_at: new Date()
+    });
+  }
+
+  async deleteGoal(goalId: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.delete('goals', goalId);
+  }
+
+  async getGoals(): Promise<TimeTrackerDB['goals']['value'][]> {
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db.getAll('goals');
+  }
+
+  async getGoalsByActivity(activityId: string): Promise<TimeTrackerDB['goals']['value'][]> {
+    if (!this.db) throw new Error('Database not initialized');
+    const index = this.db.transaction('goals').store.index('by-activity');
+    return index.getAll(activityId);
+  }
+
+  async getGoalProgress(goalId: string): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+    const goal = await this.db.get('goals', goalId);
+    if (!goal) return 0;
+
+    const now = new Date();
+    let startDate: Date;
+
+    switch (goal.period) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'weekly':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay());
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'monthly':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      default:
+        return 0;
+    }
+
+    const entries = await this.getTimeEntriesByActivity(goal.activity_id);
+    const relevantEntries = entries.filter(entry =>
+      entry.end_time &&
+      new Date(entry.start_time) >= startDate &&
+      new Date(entry.start_time) <= now
+    );
+
+    const totalSeconds = relevantEntries.reduce((total, entry) =>
+      total + (entry.duration || 0), 0
+    );
+
+    return totalSeconds / 3600; // Convert to hours
   }
 }
 

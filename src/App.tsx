@@ -14,7 +14,6 @@ import {
   CssBaseline
 } from '@mui/material'
 import {
-  Settings,
   Timer,
 } from '@mui/icons-material';
 import './App.css'
@@ -22,6 +21,7 @@ import './App.css'
 const theme = createTheme({
   palette: {
     mode: 'light',
+    /*
     primary: {
       main: '#1976d2',
     },
@@ -47,7 +47,7 @@ const theme = createTheme({
           },
         },
       },
-    },
+    }, **/
   },
 })
 
@@ -61,7 +61,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="lg" sx={{ flexGrow: 1 }}>
+      <Container maxWidth="xl">
         <AppBar position="static">
           <Toolbar>
             <Timer sx={{ mr: 1 }} /> Time Tracker
@@ -72,7 +72,7 @@ function App() {
 
         <Container maxWidth="lg" sx={{ mt: 4 }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tabs centered value={activeTab} onChange={handleTabChange}>
               <Tab label="Time Tracker" value="tracker" />
               <Tab label="Activity Manager" value="manager" />
             </Tabs>
