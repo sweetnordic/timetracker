@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TimeTracker } from './components/TimeTracker'
 import { ActivityManager } from './components/ActivityManager'
+import Help from './components/Help'
 import {
   AppBar,
   Toolbar,
@@ -11,10 +12,13 @@ import {
   Tab,
   ThemeProvider,
   createTheme,
-  CssBaseline
+  CssBaseline,
+  IconButton,
+  Tooltip
 } from '@mui/material'
 import {
   Timer,
+  Help as HelpIcon
 } from '@mui/icons-material';
 import './App.css'
 
@@ -52,9 +56,9 @@ const theme = createTheme({
 })
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'tracker' | 'manager'>('tracker')
+  const [activeTab, setActiveTab] = useState<'tracker' | 'manager' | 'help'>('tracker')
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: 'tracker' | 'manager') => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: 'tracker' | 'manager' | 'help') => {
     setActiveTab(newValue)
   }
 
@@ -67,6 +71,15 @@ function App() {
             <Timer sx={{ mr: 1 }} /> Time Tracker
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             </Typography>
+            <Tooltip title="Help">
+              <IconButton
+                color="inherit"
+                onClick={() => setActiveTab('help')}
+                sx={{ ml: 2 }}
+              >
+                <HelpIcon />
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
@@ -75,11 +88,18 @@ function App() {
             <Tabs centered value={activeTab} onChange={handleTabChange}>
               <Tab label="Time Tracker" value="tracker" />
               <Tab label="Activity Manager" value="manager" />
+              <Tab label="Help" value="help" />
             </Tabs>
           </Box>
 
           <Box sx={{ mt: 2 }}>
-            {activeTab === 'tracker' ? <TimeTracker /> : <ActivityManager />}
+            {activeTab === 'tracker' ? (
+              <TimeTracker />
+            ) : activeTab === 'manager' ? (
+              <ActivityManager />
+            ) : (
+              <Help />
+            )}
           </Box>
         </Container>
       </Container>

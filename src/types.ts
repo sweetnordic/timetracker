@@ -61,3 +61,34 @@ export interface GoalWithProgress extends Goal {
   progress: number;
   progressPercentage: number;
 }
+
+export interface WeeklyStats {
+  totalTime: number;
+  byActivity: { [key: string]: number };
+  byCategory: { [key: string]: number };
+  byExternalSystem: { [key: string]: number };
+  dailyBreakdown: {
+    [key: string]: { // activity name
+      [key: string]: number // day of week -> duration
+    }
+  };
+  goalStats: {
+    totalGoals: number;
+    completedGoals: number;
+    inProgressGoals: number;
+    byPeriod: {
+      daily: { total: number; completed: number };
+      weekly: { total: number; completed: number };
+      monthly: { total: number; completed: number };
+    };
+    byActivity: {
+      [key: string]: {
+        name: string;
+        target: number;
+        progress: number;
+        percentage: number;
+        period: 'daily' | 'weekly' | 'monthly';
+      };
+    };
+  };
+}
