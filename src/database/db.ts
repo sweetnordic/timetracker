@@ -549,42 +549,47 @@ class DatabaseService {
 
   // Work Schedule Methods
   async getWorkSchedule(dayOfWeek: number): Promise<WorkSchedule | undefined> {
-    const db = await this.init();
-    return db.getFromIndex('workSchedules', 'by-day', dayOfWeek);
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db.getFromIndex('workSchedules', 'by-day', dayOfWeek);
   }
 
   async updateWorkSchedule(schedule: WorkSchedule): Promise<void> {
-    const db = await this.init();
-    await db.put('workSchedules', schedule);
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.put('workSchedules', schedule);
   }
 
   async getAllWorkSchedules(): Promise<WorkSchedule[]> {
-    const db = await this.init();
-    return db.getAll('workSchedules');
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db.getAll('workSchedules');
   }
 
   // Off-time Methods
   async addOffTime(offTime: OffTime): Promise<void> {
-    const db = await this.init();
-    await db.add('offTime', offTime);
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.add('offTime', {
+      ...offTime,
+      id: uuidv4(),
+      created_at: offTime.created_at || new Date(),
+      updated_at: offTime.updated_at || new Date(),
+    });
   }
 
   async updateOffTime(offTime: OffTime): Promise<void> {
-    const db = await this.init();
-    await db.put('offTime', offTime);
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.put('offTime', offTime);
   }
 
   async deleteOffTime(id: string): Promise<void> {
-    const db = await this.init();
-    await db.delete('offTime', id);
+    if (!this.db) throw new Error('Database not initialized');
+    await this.db.delete('offTime', id);
   }
 
   async getOffTimeByDateRange(
     startDate: Date,
     endDate: Date
   ): Promise<OffTime[]> {
-    const db = await this.init();
-    const allOffTime = await db.getAll('offTime');
+    if (!this.db) throw new Error('Database not initialized');
+    const allOffTime = await this.db.getAll('offTime');
     return allOffTime.filter(
       (offTime) =>
         offTime.start_date >= startDate && offTime.end_date <= endDate
@@ -592,8 +597,8 @@ class DatabaseService {
   }
 
   async getAllOffTime(): Promise<OffTime[]> {
-    const db = await this.init();
-    return db.getAll('offTime');
+    if (!this.db) throw new Error('Database not initialized');
+    return this.db.getAll('offTime');
   }
 }
 

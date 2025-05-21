@@ -54,9 +54,9 @@ export interface OffTime {
   start_date: Date;
   end_date: Date;
   type: 'vacation' | 'sick' | 'business_trip' | 'education' | 'other';
-  description: string;
+  description?: string;
   is_recurring: boolean;
-  recurrence_pattern?: string; // For recurring off-time
+  recurrence_pattern?: string;
   created_at: Date;
   updated_at: Date;
 }

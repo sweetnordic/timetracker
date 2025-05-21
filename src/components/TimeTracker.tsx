@@ -44,6 +44,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress } from '../database/types';
 import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../database/types';
+import { WorkScheduleConfig } from './WorkScheduleConfig';
+import { OffTimeManager } from './OffTimeManager';
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;
@@ -1664,12 +1666,19 @@ export const TimeTracker: React.FC = () => {
         <Dialog
           open={showSettingsDialog}
           onClose={handleCloseSettings}
-          maxWidth="sm"
+          maxWidth="md"
           fullWidth
         >
-          <DialogTitle>Tracking Settings</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogContent>
             <Stack spacing={3} sx={{ mt: 2 }}>
+              <Typography variant="h6">Work Schedule</Typography>
+              <WorkScheduleConfig />
+
+              <Typography variant="h6" sx={{ mt: 4 }}>Off-time Management</Typography>
+              <OffTimeManager />
+
+              <Typography variant="h6" sx={{ mt: 4 }}>Tracking Settings</Typography>
               <TextField
                 label="Maximum Tracking Duration (hours)"
                 type="number"
