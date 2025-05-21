@@ -36,6 +36,7 @@ import {
   Switch,
   Grid,
   LinearProgress,
+  ListItemText,
 } from '@mui/material';
 import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload, BarChart, ArrowUpward, ArrowDownward, Notifications, NotificationsOff } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -46,6 +47,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK, WEEKDAYS } from '../database/types';
 import { WorkScheduleConfig } from './WorkScheduleConfig';
 import { OffTimeManager } from './OffTimeManager';
+import { WorkScheduleProgress } from './WorkScheduleProgress';
 
 interface TimeTrackerProps {
   db: DatabaseService;
@@ -1158,6 +1160,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
             </Typography>
           )}
         </Paper>
+        <WorkScheduleProgress db={db} />
 
         <Typography variant="h5" gutterBottom>
           Activities
