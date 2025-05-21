@@ -33,6 +33,26 @@ Time Tracker is a web application that helps you track time spent on various act
   - Visual progress indicators
   - Goal completion statistics
 
+### Work Schedule & Off-time Management
+
+- Configure work schedule:
+  - Set workday duration in hours
+  - Define workweek length in days
+  - Set workday start and end times
+  - Visual progress tracking for workday/week
+- Manage off-time periods:
+  - Vacation days
+  - Sick leave
+  - Business trips
+  - Education
+  - Other time off
+- Features:
+  - Workday progress tracking
+  - Workweek overview
+  - Off-time calendar
+  - Overtime monitoring
+  - Work-life balance analytics
+
 ### Analytics
 
 - Overview of total time spent per activity

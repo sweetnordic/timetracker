@@ -1,0 +1,85 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Default Rules for Code and Documentation Consistency
+
+## Database Schema Changes
+When modifying the database schema in `src/database/db.ts`:
+1. Update the corresponding schema documentation in `README.md`
+2. Ensure all new fields are documented with their types and relationships
+3. Add descriptive text explaining the purpose of each entity
+4. Maintain consistent formatting in the documentation
+
+## Feature Implementation
+When implementing new features:
+1. Update the README.md to include:
+   - New feature description in the Core Features section
+   - Any new configuration options in the Settings section
+   - New data structures in the Database Schema section
+   - New UI components in the Technical Architecture section
+2. Document any new dependencies or requirements
+3. Update the Future Features section if the feature was previously listed there
+
+## Code Documentation
+When writing or modifying code:
+1. Use TypeScript types and interfaces for all data structures
+2. Add JSDoc comments for complex functions and components
+3. Include examples in comments for non-obvious implementations
+4. Document any side effects or important state changes
+
+## UI Components
+When creating or modifying UI components:
+1. Document the component's purpose and usage
+2. List all required props and their types
+3. Document any state management or side effects
+4. Include examples of common use cases
+
+## Testing
+When adding new features:
+1. Document test cases and scenarios
+2. Update test documentation if existing tests are modified
+3. Include edge cases and error conditions
+
+## Best Practices
+1. Keep documentation and code in sync
+2. Use consistent terminology throughout the codebase
+3. Follow the existing code style and patterns
+4. Document any deviations from standard patterns
+5. Include examples for complex features
+
+## Example
+When adding a new database entity:
+```typescript
+// In db.ts
+interface NewEntity {
+  id: string;
+  name: string;
+  // ... other fields
+}
+
+// In README.md
+### NewEntity
+Description of the new entity and its purpose in the application.
+
+- id (PRIMARY KEY)
+- name
+- ... other fields
+```
+
+## Documentation Structure
+Maintain the following structure in README.md:
+1. Project Overview
+2. Core Features
+3. Technical Architecture
+4. Database Schema
+5. Development Setup
+6. Future Features
+
+## Code Organization
+1. Keep related code together
+2. Use consistent file naming
+3. Maintain clear separation of concerns
+4. Document any cross-component dependencies
+
