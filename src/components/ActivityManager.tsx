@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import type { Activity, Category } from '../types';
-
+import { DEFAULT_ORDER } from '../types';
 
 export const ActivityManager: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -44,7 +44,7 @@ export const ActivityManager: React.FC = () => {
       category: selectedCategory,
       description: '',
       external_system: '',
-      order: 0,
+      order: DEFAULT_ORDER,
       created_at: now,
       updated_at: now,
     };
@@ -62,7 +62,7 @@ export const ActivityManager: React.FC = () => {
     const now = new Date();
     const newCategory: Omit<Category, 'id'> = {
       name: newCategoryName,
-      order: 1,
+      order: DEFAULT_ORDER,
       created_at: now,
       updated_at: now,
     };

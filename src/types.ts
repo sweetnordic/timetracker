@@ -1,3 +1,4 @@
+export const DEFAULT_ORDER: number = 1;
 
 export interface Activity {
   id?: string;

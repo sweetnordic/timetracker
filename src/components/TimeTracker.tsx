@@ -34,15 +34,15 @@ import {
   FormControlLabel,
   Radio,
   GridLegacy,
-  Switch
+  Switch,
 } from '@mui/material';
-import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload, BarChart } from '@mui/icons-material';
+import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload, BarChart, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import type { Activity, TrackingSettings, ImportData, TimeEntry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-
+import { DEFAULT_ORDER } from '../types';
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;
@@ -445,9 +445,9 @@ export const TimeTracker: React.FC = () => {
         category: activityFormData.category,
         description: activityFormData.description,
         external_system: activityFormData.external_system,
-        order: editingActivity?.order || 0,
+        order: editingActivity?.order || DEFAULT_ORDER,
         created_at: editingActivity?.created_at || new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       if (editingActivity?.id) {
@@ -548,23 +548,24 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
-  const validateImportData = (data: any): data is ImportData => {
+  const validateImportData = (data: unknown): data is ImportData => {
     if (!data || typeof data !== 'object') return false;
-    if (!Array.isArray(data.activities) || !Array.isArray(data.timeEntries) || !Array.isArray(data.categories)) return false;
-    if (typeof data.exportDate !== 'string') return false;
+    const typedData = data as Record<string, unknown>;
+    if (!Array.isArray(typedData.activities) || !Array.isArray(typedData.timeEntries) || !Array.isArray(typedData.categories)) return false;
+    if (typeof typedData.exportDate !== 'string') return false;
 
     // Validate activities
-    for (const activity of data.activities) {
+    for (const activity of typedData.activities) {
       if (!activity.name || !activity.category) return false;
     }
 
     // Validate time entries
-    for (const entry of data.timeEntries) {
+    for (const entry of typedData.timeEntries) {
       if (!entry.activity_id || !entry.start_time) return false;
     }
 
     // Validate categories
-    for (const category of data.categories) {
+    for (const category of typedData.categories) {
       if (!category.name) return false;
     }
 
@@ -622,9 +623,9 @@ export const TimeTracker: React.FC = () => {
         }
         await db.addCategory({
           name: category.name,
-          order: category.order || 0,
+          order: category.order || DEFAULT_ORDER,
           created_at: new Date(category.created_at),
-          updated_at: new Date(category.updated_at)
+          updated_at: new Date(category.updated_at),
         });
       }
 
@@ -641,9 +642,9 @@ export const TimeTracker: React.FC = () => {
           category: activity.category,
           description: activity.description || '',
           external_system: activity.external_system || '',
-          order: activity.order || 0,
+          order: activity.order || DEFAULT_ORDER,
           created_at: new Date(activity.created_at),
-          updated_at: new Date(activity.updated_at)
+          updated_at: new Date(activity.updated_at),
         });
       }
 
@@ -815,6 +816,37 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
+  const handleMoveActivity = async (activity: Activity, direction: 'up' | 'down') => {
+    try {
+      const currentIndex = activities.findIndex(a => a.id === activity.id);
+      if (currentIndex === -1) return;
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= activities.length) return;
+
+      const targetActivity = activities[targetIndex];
+
+      // Swap orders
+      const currentOrder = activity.order || DEFAULT_ORDER;
+      const targetOrder = targetActivity.order || DEFAULT_ORDER;
+
+      await db.updateActivityOrder(activity.id!, targetOrder);
+      await db.updateActivityOrder(targetActivity.id!, currentOrder);
+
+      // Refresh activities
+      const loadedActivities = await db.getActivities();
+      const activitiesWithStats = await Promise.all(
+        loadedActivities.map(async (activity) => ({
+          ...activity,
+          totalDuration: await db.getTotalDurationByActivity(activity.id!),
+        }))
+      );
+      setActivities(activitiesWithStats);
+    } catch (error) {
+      console.error('Error moving activity:', error);
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ py: 4 }}>
@@ -827,7 +859,7 @@ export const TimeTracker: React.FC = () => {
               <BarChart />
             </IconButton>
             <IconButton onClick={handleOpenSettings} color="primary">
-              <Timer />
+              <Settings />
             </IconButton>
           </Box>
         </Box>
@@ -904,12 +936,28 @@ export const TimeTracker: React.FC = () => {
                       <Typography variant="h6" gutterBottom>
                         {activity.name}
                       </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenActivityDialog(activity)}
-                      >
-                        <Settings />
-                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleMoveActivity(activity, 'up')}
+                          disabled={activities.indexOf(activity) === 0}
+                        >
+                          <ArrowUpward />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleMoveActivity(activity, 'down')}
+                          disabled={activities.indexOf(activity) === activities.length - 1}
+                        >
+                          <ArrowDownward />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenActivityDialog(activity)}
+                        >
+                          <Edit />
+                        </IconButton>
+                      </Box>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Typography variant="body2" color="text.secondary">

@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-
+import { DEFAULT_ORDER } from '../types';
 
 interface TimeTrackerDB extends DBSchema {
   categories: {
@@ -26,7 +26,10 @@ interface TimeTrackerDB extends DBSchema {
       created_at: Date;
       updated_at: Date;
     };
-    indexes: { 'by-category': string };
+    indexes: {
+      'by-category': string;
+      'by-order': number;
+    };
   };
   timeEntries: {
     key: string;
@@ -63,22 +66,23 @@ export const DB_NAME = 'TimeTrackerDB';
 /**
  * Version of the Database to trigger upgrades
  */
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
   private readonly DB_NAME = DB_NAME;
-  private readonly DB_VERSION = DB_VERSION; // Increment version to trigger upgrade
+  private readonly DB_VERSION = DB_VERSION;
 
   async init(): Promise<void> {
     this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
-      upgrade(db, oldVersion) {
+      async upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           // Create activities store
           const activitiesStore = db.createObjectStore('activities', {
             keyPath: 'id',
           });
           activitiesStore.createIndex('by-category', 'category');
+          activitiesStore.createIndex('by-order', 'order');
 
           // Create time entries store
           const timeEntriesStore = db.createObjectStore('timeEntries', {
@@ -96,6 +100,13 @@ class DatabaseService {
           db.createObjectStore('settings', {
             keyPath: 'id',
           });
+        } else if (oldVersion < 2) {
+          // Add by-order index to existing activities store
+          const activitiesStore = db.createObjectStore('activities', {
+            keyPath: 'id',
+          });
+          activitiesStore.createIndex('by-category', 'category');
+          activitiesStore.createIndex('by-order', 'order');
         }
       },
     });
@@ -141,11 +152,27 @@ class DatabaseService {
   async getActivities(): Promise<TimeTrackerDB['activities']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     try {
-      return await this.db.getAll('activities');
+      const activities = await this.db.getAll('activities');
+      return activities.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
     } catch (error) {
       console.error('Error getting activities:', error);
       throw error;
     }
+  }
+
+  async updateActivityOrder(activityId: string, newOrder: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    const tx = this.db.transaction('activities', 'readwrite');
+    const store = tx.objectStore('activities');
+    const activity = await store.get(activityId);
+
+    if (activity) {
+      activity.order = newOrder;
+      activity.updated_at = new Date();
+      await store.put(activity);
+    }
+
+    await tx.done;
   }
 
   // Time entry methods

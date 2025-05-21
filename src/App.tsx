@@ -13,6 +13,10 @@ import {
   createTheme,
   CssBaseline
 } from '@mui/material'
+import {
+  Settings,
+  Timer,
+} from '@mui/icons-material';
 import './App.css'
 
 const theme = createTheme({
@@ -60,8 +64,8 @@ function App() {
       <Container maxWidth="lg" sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Toolbar>
+            <Timer sx={{ mr: 1 }} /> Time Tracker
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Time Tracker
             </Typography>
           </Toolbar>
         </AppBar>
