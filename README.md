@@ -108,17 +108,31 @@ timetracker/
 
 ## Database Schema
 
-### Activities
+### Categories
+
+Categories are used to organize and group related activities. They provide a hierarchical structure for better activity management and reporting. Each category can contain multiple activities and has an order field for custom sorting.
 
 - id (PRIMARY KEY)
 - name
-- category
+- order
+- created_at
+- updated_at
+
+### Activities
+
+Activities represent the main time tracking units. Each activity belongs to a category and can have multiple time entries and goals associated with it. Activities can optionally be linked to external systems for integration purposes.
+
+- id (PRIMARY KEY)
+- name
+- category_id (FOREIGN KEY)
 - description
 - external_system
 - created_at
 - updated_at
 
 ### TimeEntries
+
+Time entries record the actual time spent on activities. Each entry captures the start and end times, calculates the duration, and can include optional notes. Time entries are linked to specific activities and are used for tracking and reporting purposes.
 
 - id (PRIMARY KEY)
 - activity_id (FOREIGN KEY)
@@ -129,9 +143,24 @@ timetracker/
 - created_at
 - updated_at
 
-### Categories
+### Goals
+
+Goals define time targets for activities over specific periods (daily, weekly, or monthly). They include notification thresholds to alert users when they're approaching or reaching their goals. Goals are linked to specific activities and help users track their progress.
 
 - id (PRIMARY KEY)
-- name
+- activity_id (FOREIGN KEY)
+- target_hours
+- period (daily, weekly, monthly)
+- notification_threshold
+- created_at
+- updated_at
+
+### Settings
+
+Settings store application-wide configuration values. This includes user preferences, notification settings, and other customizable options that affect the application's behavior.
+
+- id (PRIMARY KEY)
+- key
+- value
 - created_at
 - updated_at

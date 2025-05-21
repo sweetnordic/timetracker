@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TimeTracker } from './components/TimeTracker'
 import { ActivityManager } from './components/ActivityManager'
-import Help from './components/Help'
+import { HelpCenter } from './components/HelpCenter'
 import {
   AppBar,
   Toolbar,
@@ -69,8 +69,11 @@ function App() {
         <AppBar position="static">
           <Toolbar>
             <Timer sx={{ mr: 1 }} /> Time Tracker
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            </Typography>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{ flexGrow: 1 }}
+            ></Typography>
             <Tooltip title="Help">
               <IconButton
                 color="inherit"
@@ -98,7 +101,7 @@ function App() {
             ) : activeTab === 'manager' ? (
               <ActivityManager />
             ) : (
-              <Help />
+              <HelpCenter />
             )}
           </Box>
         </Container>

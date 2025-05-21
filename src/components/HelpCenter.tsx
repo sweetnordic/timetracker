@@ -13,7 +13,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Timer, Timeline, BarChart, Settings, Storage, Notifications } from '@mui/icons-material';
 
-export const Help: React.FC = () => {
+export const HelpCenter: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ maxWidth: 1200, mx: 'auto', py: 4 }}>
@@ -22,7 +22,7 @@ export const Help: React.FC = () => {
         </Typography>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -45,7 +45,7 @@ export const Help: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -68,7 +68,7 @@ export const Help: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -91,7 +91,7 @@ export const Help: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -114,7 +114,7 @@ export const Help: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -137,7 +137,7 @@ export const Help: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{xs:12, md: 6}}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -161,7 +161,7 @@ export const Help: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Box sx={{ maxWidth: 800, mx: 'auto', mt: 6 }}>
+        <Box sx={{ mx: 'auto', mt: 6 }}>
           <Typography variant="h5" gutterBottom>
             Frequently Asked Questions
           </Typography>
