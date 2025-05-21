@@ -1029,7 +1029,7 @@ export const TimeTracker: React.FC = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ pb: 4, minWidth: '500px' }}>
         <Box
           sx={{
             display: 'flex',
@@ -1796,6 +1796,23 @@ export const TimeTracker: React.FC = () => {
             sx={{ width: '100%' }}
           >
             Data imported successfully
+          </Alert>
+        </Snackbar>
+
+        {/* Goal Notification Snackbar */}
+        <Snackbar
+          open={!!goalNotification}
+          autoHideDuration={5000}
+          onClose={() => setGoalNotification(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setGoalNotification(null)}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            Goal Progress Alert! You reached {goalNotification?.goal.progressPercentage.toFixed(1)}% of your{' '}
+            {goalNotification?.goal.period} goal for {goalNotification?.activity.name}
           </Alert>
         </Snackbar>
 

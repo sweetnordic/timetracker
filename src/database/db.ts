@@ -13,6 +13,7 @@ interface TimeTrackerDB extends DBSchema {
       created_at: Date;
       updated_at: Date;
     };
+    indexes: { 'by-order': number; };
   };
   activities: {
     key: string;
@@ -26,10 +27,7 @@ interface TimeTrackerDB extends DBSchema {
       created_at: Date;
       updated_at: Date;
     };
-    indexes: {
-      'by-category': string;
-      'by-order': number;
-    };
+    indexes: { 'by-category': string; 'by-order': number; };
   };
   timeEntries: {
     key: string;
@@ -92,12 +90,18 @@ class DatabaseService {
     this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
       async upgrade(db, oldVersion) {
         if (oldVersion < 1) {
+          // Create categories store
+          const categoriesStore = db.createObjectStore('categories', {
+            keyPath: 'id',
+          });
+          categoriesStore.createIndex('by-order', 'order', { unique: false });
+
           // Create activities store
           const activitiesStore = db.createObjectStore('activities', {
             keyPath: 'id',
           });
           activitiesStore.createIndex('by-category', 'category');
-          activitiesStore.createIndex('by-order', 'order');
+          activitiesStore.createIndex('by-order', 'order', { unique: false });
 
           // Create time entries store
           const timeEntriesStore = db.createObjectStore('timeEntries', {
@@ -105,12 +109,6 @@ class DatabaseService {
           });
           timeEntriesStore.createIndex('by-activity', 'activity_id');
           timeEntriesStore.createIndex('by-date', 'start_time');
-
-          // Create categories store
-          const categoriesStore = db.createObjectStore('categories', {
-            keyPath: 'id',
-          });
-          categoriesStore.createIndex('by-order', 'order');
 
           // Create settings store
           db.createObjectStore('settings', {

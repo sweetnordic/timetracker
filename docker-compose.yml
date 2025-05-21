@@ -1,0 +1,10 @@
+name: time-tracker
+
+services:
+  web:
+    image: timetracker:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:80"
