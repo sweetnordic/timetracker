@@ -1,1 +1,4 @@
 /* Material UI handles all styling */
+body {
+  justify-content: center;
+}

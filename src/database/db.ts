@@ -55,10 +55,20 @@ interface TimeTrackerDB extends DBSchema {
   };
 }
 
+/**
+ * Name of the Database in the browser's IndexedDB
+ */
+export const DB_NAME = 'TimeTrackerDB';
+
+/**
+ * Version of the Database to trigger upgrades
+ */
+export const DB_VERSION = 1;
+
 class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
-  private readonly DB_NAME = 'TimeTrackerDB';
-  private readonly DB_VERSION = 1; // Increment version to trigger upgrade
+  private readonly DB_NAME = DB_NAME;
+  private readonly DB_VERSION = DB_VERSION; // Increment version to trigger upgrade
 
   async init(): Promise<void> {
     this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {

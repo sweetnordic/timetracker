@@ -57,7 +57,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ flexGrow: 1 }}>
+      <Container maxWidth="lg" sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -68,11 +68,7 @@ function App() {
 
         <Container maxWidth="lg" sx={{ mt: 4 }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs
-              value={activeTab}
-              onChange={handleTabChange}
-              centered
-            >
+            <Tabs value={activeTab} onChange={handleTabChange}>
               <Tab label="Time Tracker" value="tracker" />
               <Tab label="Activity Manager" value="manager" />
             </Tabs>
@@ -82,9 +78,9 @@ function App() {
             {activeTab === 'tracker' ? <TimeTracker /> : <ActivityManager />}
           </Box>
         </Container>
-      </Box>
+      </Container>
     </ThemeProvider>
-  )
+  );
 }
 
 export default App
