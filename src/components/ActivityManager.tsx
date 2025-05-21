@@ -14,8 +14,8 @@ import {
   Divider
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import type { Activity, Category } from '../types';
-import { DEFAULT_ORDER } from '../types';
+import type { Activity, Category } from '../database/types';
+import { DEFAULT_ORDER } from '../database/types';
 
 export const ActivityManager: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);

@@ -15,9 +15,9 @@ export interface Activity {
 export interface Category {
   id?: string;
   name: string;
+  order: number;
   created_at: Date;
   updated_at: Date;
-  order: number;
 }
 
 export interface TimeEntry {
@@ -37,6 +37,28 @@ export interface TrackingSettings {
   firstDayOfWeek: 'monday' | 'sunday';
   defaultGoalNotificationThreshold: number; // percentage (0-100)
   notificationsEnabled: boolean;
+}
+
+export interface WorkSchedule {
+  id?: string;
+  day_of_week: number; // 0-6 (Sunday-Saturday)
+  start_time: string; // Format: "HH:mm"
+  end_time: string; // Format: "HH:mm"
+  is_workday: boolean; // false for weekends/holidays
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface OffTime {
+  id?: string;
+  start_date: Date;
+  end_date: Date;
+  type: 'vacation' | 'sick' | 'business_trip' | 'education' | 'other';
+  description: string;
+  is_recurring: boolean;
+  recurrence_pattern?: string; // For recurring off-time
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface ImportData {
@@ -69,9 +91,10 @@ export interface WeeklyStats {
   byCategory: { [key: string]: number };
   byExternalSystem: { [key: string]: number };
   dailyBreakdown: {
-    [key: string]: { // activity name
-      [key: string]: number // day of week -> duration
-    }
+    [key: string]: {
+      // activity name
+      [key: string]: number; // day of week -> duration
+    };
   };
   goalStats: {
     totalGoals: number;

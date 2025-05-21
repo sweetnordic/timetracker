@@ -41,9 +41,9 @@ import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress } from '../types';
+import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress } from '../database/types';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../types';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../database/types';
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;

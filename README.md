@@ -196,3 +196,29 @@ Settings store application-wide configuration values. This includes user prefere
 - value
 - created_at
 - updated_at
+
+### Work Schedules
+
+Work schedules define the standard working hours for each day of the week. They are used to calculate workday progress, overtime, and to determine when goals should be active. Each day can have its own schedule, and non-working days can be marked accordingly.
+
+- id (PRIMARY KEY)
+- day_of_week (0-6, Sunday-Saturday)
+- start_time (HH:mm format)
+- end_time (HH:mm format)
+- is_workday (boolean)
+- created_at
+- updated_at
+
+### Off-time
+
+Off-time records periods when the user is not working, such as vacations, sick leave, or business trips. These periods are used to exclude time from analytics calculations and goal tracking. Off-time can be recurring or one-time events.
+
+- id (PRIMARY KEY)
+- start_date
+- end_date
+- type (vacation, sick, business_trip, education, other)
+- description
+- is_recurring
+- recurrence_pattern (optional)
+- created_at
+- updated_at

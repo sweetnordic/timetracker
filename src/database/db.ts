@@ -1,46 +1,31 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../types';
+import {
+  DEFAULT_ORDER,
+  DEFAULT_NOTIFICATION_THRESHOLD,
+  type OffTime,
+  type WorkSchedule,
+  type Category,
+  type Activity,
+  type TimeEntry,
+  type Goal,
+} from './types';
 
 interface TimeTrackerDB extends DBSchema {
   categories: {
     key: string;
-    value: {
-      id?: string;
-      name: string;
-      order: number;
-      created_at: Date;
-      updated_at: Date;
-    };
-    indexes: { 'by-order': number; };
+    value: Category;
+    indexes: { 'by-order': number };
   };
   activities: {
     key: string;
-    value: {
-      id?: string;
-      name: string;
-      category: string;
-      description: string;
-      external_system: string;
-      order: number;
-      created_at: Date;
-      updated_at: Date;
-    };
-    indexes: { 'by-category': string; 'by-order': number; };
+    value: Activity;
+    indexes: { 'by-category': string; 'by-order': number };
   };
   timeEntries: {
     key: string;
-    value: {
-      id?: string;
-      activity_id: string;
-      start_time: Date;
-      end_time: Date | null;
-      duration: number | null;
-      notes: string;
-      created_at: Date;
-      updated_at: Date;
-    };
+    value: TimeEntry;
     indexes: { 'by-activity': string; 'by-date': Date };
   };
   settings: {
@@ -58,16 +43,18 @@ interface TimeTrackerDB extends DBSchema {
   };
   goals: {
     key: string;
-    value: {
-      id?: string;
-      activity_id: string;
-      target_hours: number;
-      period: 'daily' | 'weekly' | 'monthly';
-      notification_threshold: number; // percentage (0-100)
-      created_at: Date;
-      updated_at: Date;
-    };
+    value: Goal;
     indexes: { 'by-activity': string };
+  };
+  workSchedules: {
+    key: string;
+    value: WorkSchedule;
+    indexes: { 'by-day': number };
+  };
+  offTime: {
+    key: string;
+    value: OffTime;
+    indexes: { 'by-date': Date };
   };
 }
 
@@ -120,6 +107,84 @@ class DatabaseService {
             keyPath: 'id',
           });
           goalsStore.createIndex('by-activity', 'activity_id');
+
+          // Create work schedules store
+          const workSchedulesStore = db.createObjectStore('workSchedules', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          workSchedulesStore.createIndex('by-day', 'day_of_week');
+
+          // Create off-time store
+          const offTimeStore = db.createObjectStore('offTime', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+          offTimeStore.createIndex('by-date', 'start_date');
+
+          // Initialize default work schedule
+          const defaultSchedule: WorkSchedule[] = [
+            {
+              day_of_week: 1,
+              start_time: '09:00',
+              end_time: '17:00',
+              is_workday: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Monday
+            {
+              day_of_week: 2,
+              start_time: '09:00',
+              end_time: '17:00',
+              is_workday: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Tuesday
+            {
+              day_of_week: 3,
+              start_time: '09:00',
+              end_time: '17:00',
+              is_workday: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Wednesday
+            {
+              day_of_week: 4,
+              start_time: '09:00',
+              end_time: '17:00',
+              is_workday: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Thursday
+            {
+              day_of_week: 5,
+              start_time: '09:00',
+              end_time: '17:00',
+              is_workday: true,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Friday
+            {
+              day_of_week: 6,
+              start_time: '00:00',
+              end_time: '00:00',
+              is_workday: false,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Saturday
+            {
+              day_of_week: 0,
+              start_time: '00:00',
+              end_time: '00:00',
+              is_workday: false,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }, // Sunday
+          ];
+
+          for (const schedule of defaultSchedule) {
+            workSchedulesStore.add(schedule);
+          }
         }
       },
     });
@@ -133,7 +198,9 @@ class DatabaseService {
   }
 
   // Activity methods
-  async addActivity(activity: Omit<TimeTrackerDB['activities']['value'], 'id'>): Promise<string> {
+  async addActivity(
+    activity: Omit<TimeTrackerDB['activities']['value'], 'id'>
+  ): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     try {
       return await this.db.add('activities', {
@@ -148,13 +215,15 @@ class DatabaseService {
     }
   }
 
-  async updateActivity(activity: TimeTrackerDB['activities']['value']): Promise<void> {
+  async updateActivity(
+    activity: TimeTrackerDB['activities']['value']
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     if (!activity.id) throw new Error('Activity ID is required for update');
     try {
       await this.db.put('activities', {
         ...activity,
-        updated_at: new Date()
+        updated_at: new Date(),
       });
     } catch (error) {
       console.error('Error updating activity:', error);
@@ -166,14 +235,19 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     try {
       const activities = await this.db.getAll('activities');
-      return activities.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
+      return activities.sort(
+        (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)
+      );
     } catch (error) {
       console.error('Error getting activities:', error);
       throw error;
     }
   }
 
-  async updateActivityOrder(activityId: string, newOrder: number): Promise<void> {
+  async updateActivityOrder(
+    activityId: string,
+    newOrder: number
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     const tx = this.db.transaction('activities', 'readwrite');
     const store = tx.objectStore('activities');
@@ -189,17 +263,21 @@ class DatabaseService {
   }
 
   // Time entry methods
-  async addTimeEntry(entry: Omit<TimeTrackerDB['timeEntries']['value'], 'id'>): Promise<string> {
+  async addTimeEntry(
+    entry: Omit<TimeTrackerDB['timeEntries']['value'], 'id'>
+  ): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.add('timeEntries', {
       id: uuidv4(),
       ...entry,
       created_at: entry.created_at || new Date(),
-      updated_at: entry.updated_at || new Date()
+      updated_at: entry.updated_at || new Date(),
     });
   }
 
-  async updateTimeEntry(entry: TimeTrackerDB['timeEntries']['value']): Promise<void> {
+  async updateTimeEntry(
+    entry: TimeTrackerDB['timeEntries']['value']
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     await this.db.put('timeEntries', entry);
   }
@@ -214,7 +292,9 @@ class DatabaseService {
     return this.db.getAll('timeEntries');
   }
 
-  async getTimeEntriesByActivity(activityId: string): Promise<TimeTrackerDB['timeEntries']['value'][]> {
+  async getTimeEntriesByActivity(
+    activityId: string
+  ): Promise<TimeTrackerDB['timeEntries']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     const index = this.db.transaction('timeEntries').store.index('by-activity');
     return index.getAll(activityId);
@@ -232,7 +312,9 @@ class DatabaseService {
   }
 
   // Category methods
-  async addCategory(category: Omit<TimeTrackerDB['categories']['value'], 'id'>): Promise<string> {
+  async addCategory(
+    category: Omit<TimeTrackerDB['categories']['value'], 'id'>
+  ): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.add('categories', {
       id: uuidv4(),
@@ -270,7 +352,7 @@ class DatabaseService {
           default_goal_notification_threshold: DEFAULT_NOTIFICATION_THRESHOLD,
           notifications_enabled: true,
           created_at: new Date(),
-          updated_at: new Date()
+          updated_at: new Date(),
         };
         try {
           await this.db.add('settings', defaultSettings);
@@ -282,8 +364,9 @@ class DatabaseService {
               maxDuration: existingSettings[0].max_duration,
               warningThreshold: existingSettings[0].warning_threshold,
               firstDayOfWeek: existingSettings[0].first_day_of_week,
-              defaultGoalNotificationThreshold: existingSettings[0].default_goal_notification_threshold,
-              notificationsEnabled: existingSettings[0].notifications_enabled
+              defaultGoalNotificationThreshold:
+                existingSettings[0].default_goal_notification_threshold,
+              notificationsEnabled: existingSettings[0].notifications_enabled,
             };
           }
           throw error;
@@ -292,16 +375,18 @@ class DatabaseService {
           maxDuration: defaultSettings.max_duration,
           warningThreshold: defaultSettings.warning_threshold,
           firstDayOfWeek: defaultSettings.first_day_of_week,
-          defaultGoalNotificationThreshold: defaultSettings.default_goal_notification_threshold,
-          notificationsEnabled: defaultSettings.notifications_enabled
+          defaultGoalNotificationThreshold:
+            defaultSettings.default_goal_notification_threshold,
+          notificationsEnabled: defaultSettings.notifications_enabled,
         };
       }
       return {
         maxDuration: settings[0].max_duration,
         warningThreshold: settings[0].warning_threshold,
         firstDayOfWeek: settings[0].first_day_of_week,
-        defaultGoalNotificationThreshold: settings[0].default_goal_notification_threshold,
-        notificationsEnabled: settings[0].notifications_enabled
+        defaultGoalNotificationThreshold:
+          settings[0].default_goal_notification_threshold,
+        notificationsEnabled: settings[0].notifications_enabled,
       };
     } catch (error) {
       console.error('Error getting tracking settings:', error);
@@ -331,7 +416,7 @@ class DatabaseService {
           default_goal_notification_threshold: defaultGoalNotificationThreshold,
           notifications_enabled: notificationsEnabled,
           created_at: new Date(),
-          updated_at: new Date()
+          updated_at: new Date(),
         });
       } else {
         await this.db.put('settings', {
@@ -342,7 +427,7 @@ class DatabaseService {
           default_goal_notification_threshold: defaultGoalNotificationThreshold,
           notifications_enabled: notificationsEnabled,
           created_at: settings[0].created_at,
-          updated_at: new Date()
+          updated_at: new Date(),
         });
       }
     } catch (error) {
@@ -356,8 +441,11 @@ class DatabaseService {
     try {
       const allEntries = await this.db.getAll('timeEntries');
       return allEntries
-        .filter(entry => entry.end_time === null)
-        .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+        .filter((entry) => entry.end_time === null)
+        .sort(
+          (a, b) =>
+            new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+        );
     } catch (error) {
       console.error('Error getting open time entries:', error);
       throw error;
@@ -371,7 +459,7 @@ class DatabaseService {
         this.db.clear('activities'),
         this.db.clear('timeEntries'),
         this.db.clear('categories'),
-        this.db.clear('settings')
+        this.db.clear('settings'),
       ]);
     } catch (error) {
       console.error('Error clearing data:', error);
@@ -380,7 +468,9 @@ class DatabaseService {
   }
 
   // Goal methods
-  async addGoal(goal: Omit<TimeTrackerDB['goals']['value'], 'id'>): Promise<string> {
+  async addGoal(
+    goal: Omit<TimeTrackerDB['goals']['value'], 'id'>
+  ): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.add('goals', {
       id: uuidv4(),
@@ -395,7 +485,7 @@ class DatabaseService {
     if (!goal.id) throw new Error('Goal ID is required for update');
     await this.db.put('goals', {
       ...goal,
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   }
 
@@ -409,7 +499,9 @@ class DatabaseService {
     return this.db.getAll('goals');
   }
 
-  async getGoalsByActivity(activityId: string): Promise<TimeTrackerDB['goals']['value'][]> {
+  async getGoalsByActivity(
+    activityId: string
+  ): Promise<TimeTrackerDB['goals']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     const index = this.db.transaction('goals').store.index('by-activity');
     return index.getAll(activityId);
@@ -440,17 +532,68 @@ class DatabaseService {
     }
 
     const entries = await this.getTimeEntriesByActivity(goal.activity_id);
-    const relevantEntries = entries.filter(entry =>
-      entry.end_time &&
-      new Date(entry.start_time) >= startDate &&
-      new Date(entry.start_time) <= now
+    const relevantEntries = entries.filter(
+      (entry) =>
+        entry.end_time &&
+        new Date(entry.start_time) >= startDate &&
+        new Date(entry.start_time) <= now
     );
 
-    const totalSeconds = relevantEntries.reduce((total, entry) =>
-      total + (entry.duration || 0), 0
+    const totalSeconds = relevantEntries.reduce(
+      (total, entry) => total + (entry.duration || 0),
+      0
     );
 
     return totalSeconds / 3600; // Convert to hours
+  }
+
+  // Work Schedule Methods
+  async getWorkSchedule(dayOfWeek: number): Promise<WorkSchedule | undefined> {
+    const db = await this.init();
+    return db.getFromIndex('workSchedules', 'by-day', dayOfWeek);
+  }
+
+  async updateWorkSchedule(schedule: WorkSchedule): Promise<void> {
+    const db = await this.init();
+    await db.put('workSchedules', schedule);
+  }
+
+  async getAllWorkSchedules(): Promise<WorkSchedule[]> {
+    const db = await this.init();
+    return db.getAll('workSchedules');
+  }
+
+  // Off-time Methods
+  async addOffTime(offTime: OffTime): Promise<void> {
+    const db = await this.init();
+    await db.add('offTime', offTime);
+  }
+
+  async updateOffTime(offTime: OffTime): Promise<void> {
+    const db = await this.init();
+    await db.put('offTime', offTime);
+  }
+
+  async deleteOffTime(id: string): Promise<void> {
+    const db = await this.init();
+    await db.delete('offTime', id);
+  }
+
+  async getOffTimeByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<OffTime[]> {
+    const db = await this.init();
+    const allOffTime = await db.getAll('offTime');
+    return allOffTime.filter(
+      (offTime) =>
+        offTime.start_date >= startDate && offTime.end_date <= endDate
+    );
+  }
+
+  async getAllOffTime(): Promise<OffTime[]> {
+    const db = await this.init();
+    return db.getAll('offTime');
   }
 }
 
