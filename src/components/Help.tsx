@@ -10,7 +10,10 @@ import {
   ListItem,
   ListItemText,
   Paper,
-  Divider,
+  Grid,
+  Card,
+  CardContent,
+  useTheme,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -22,10 +25,12 @@ import {
 } from '@mui/icons-material';
 
 const Help: React.FC = () => {
+  const theme = useTheme();
+
   const features = [
     {
       title: 'Time Tracking',
-      icon: <TimerIcon />,
+      icon: <TimerIcon sx={{ fontSize: 40 }} />,
       items: [
         'Start/stop time tracking for activities',
         'Manual time entry addition and editing',
@@ -37,7 +42,7 @@ const Help: React.FC = () => {
     },
     {
       title: 'Activity Management',
-      icon: <CategoryIcon />,
+      icon: <CategoryIcon sx={{ fontSize: 40 }} />,
       items: [
         'Create and manage activity categories',
         'Add notes to time entries',
@@ -47,7 +52,7 @@ const Help: React.FC = () => {
     },
     {
       title: 'Analytics',
-      icon: <AnalyticsIcon />,
+      icon: <AnalyticsIcon sx={{ fontSize: 40 }} />,
       items: [
         'Overview of total time spent per activity',
         'Yearly time tracking summary',
@@ -58,7 +63,7 @@ const Help: React.FC = () => {
     },
     {
       title: 'Data Storage',
-      icon: <StorageIcon />,
+      icon: <StorageIcon sx={{ fontSize: 40 }} />,
       items: [
         'IndexedDB for persistent, local browser storage',
         'Automatic data saving',
@@ -96,51 +101,151 @@ const Help: React.FC = () => {
   ];
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Container maxWidth="md" sx={{ pb: 4 }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+      >
         Help Center
       </Typography>
 
       {/* Features Section */}
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          mb: 4,
+          borderRadius: 2,
+          background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${theme.palette.background.default})`
+        }}
+      >
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{
+            textAlign: 'center',
+            mb: 4,
+            fontWeight: 'medium'
+          }}
+        >
           Features
         </Typography>
-        {features.map((feature, index) => (
-          <Box key={index} sx={{ mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              {feature.icon}
-              <Typography variant="h6" sx={{ ml: 1 }}>
-                {feature.title}
-              </Typography>
-            </Box>
-            <List>
-              {feature.items.map((item, itemIndex) => (
-                <ListItem key={itemIndex}>
-                  <ListItemText primary={item} />
-                </ListItem>
-              ))}
-            </List>
-            {index < features.length - 1 && <Divider />}
-          </Box>
-        ))}
+        <Grid container spacing={3}>
+          {features.map((feature, index) => (
+            <Grid size={{xs:12, md: 6}} key={index}>
+              <Card
+                elevation={0}
+                sx={{
+                  height: '100%',
+                  border: `1px solid ${theme.palette.divider}`,
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: theme.shadows[4],
+                  }
+                }}
+              >
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      mb: 2,
+                      color: theme.palette.primary.main
+                    }}
+                  >
+                    {feature.icon}
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        ml: 1,
+                        fontWeight: 'medium'
+                      }}
+                    >
+                      {feature.title}
+                    </Typography>
+                  </Box>
+                  <List dense>
+                    {feature.items.map((item, itemIndex) => (
+                      <ListItem
+                        key={itemIndex}
+                        sx={{
+                          py: 0.5,
+                          '&:before': {
+                            content: '"•"',
+                            color: theme.palette.primary.main,
+                            fontWeight: 'bold',
+                            mr: 1
+                          }
+                        }}
+                      >
+                        <ListItemText
+                          primary={item}
+                          primaryTypographyProps={{
+                            variant: 'body2',
+                            color: 'text.secondary'
+                          }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Paper>
 
       {/* FAQ Section */}
-      <Paper elevation={2} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          borderRadius: 2,
+          background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${theme.palette.background.default})`
+        }}
+      >
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{
+            textAlign: 'center',
+            mb: 4,
+            fontWeight: 'medium'
+          }}
+        >
           Frequently Asked Questions
         </Typography>
         {faqs.map((faq, index) => (
-          <Accordion key={index}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Accordion
+            key={index}
+            sx={{
+              mb: 1,
+              '&:before': {
+                display: 'none',
+              },
+              '&.Mui-expanded': {
+                margin: '0 0 8px 0',
+              }
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              sx={{
+                backgroundColor: theme.palette.background.default,
+                borderRadius: 1,
+                '&:hover': {
+                  backgroundColor: theme.palette.action.hover,
+                }
+              }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <HelpIcon sx={{ mr: 1 }} />
+                <HelpIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
                 <Typography>{faq.question}</Typography>
               </Box>
             </AccordionSummary>
             <AccordionDetails>
-              <Typography>{faq.answer}</Typography>
+              <Typography color="text.secondary">{faq.answer}</Typography>
             </AccordionDetails>
           </Accordion>
         ))}
