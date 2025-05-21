@@ -1,10 +1,26 @@
 # Time Tracker
 
-A personal time tracking application built with React and SQLite, designed for easy time tracking and activity management.
+A personal time tracking application built with React and IndexedDB, designed for easy time tracking and activity management.
 
 ## Project Overview
 
-Time Tracker is a desktop application that helps you track time spent on various activities. It provides a simple interface for starting/stopping time tracking, managing activities, and viewing analytics.
+Time Tracker is a web application that helps you track time spent on various activities. It provides a simple interface for starting/stopping time tracking, managing activities, and viewing analytics.
+
+## Tech Stack
+
+### Core Technologies
+
+- React 18+ - Frontend framework
+- TypeScript - Type-safe JavaScript
+- Vite - Build tool and development server
+- Material-UI (MUI) - UI component library
+- IndexedDB - Browser-based database
+
+### Development Tools
+
+- ESLint - Code linting
+- Prettier - Code formatting
+- TypeScript - Static type checking
 
 ## Core Features (v1.0)
 
@@ -38,15 +54,15 @@ Time Tracker is a desktop application that helps you track time spent on various
 
 ### Data Storage
 
-- SQLite database for persistent storage
+- IndexedDB for persistent browser storage
 - Automatic data saving
+- Data export and import functionality
 - Local storage only (no cloud sync)
 
 ## Future Features
 
 - Multiple simultaneous activity tracking
 - System notifications for reminders
-- Data export functionality (CSV/JSON)
 - Activity goals and targets
 - Charts and graphs for analytics
 - Custom date range selection
@@ -61,9 +77,9 @@ Time Tracker is a desktop application that helps you track time spent on various
 - Material-UI for consistent design
 - TypeScript for type safety
 
-### Backend
+### Data Storage
 
-- IndexeDB for data storage
+- IndexedDB for persistent storage
 - TypeScript for type safety
 
 ### Project Structure
@@ -71,9 +87,9 @@ Time Tracker is a desktop application that helps you track time spent on various
 ```sh
 timetracker/
 ├── src/
-│   ├── main/           # Electron main process
-│   ├── renderer/       # React application
-│   ├── database/       # SQLite database operations
+│   ├── main/           # Main application code
+│   ├── components/     # React components
+│   ├── database/       # IndexedDB operations
 │   └── types/          # TypeScript type definitions
 ├── public/             # Static assets
 ├── package.json        # Project dependencies

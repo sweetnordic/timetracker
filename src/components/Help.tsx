@@ -60,8 +60,9 @@ const Help: React.FC = () => {
       title: 'Data Storage',
       icon: <StorageIcon />,
       items: [
-        'Browser based database for persistent, local storage',
+        'IndexedDB for persistent, local browser storage',
         'Automatic data saving',
+        'Data export and import functionality',
         'Local storage only (no cloud sync)',
       ],
     },
@@ -85,8 +86,12 @@ const Help: React.FC = () => {
       answer: 'Go to the Activities section and click "Add Category". Enter the category name and save it.',
     },
     {
-      question: 'Can I export my time tracking data?',
-      answer: 'Currently, data export functionality is planned for a future update. For now, all data is stored locally in the SQLite database.',
+      question: 'Can I export and import my time tracking data?',
+      answer: 'Yes, you can export your data to a JSON file and import it back into the application. This is useful for backing up your data or transferring it to another device.',
+    },
+    {
+      question: 'Where is my data stored?',
+      answer: 'Your data is stored locally in your browser using IndexedDB. This means your data persists between sessions but is only available on the device where it was created.',
     },
   ];
 
