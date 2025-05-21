@@ -33,7 +33,7 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  Grid,
+  GridLegacy,
   Switch
 } from '@mui/material';
 import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Timer, Download, Upload, BarChart } from '@mui/icons-material';
@@ -1498,8 +1498,8 @@ export const TimeTracker: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+              <GridLegacy container spacing={2}>
+                <GridLegacy item xs={12} md={6}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -1527,9 +1527,9 @@ export const TimeTracker: React.FC = () => {
                       </TableContainer>
                     </CardContent>
                   </Card>
-                </Grid>
+                </GridLegacy>
 
-                <Grid item xs={12} md={6}>
+                <GridLegacy item xs={12} md={6}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -1557,9 +1557,9 @@ export const TimeTracker: React.FC = () => {
                       </TableContainer>
                     </CardContent>
                   </Card>
-                </Grid>
+                </GridLegacy>
 
-                <Grid item xs={12}>
+                <GridLegacy item xs={12}>
                   <Card>
                     <CardContent>
                       <Typography variant="h6" gutterBottom>
@@ -1594,10 +1594,10 @@ export const TimeTracker: React.FC = () => {
                       </TableContainer>
                     </CardContent>
                   </Card>
-                </Grid>
+                </GridLegacy>
 
                 {!isMonthlyView && (
-                  <Grid item xs={12}>
+                  <GridLegacy item xs={12}>
                     <Card>
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
@@ -1635,9 +1635,9 @@ export const TimeTracker: React.FC = () => {
                         </TableContainer>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </GridLegacy>
                 )}
-              </Grid>
+              </GridLegacy>
             </Stack>
           </DialogContent>
           <DialogActions>
