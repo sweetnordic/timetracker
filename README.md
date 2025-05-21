@@ -6,22 +6,6 @@ A personal time tracking application built with React and IndexedDB, designed fo
 
 Time Tracker is a web application that helps you track time spent on various activities. It provides a simple interface for starting/stopping time tracking, managing activities, and viewing analytics.
 
-## Tech Stack
-
-### Core Technologies
-
-- React 18+ - Frontend framework
-- TypeScript - Type-safe JavaScript
-- Vite - Build tool and development server
-- Material-UI (MUI) - UI component library
-- IndexedDB - Browser-based database
-
-### Development Tools
-
-- ESLint - Code linting
-- Prettier - Code formatting
-- TypeScript - Static type checking
-
 ## Core Features (v1.0)
 
 ### Time Tracking
@@ -43,6 +27,11 @@ Time Tracker is a web application that helps you track time spent on various act
 - Add notes to time entries
 - Edit existing time entries
 - Delete time entries
+- Set time goals for activities:
+  - Daily, weekly, or monthly targets
+  - Progress tracking and notifications
+  - Visual progress indicators
+  - Goal completion statistics
 
 ### Analytics
 
@@ -51,8 +40,10 @@ Time Tracker is a web application that helps you track time spent on various act
 - Monthly time tracking summary
 - Weekly overview
 - Tabular data presentation
+- Goal progress tracking and statistics
+- Activity-specific goal analytics
 
-### Data Storage
+### Data Persistence
 
 - IndexedDB for persistent browser storage
 - Automatic data saving
@@ -73,14 +64,18 @@ Time Tracker is a web application that helps you track time spent on various act
 ### Frontend
 
 - Web Application
-- React for UI components
-- Material-UI for consistent design
 - TypeScript for type safety
+- React 18+ - Frontend framework
+- TypeScript - Type-safe JavaScript
+- Material-UI - UI component library and design
+- IndexedDB - Browser-based database for persistent storage
 
-### Data Storage
+### Development Tools
 
-- IndexedDB for persistent storage
-- TypeScript for type safety
+- TypeScript - Static type checking
+- Vite - Build tool and development server
+- ESLint - Code linting
+- Prettier - Code formatting
 
 ### Project Structure
 
@@ -100,7 +95,7 @@ timetracker/
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js (v20 or higher)
 - npm or yarn
 - Git
 

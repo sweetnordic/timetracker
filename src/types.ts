@@ -43,6 +43,7 @@ export interface ImportData {
   activities: Activity[];
   timeEntries: TimeEntry[];
   categories: Category[];
+  goals: Goal[];
   exportDate: string;
   databaseVersion: number;
 }

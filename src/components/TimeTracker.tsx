@@ -661,16 +661,18 @@ export const TimeTracker: React.FC = () => {
 
   const handleExportData = async () => {
     try {
-      const [activities, timeEntries, categories] = await Promise.all([
+      const [activities, timeEntries, categories, goals] = await Promise.all([
         db.getActivities(),
         db.getTimeEntries(),
-        db.getCategories()
+        db.getCategories(),
+        db.getGoals()
       ]);
 
       const exportData = {
         activities,
         timeEntries,
         categories,
+        goals,
         exportDate: new Date().toISOString()
       };
 
@@ -691,7 +693,10 @@ export const TimeTracker: React.FC = () => {
   const validateImportData = (data: unknown): data is ImportData => {
     if (!data || typeof data !== 'object') return false;
     const typedData = data as Record<string, unknown>;
-    if (!Array.isArray(typedData.activities) || !Array.isArray(typedData.timeEntries) || !Array.isArray(typedData.categories)) return false;
+    if (!Array.isArray(typedData.activities) ||
+        !Array.isArray(typedData.timeEntries) ||
+        !Array.isArray(typedData.categories) ||
+        !Array.isArray(typedData.goals)) return false;
     if (typeof typedData.exportDate !== 'string') return false;
 
     // Validate activities
@@ -707,6 +712,11 @@ export const TimeTracker: React.FC = () => {
     // Validate categories
     for (const category of typedData.categories) {
       if (!category.name) return false;
+    }
+
+    // Validate goals
+    for (const goal of typedData.goals) {
+      if (!goal.activity_id || !goal.target_hours || !goal.period) return false;
     }
 
     return true;
@@ -754,6 +764,7 @@ export const TimeTracker: React.FC = () => {
       const existingCategories = await db.getCategories();
       const existingActivities = await db.getActivities();
       const existingTimeEntries = await db.getTimeEntries();
+      const existingGoals = await db.getGoals();
 
       // Import categories
       for (const category of data.categories) {
@@ -821,8 +832,36 @@ export const TimeTracker: React.FC = () => {
         }
       }
 
+      // Import goals
+      for (const goal of data.goals) {
+        // Skip if goal already exists (when merging)
+        if (importMode === 'merge' && existingGoals.some(g =>
+          g.activity_id === goal.activity_id &&
+          g.period === goal.period &&
+          g.target_hours === goal.target_hours
+        )) {
+          continue;
+        }
+        // Map the old activity_id to the new one
+        const newActivityId = activityIdMap.get(goal.activity_id);
+        if (newActivityId) {
+          await db.addGoal({
+            activity_id: newActivityId,
+            target_hours: goal.target_hours,
+            period: goal.period,
+            notification_threshold: goal.notification_threshold,
+            created_at: new Date(goal.created_at),
+            updated_at: new Date(goal.updated_at)
+          });
+        }
+      }
+
       // Refresh the UI
-      const loadedActivities = await db.getActivities();
+      const [loadedActivities, loadedGoals] = await Promise.all([
+        db.getActivities(),
+        db.getGoals()
+      ]);
+
       const activitiesWithStats = await Promise.all(
         loadedActivities.map(async (activity) => ({
           ...activity,
@@ -830,6 +869,18 @@ export const TimeTracker: React.FC = () => {
         }))
       );
       setActivities(activitiesWithStats);
+
+      const goalsWithProgress = await Promise.all(
+        loadedGoals.map(async (goal) => {
+          const progress = await db.getGoalProgress(goal.id!);
+          return {
+            ...goal,
+            progress,
+            progressPercentage: (progress / goal.target_hours) * 100
+          };
+        })
+      );
+      setGoals(goalsWithProgress);
 
       const loadedCategories = await db.getCategories();
       setCategories(loadedCategories.map(cat => cat.name));
