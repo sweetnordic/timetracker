@@ -41,7 +41,7 @@ import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress } from '../types';
+import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress, WeeklyStats } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../types';
 
@@ -65,38 +65,6 @@ interface ActivityFormData {
     target_hours: number;
     period: 'daily' | 'weekly' | 'monthly';
     notification_threshold: number;
-  };
-}
-
-
-interface WeeklyStats {
-  totalTime: number;
-  byActivity: { [key: string]: number };
-  byCategory: { [key: string]: number };
-  byExternalSystem: { [key: string]: number };
-  dailyBreakdown: {
-    [key: string]: { // activity name
-      [key: string]: number // day of week -> duration
-    }
-  };
-  goalStats: {
-    totalGoals: number;
-    completedGoals: number;
-    inProgressGoals: number;
-    byPeriod: {
-      daily: { total: number; completed: number };
-      weekly: { total: number; completed: number };
-      monthly: { total: number; completed: number };
-    };
-    byActivity: {
-      [key: string]: {
-        name: string;
-        target: number;
-        progress: number;
-        percentage: number;
-        period: 'daily' | 'weekly' | 'monthly';
-      };
-    };
   };
 }
 
