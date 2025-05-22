@@ -1,6 +1,6 @@
 ---
 # The Docker image that will be used to build your app
-image: node:20-alpine
+image: db-container-lib-docker-release-local.bahnhub.tech.rz.db.de/node:20-alpine
 
 create-pages:
   tags:
