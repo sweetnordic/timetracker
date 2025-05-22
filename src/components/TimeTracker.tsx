@@ -36,7 +36,6 @@ import {
   Switch,
   Grid,
   LinearProgress,
-  ListItemText,
 } from '@mui/material';
 import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload, BarChart, ArrowUpward, ArrowDownward, Notifications, NotificationsOff } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -48,6 +47,7 @@ import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEE
 import { WorkScheduleConfig } from './WorkScheduleConfig';
 import { OffTimeManager } from './OffTimeManager';
 import { WorkScheduleProgress } from './WorkScheduleProgress';
+import { ImportModeClear, ImportModeMerge, type ImportMode } from '../services/importer';
 
 interface TimeTrackerProps {
   db: DatabaseService;
@@ -128,7 +128,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
   const [showImportSuccess, setShowImportSuccess] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importMode, setImportMode] = useState<'clear' | 'merge'>('clear');
+  const [importMode, setImportMode] = useState<ImportMode>(ImportModeMerge);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [isMonthlyView, setIsMonthlyView] = useState(false);
@@ -752,7 +752,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
         return;
       }
 
-      if (importMode === 'clear') {
+      if (importMode === ImportModeClear) {
         await db.clearAllData();
       }
 
@@ -765,7 +765,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
       // Import categories
       for (const category of data.categories) {
         // Skip if category already exists (when merging)
-        if (importMode === 'merge' && existingCategories.some(c => c.name === category.name)) {
+        if (importMode === ImportModeMerge && existingCategories.some(c => c.name === category.name)) {
           continue;
         }
         await db.addCategory({
@@ -779,7 +779,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
       // Import activities
       for (const activity of data.activities) {
         // Skip if activity already exists (when merging)
-        if (importMode === 'merge' && existingActivities.some(a =>
+        if (importMode === ImportModeMerge && existingActivities.some(a =>
           a.name === activity.name && a.category === activity.category
         )) {
           continue;
@@ -807,7 +807,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
       // Import time entries
       for (const entry of data.timeEntries) {
         // Skip if time entry already exists (when merging)
-        if (importMode === 'merge' && existingTimeEntries.some(e =>
+        if (importMode === ImportModeMerge && existingTimeEntries.some(e =>
           e.activity_id === entry.activity_id &&
           new Date(e.start_time).getTime() === new Date(entry.start_time).getTime()
         )) {
@@ -831,7 +831,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
       // Import goals
       for (const goal of data.goals) {
         // Skip if goal already exists (when merging)
-        if (importMode === 'merge' && existingGoals.some(g =>
+        if (importMode === ImportModeMerge && existingGoals.some(g =>
           g.activity_id === goal.activity_id &&
           g.period === goal.period &&
           g.target_hours === goal.target_hours
@@ -1892,27 +1892,27 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ db }) => {
                     <RadioGroup
                       value={importMode}
                       onChange={(e) =>
-                        setImportMode(e.target.value as 'clear' | 'merge')
+                        setImportMode(e.target.value as ImportMode)
                       }
                     >
                       <FormControlLabel
-                        value="clear"
+                        value={ImportModeClear}
                         control={<Radio />}
                         label="Clear existing data and import"
                       />
                       <FormControlLabel
-                        value="merge"
+                        value={ImportModeMerge}
                         control={<Radio />}
                         label="Merge with existing data"
                       />
                     </RadioGroup>
                   </FormControl>
-                  {importMode === 'clear' && (
+                  {importMode === ImportModeClear && (
                     <Alert severity="warning">
                       This will delete all existing data before importing.
                     </Alert>
                   )}
-                  {importMode === 'merge' && (
+                  {importMode === ImportModeMerge && (
                     <Alert severity="info">
                       Duplicate entries will be skipped during import.
                     </Alert>

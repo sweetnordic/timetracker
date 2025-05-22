@@ -57,6 +57,7 @@ export const WorkScheduleProgress: React.FC<WorkScheduleProgressProps> = ({ db }
 
         const isWorkday = schedule.is_workday;
         if (!isWorkday) {
+          /*
           progressData.push({
             day,
             schedule,
@@ -64,6 +65,7 @@ export const WorkScheduleProgress: React.FC<WorkScheduleProgressProps> = ({ db }
             isWorkday: false,
             isToday: isToday(day),
           });
+          */
           continue;
         }
 
@@ -117,7 +119,7 @@ export const WorkScheduleProgress: React.FC<WorkScheduleProgressProps> = ({ db }
   };
 
   return (
-    <Card>
+    <Card sx={{ mb: 2 }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">Work Schedule Progress</Typography>
