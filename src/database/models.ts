@@ -15,9 +15,9 @@ export interface Activity {
 export interface Category {
   id?: string;
   name: string;
+  order: number;
   created_at: Date;
   updated_at: Date;
-  order: number;
 }
 
 export interface TimeEntry {

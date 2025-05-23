@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../types';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from './models';
 
 interface TimeTrackerDB extends DBSchema {
   categories: {
@@ -245,6 +245,30 @@ class DatabaseService {
   async getCategories(): Promise<TimeTrackerDB['categories']['value'][]> {
     if (!this.db) throw new Error('Database not initialized');
     return this.db.getAll('categories');
+  }
+
+  async updateCategory(category: TimeTrackerDB['categories']['value']): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!category.id) throw new Error('Category ID is required for update');
+    try {
+      await this.db.put('categories', {
+        ...category,
+        updated_at: new Date()
+      });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      throw error;
+    }
+  }
+
+  async deleteCategory(categoryId: string): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    try {
+      await this.db.delete('categories', categoryId);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      throw error;
+    }
   }
 
   async getTrackingSettings(): Promise<{

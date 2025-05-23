@@ -11,11 +11,16 @@ import {
   Paper,
   Stack,
   MenuItem,
-  Divider
+  Divider,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import type { Activity, Category } from '../types';
-import { DEFAULT_ORDER } from '../types';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import type { Activity, Category } from '../database/models';
+import { DEFAULT_ORDER } from '../database/models';
 
 export const ActivityManager: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -23,6 +28,9 @@ export const ActivityManager: React.FC = () => {
   const [newActivityName, setNewActivityName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editedCategoryName, setEditedCategoryName] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -73,6 +81,37 @@ export const ActivityManager: React.FC = () => {
     setNewCategoryName('');
   };
 
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setEditedCategoryName(category.name);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (window.confirm('Are you sure you want to delete this category? This will also remove all associated activities.')) {
+      await db.deleteCategory(categoryId);
+      const updatedCategories = await db.getCategories();
+      setCategories(updatedCategories);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCategory || !editedCategoryName) return;
+
+    const updatedCategory = {
+      ...editingCategory,
+      name: editedCategoryName,
+      updated_at: new Date()
+    };
+
+    await db.updateCategory(updatedCategory);
+    const updatedCategories = await db.getCategories();
+    setCategories(updatedCategories);
+    setEditDialogOpen(false);
+    setEditingCategory(null);
+    setEditedCategoryName('');
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -106,7 +145,27 @@ export const ActivityManager: React.FC = () => {
           </Box>
           <List>
             {categories.map((category) => (
-              <ListItem key={category.id}>
+              <ListItem
+                key={category.id}
+                secondaryAction={
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      edge="end"
+                      aria-label="edit"
+                      onClick={() => handleEditCategory(category)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      onClick={() => handleDeleteCategory(category.id!)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                }
+              >
                 <ListItemText primary={category.name} />
               </ListItem>
             ))}
@@ -169,6 +228,26 @@ export const ActivityManager: React.FC = () => {
           </List>
         </Paper>
       </Stack>
+
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+        <DialogTitle>Edit Category</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Category Name"
+            fullWidth
+            value={editedCategoryName}
+            onChange={(e) => setEditedCategoryName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
