@@ -247,6 +247,21 @@ class DatabaseService {
     return this.db.getAll('categories');
   }
 
+  async updateCategoryOrder(categoryId: string, newOrder: number): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    const tx = this.db.transaction('categories', 'readwrite');
+    const store = tx.objectStore('categories');
+    const category = await store.get(categoryId);
+
+    if (category) {
+      category.order = newOrder;
+      category.updated_at = new Date();
+      await store.put(category);
+    }
+
+    await tx.done;
+  }
+
   async updateCategory(category: TimeTrackerDB['categories']['value']): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     if (!category.id) throw new Error('Category ID is required for update');

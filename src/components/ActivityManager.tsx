@@ -18,7 +18,13 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
+} from '@mui/icons-material';
 import type { Activity, Category } from '../database/models';
 import { DEFAULT_ORDER } from '../database/models';
 
@@ -37,7 +43,7 @@ export const ActivityManager: React.FC = () => {
       const loadedActivities = await db.getActivities();
       const loadedCategories = await db.getCategories();
       setActivities(loadedActivities);
-      setCategories(loadedCategories);
+      setCategories(loadedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
     };
     loadData();
   }, []);
@@ -70,14 +76,14 @@ export const ActivityManager: React.FC = () => {
     const now = new Date();
     const newCategory: Omit<Category, 'id'> = {
       name: newCategoryName,
-      order: DEFAULT_ORDER,
+      order: categories.length > 0 ? Math.max(...categories.map(c => c.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
       created_at: now,
       updated_at: now,
     };
 
     await db.addCategory(newCategory);
     const updatedCategories = await db.getCategories();
-    setCategories(updatedCategories);
+    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
     setNewCategoryName('');
   };
 
@@ -91,7 +97,7 @@ export const ActivityManager: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this category? This will also remove all associated activities.')) {
       await db.deleteCategory(categoryId);
       const updatedCategories = await db.getCategories();
-      setCategories(updatedCategories);
+      setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
     }
   };
 
@@ -106,10 +112,30 @@ export const ActivityManager: React.FC = () => {
 
     await db.updateCategory(updatedCategory);
     const updatedCategories = await db.getCategories();
-    setCategories(updatedCategories);
+    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
     setEditDialogOpen(false);
     setEditingCategory(null);
     setEditedCategoryName('');
+  };
+
+  const handleMoveCategory = async (categoryId: string, direction: 'up' | 'down') => {
+    const currentIndex = categories.findIndex(c => c.id === categoryId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= categories.length) return;
+
+    const currentCategory = categories[currentIndex];
+    const targetCategory = categories[targetIndex];
+
+    // Swap orders
+    await Promise.all([
+      db.updateCategoryOrder(currentCategory.id!, targetCategory.order || DEFAULT_ORDER),
+      db.updateCategoryOrder(targetCategory.id!, currentCategory.order || DEFAULT_ORDER)
+    ]);
+
+    const updatedCategories = await db.getCategories();
+    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
   };
 
   return (
@@ -144,11 +170,27 @@ export const ActivityManager: React.FC = () => {
             </Stack>
           </Box>
           <List>
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <ListItem
                 key={category.id}
                 secondaryAction={
                   <Stack direction="row" spacing={1}>
+                    <IconButton
+                      edge="end"
+                      aria-label="move up"
+                      onClick={() => handleMoveCategory(category.id!, 'up')}
+                      disabled={index === 0}
+                    >
+                      <ArrowUpwardIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="move down"
+                      onClick={() => handleMoveCategory(category.id!, 'down')}
+                      disabled={index === categories.length - 1}
+                    >
+                      <ArrowDownwardIcon />
+                    </IconButton>
                     <IconButton
                       edge="end"
                       aria-label="edit"
