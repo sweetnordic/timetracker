@@ -1,12 +1,15 @@
 {
   "name": "Time Tracker",
   "short_name": "Time Tracker",
+  "description": "A personal time tracking application, designed for easy time tracking and activity management.",
   "theme_color": "#2196f3",
   "background_color": "#898b8f",
   "display": "standalone",
   "orientation": "portrait",
-  "scope": "/",
-  "start_url": "/",
+  "dir": "ltr",
+  "lang": "en-US",
+  "scope": "/timetracker",
+  "start_url": "/timetracker",
   "icons": [
     {
       "src": "favicon.png",
@@ -18,5 +21,12 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "categories": [
+    "productivity",
+    "time-tracking",
+    "time-management",
+    "time-tracking-app",
+    "time-tracking-software"
   ]
 }
