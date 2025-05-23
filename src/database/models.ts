@@ -4,7 +4,7 @@ export type FirstDayOfWeek = 'monday' | 'sunday';
 export const DEFAULT_ORDER: number = 1;
 export const DEFAULT_NOTIFICATION_THRESHOLD: number = 90;
 export const DEFAULT_FIRST_DAY_OF_WEEK: FirstDayOfWeek = 'monday';
-export const WEEKDAYS = [
+export const DAYS_OF_WEEK = [
   'Sunday',
   'Monday',
   'Tuesday',
