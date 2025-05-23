@@ -1067,1322 +1067,1320 @@ export const TimeTracker: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ pb: 4, minWidth: '500px' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 4,
-          }}
-        >
-          <Typography variant="h4" gutterBottom>
-            Time Tracker
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              onClick={() => setShowNotificationCenter(true)}
-              color="primary"
-            >
-              {trackingSettings.notificationsEnabled ? (
-                <Notifications />
-              ) : (
-                <NotificationsOff />
-              )}
-            </IconButton>
-            <IconButton onClick={handleOpenAnalytics} color="primary">
-              <BarChart />
-            </IconButton>
-            <IconButton onClick={handleOpenSettings} color="primary">
-              <Settings />
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Paper
-          elevation={3}
-          sx={{
-            p: 3,
-            mb: 4,
-            bgcolor: isTracking ? 'primary.light' : 'background.paper',
-            color: isTracking ? 'primary.contrastText' : 'text.primary',
-          }}
-        >
-          {isTracking && currentActivity ? (
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h6" gutterBottom>
-                Currently Tracking: {currentActivity.name}
-              </Typography>
-              <Box sx={{ position: 'relative', display: 'inline-flex', mb: 2 }}>
-                <CircularProgress
-                  variant="determinate"
-                  value={(elapsedTime % 3600) / 36}
-                  size={120}
-                  thickness={4}
-                />
-                <Box
-                  sx={{
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                    position: 'absolute',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h4" component="div">
-                    {formatTime(elapsedTime)}
-                  </Typography>
-                </Box>
-              </Box>
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<Stop />}
-                onClick={stopTracking}
-                size="large"
-              >
-                Stop Tracking
-              </Button>
-            </Box>
-          ) : (
-            <Typography variant="h6" align="center">
-              No activity being tracked
-            </Typography>
-          )}
-        </Paper>
-
-        <Typography variant="h5" gutterBottom>
-          Activities
+    <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Time Tracker
         </Typography>
-        <List>
-          {activities.map((activity) => (
-            <ListItem key={activity.id} component={Card} sx={{ mb: 2 }}>
-              <CardContent sx={{ width: '100%' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                      }}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <IconButton
+            onClick={() => setShowNotificationCenter(true)}
+            color="primary"
+          >
+            {trackingSettings.notificationsEnabled ? (
+              <Notifications />
+            ) : (
+              <NotificationsOff />
+            )}
+          </IconButton>
+          <IconButton onClick={handleOpenAnalytics} color="primary">
+            <BarChart />
+          </IconButton>
+          <IconButton onClick={handleOpenSettings} color="primary">
+            <Settings />
+          </IconButton>
+        </Box>
+      </Box>
+
+      <Paper
+        elevation={3}
+        sx={{
+          p: 3,
+          mb: 4,
+          bgcolor: isTracking ? 'primary.light' : 'background.paper',
+          color: isTracking ? 'primary.contrastText' : 'text.primary',
+        }}
+      >
+        {isTracking && currentActivity ? (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" gutterBottom>
+              Currently Tracking: {currentActivity.name}
+            </Typography>
+            <Box sx={{ position: 'relative', display: 'inline-flex', mb: 2 }}>
+              <CircularProgress
+                variant="determinate"
+                value={(elapsedTime % 3600) / 36}
+                size={120}
+                thickness={4}
+              />
+              <Box
+                sx={{
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  right: 0,
+                  position: 'absolute',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Typography variant="h4" component="div">
+                  {formatTime(elapsedTime)}
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Stop />}
+              onClick={stopTracking}
+              size="large"
+            >
+              Stop Tracking
+            </Button>
+          </Box>
+        ) : (
+          <Typography variant="h6" align="center">
+            No activity being tracked
+          </Typography>
+        )}
+      </Paper>
+
+      <Typography variant="h5" gutterBottom>
+        Activities
+      </Typography>
+      <List>
+        {activities.map((activity) => (
+          <ListItem key={activity.id} component={Card} sx={{ mb: 2 }}>
+            <CardContent sx={{ width: '100%' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <Typography variant="h6" gutterBottom>
+                      {activity.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleMoveActivity(activity, 'up')}
+                        disabled={activities.indexOf(activity) === 0}
+                      >
+                        <ArrowUpward />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleMoveActivity(activity, 'down')}
+                        disabled={
+                          activities.indexOf(activity) ===
+                          activities.length - 1
+                        }
+                      >
+                        <ArrowDownward />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenActivityDialog(activity)}
+                      >
+                        <Edit />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Category: {activity.category}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Time: {formatDuration(activity.totalDuration)}
+                    </Typography>
+                  </Box>
+                  {activity.description && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
                     >
-                      <Typography variant="h6" gutterBottom>
-                        {activity.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleMoveActivity(activity, 'up')}
-                          disabled={activities.indexOf(activity) === 0}
-                        >
-                          <ArrowUpward />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleMoveActivity(activity, 'down')}
-                          disabled={
-                            activities.indexOf(activity) ===
-                            activities.length - 1
-                          }
-                        >
-                          <ArrowDownward />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenActivityDialog(activity)}
-                        >
-                          <Edit />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Category: {activity.category}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Time: {formatDuration(activity.totalDuration)}
-                      </Typography>
-                    </Box>
-                    {activity.description && (
+                      {activity.description}
+                    </Typography>
+                  )}
+                  {activity.external_system && (
+                    <Typography variant="body2" color="text.secondary">
+                      External System: {activity.external_system}
+                    </Typography>
+                  )}
+                  {goals.find((g) => g.activity_id === activity.id) && (
+                    <Box sx={{ mt: 2 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
-                        sx={{ mt: 1 }}
+                        gutterBottom
                       >
-                        {activity.description}
+                        Goal Progress
                       </Typography>
-                    )}
-                    {activity.external_system && (
-                      <Typography variant="body2" color="text.secondary">
-                        External System: {activity.external_system}
-                      </Typography>
-                    )}
-                    {goals.find((g) => g.activity_id === activity.id) && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          gutterBottom
-                        >
-                          Goal Progress
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={
+                      <LinearProgress
+                        variant="determinate"
+                        value={
+                          goals.find((g) => g.activity_id === activity.id)
+                            ?.progressPercentage || 0
+                        }
+                        sx={{ height: 8, borderRadius: 4 }}
+                      />
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          mt: 0.5,
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">
+                          {formatDuration(
                             goals.find((g) => g.activity_id === activity.id)
-                              ?.progressPercentage || 0
-                          }
-                          sx={{ height: 8, borderRadius: 4 }}
-                        />
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            mt: 0.5,
-                          }}
-                        >
-                          <Typography variant="caption" color="text.secondary">
-                            {formatDuration(
-                              goals.find((g) => g.activity_id === activity.id)
-                                ?.progress || 0
-                            )}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {
-                              goals.find((g) => g.activity_id === activity.id)
-                                ?.target_hours
-                            }
-                            h
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                  </Box>
-                  <Box
-                    sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
-                  >
-                    <Tooltip title="View History">
-                      <IconButton
-                        onClick={() => handleOpenDetail(activity)}
-                        color="primary"
-                      >
-                        <History />
-                      </IconButton>
-                    </Tooltip>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      startIcon={<PlayArrow />}
-                      onClick={() => startTracking(activity)}
-                      disabled={isTracking}
-                    >
-                      Start Tracking
-                    </Button>
-                  </Box>
-                </Box>
-              </CardContent>
-            </ListItem>
-          ))}
-        </List>
-
-        <Dialog
-          open={isDetailOpen}
-          onClose={handleCloseDetail}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Time Entries for {selectedActivity?.name}</DialogTitle>
-          <DialogContent>
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => handleOpenEntryDialog()}
-              >
-                Add Entry
-              </Button>
-            </Box>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Start Time</TableCell>
-                    <TableCell>End Time</TableCell>
-                    <TableCell>Duration</TableCell>
-                    <TableCell>Notes</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {timeEntries.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      sx={{
-                        bgcolor: !entry.end_time ? 'action.hover' : 'inherit',
-                        '&:hover': {
-                          bgcolor: !entry.end_time
-                            ? 'action.selected'
-                            : 'action.hover',
-                        },
-                      }}
-                    >
-                      <TableCell>
-                        <Box
-                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                        >
-                          {!entry.end_time && (
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                bgcolor: 'primary.main',
-                                animation: 'pulse 2s infinite',
-                                '@keyframes pulse': {
-                                  '0%': {
-                                    opacity: 1,
-                                  },
-                                  '50%': {
-                                    opacity: 0.4,
-                                  },
-                                  '100%': {
-                                    opacity: 1,
-                                  },
-                                },
-                              }}
-                            />
+                              ?.progress || 0
                           )}
-                          {new Date(entry.start_time).toLocaleString()}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {entry.end_time ? (
-                          new Date(entry.end_time).toLocaleString()
-                        ) : (
-                          <Typography
-                            color="primary"
-                            sx={{ fontWeight: 'medium' }}
-                          >
-                            In Progress
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {entry.duration ? formatDuration(entry.duration) : '-'}
-                      </TableCell>
-                      <TableCell>{entry.notes || '-'}</TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleOpenEntryDialog(entry)}
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(entry)}
-                            color="error"
-                          >
-                            <Delete />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDetail}>Close</Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={isEntryDialogOpen}
-          onClose={handleCloseEntryDialog}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingEntry ? 'Edit Time Entry' : 'Add Time Entry'}
-          </DialogTitle>
-          <DialogContent>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Stack spacing={3} sx={{ mt: 2 }}>
-                {timeError && (
-                  <Alert severity="error" onClose={() => setTimeError(null)}>
-                    {timeError}
-                  </Alert>
-                )}
-                <DateTimePicker
-                  label="Start Time"
-                  value={entryFormData.start_time}
-                  onChange={(newValue: Date | null) =>
-                    newValue && handleEntryFormChange('start_time', newValue)
-                  }
-                />
-                <DateTimePicker
-                  label="End Time"
-                  value={entryFormData.end_time}
-                  onChange={(newValue: Date | null) =>
-                    newValue && handleEntryFormChange('end_time', newValue)
-                  }
-                />
-                <TextField
-                  label="Duration"
-                  value={formatDuration(entryFormData.duration)}
-                  disabled
-                />
-                <TextField
-                  label="Notes"
-                  multiline
-                  rows={3}
-                  value={entryFormData.notes}
-                  onChange={(e) =>
-                    handleEntryFormChange('notes', e.target.value)
-                  }
-                />
-              </Stack>
-            </LocalizationProvider>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseEntryDialog}>Cancel</Button>
-            <Button
-              onClick={handleSaveEntry}
-              variant="contained"
-              disabled={!!timeError}
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-        >
-          <DialogTitle>Delete Time Entry</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete this time entry? This action
-              cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleDeleteConfirm}
-              color="error"
-              variant="contained"
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={isActivityDialogOpen}
-          onClose={handleCloseActivityDialog}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingActivity ? 'Edit Activity' : 'Add Activity'}
-          </DialogTitle>
-          <DialogContent>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              <TextField
-                label="Name"
-                value={activityFormData.name}
-                onChange={(e) =>
-                  handleActivityFormChange('name', e.target.value)
-                }
-                required
-                fullWidth
-              />
-              <TextField
-                select
-                label="Category"
-                value={activityFormData.category}
-                onChange={(e) =>
-                  handleActivityFormChange('category', e.target.value)
-                }
-                required
-                fullWidth
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {category}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="Description"
-                value={activityFormData.description}
-                onChange={(e) =>
-                  handleActivityFormChange('description', e.target.value)
-                }
-                multiline
-                rows={3}
-                fullWidth
-              />
-              <TextField
-                label="External System"
-                value={activityFormData.external_system}
-                onChange={(e) =>
-                  handleActivityFormChange('external_system', e.target.value)
-                }
-                fullWidth
-              />
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Time Goal
-                </Typography>
-                <Stack spacing={2}>
-                  <TextField
-                    label="Target Hours"
-                    type="number"
-                    value={activityFormData.goal?.target_hours || ''}
-                    onChange={(e) =>
-                      handleActivityFormChange('goal', {
-                        ...activityFormData.goal,
-                        target_hours: Number(e.target.value),
-                      })
-                    }
-                    inputProps={{ min: 0, step: 0.5 }}
-                    fullWidth
-                  />
-                  <TextField
-                    select
-                    label="Period"
-                    value={activityFormData.goal?.period || ''}
-                    onChange={(e) =>
-                      handleActivityFormChange('goal', {
-                        ...activityFormData.goal,
-                        period: e.target.value as
-                          | 'daily'
-                          | 'weekly'
-                          | 'monthly',
-                      })
-                    }
-                    fullWidth
-                  >
-                    <MenuItem value="daily">Daily</MenuItem>
-                    <MenuItem value="weekly">Weekly</MenuItem>
-                    <MenuItem value="monthly">Monthly</MenuItem>
-                  </TextField>
-                  <TextField
-                    label="Notification Threshold (%)"
-                    type="number"
-                    value={
-                      activityFormData.goal?.notification_threshold ||
-                      trackingSettings.defaultGoalNotificationThreshold
-                    }
-                    onChange={(e) =>
-                      handleActivityFormChange('goal', {
-                        ...activityFormData.goal,
-                        notification_threshold: Number(e.target.value),
-                      })
-                    }
-                    inputProps={{ min: 0, max: 100, step: 5 }}
-                    fullWidth
-                    helperText="You'll be notified when you reach this percentage of your goal"
-                  />
-                </Stack>
-              </Box>
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseActivityDialog}>Cancel</Button>
-            <Button
-              onClick={handleSaveActivity}
-              variant="contained"
-              disabled={!activityFormData.name || !activityFormData.category}
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Snackbar
-          open={showWarning}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            severity="warning"
-            action={
-              <Button color="inherit" size="small" onClick={handleExtendTime}>
-                Extend Time
-              </Button>
-            }
-          >
-            Warning: Time tracking will stop in{' '}
-            {Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)}{' '}
-            minutes
-          </Alert>
-        </Snackbar>
-
-        <Dialog
-          open={showSettingsDialog}
-          onClose={handleCloseSettings}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Tracking Settings</DialogTitle>
-          <DialogContent>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              <TextField
-                label="Maximum Tracking Duration (hours)"
-                type="number"
-                value={settingsFormData.maxDuration / 3600}
-                onChange={(e) =>
-                  setSettingsFormData((prev) => ({
-                    ...prev,
-                    maxDuration: Number(e.target.value) * 3600,
-                  }))
-                }
-                inputProps={{ min: 1, max: 24 }}
-                fullWidth
-              />
-              <TextField
-                label="Warning Threshold (minutes)"
-                type="number"
-                value={settingsFormData.warningThreshold / 60}
-                onChange={(e) =>
-                  setSettingsFormData((prev) => ({
-                    ...prev,
-                    warningThreshold: Number(e.target.value) * 60,
-                  }))
-                }
-                inputProps={{ min: 5, max: 60 }}
-                fullWidth
-              />
-              <TextField
-                label="Default Goal Notification Threshold (%)"
-                type="number"
-                value={settingsFormData.defaultGoalNotificationThreshold}
-                onChange={(e) =>
-                  setSettingsFormData((prev) => ({
-                    ...prev,
-                    defaultGoalNotificationThreshold: Number(e.target.value),
-                  }))
-                }
-                inputProps={{ min: 0, max: 100, step: 5 }}
-                fullWidth
-                helperText="Default percentage at which to notify when reaching a goal"
-              />
-              <FormControl>
-                <FormLabel>First Day of Week</FormLabel>
-                <RadioGroup
-                  value={settingsFormData.firstDayOfWeek}
-                  onChange={(e) =>
-                    setSettingsFormData((prev) => ({
-                      ...prev,
-                      firstDayOfWeek: e.target.value as 'monday' | 'sunday',
-                    }))
-                  }
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {
+                            goals.find((g) => g.activity_id === activity.id)
+                              ?.target_hours
+                          }
+                          h
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+                <Box
+                  sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
                 >
-                  <FormControlLabel
-                    value="monday"
-                    control={<Radio />}
-                    label="Monday"
-                  />
-                  <FormControlLabel
-                    value="sunday"
-                    control={<Radio />}
-                    label="Sunday"
-                  />
-                </RadioGroup>
-              </FormControl>
-              <FormControl>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settingsFormData.notificationsEnabled}
-                      onChange={(e) =>
-                        setSettingsFormData((prev) => ({
-                          ...prev,
-                          notificationsEnabled: e.target.checked,
-                        }))
-                      }
-                    />
-                  }
-                  label="Enable Goal Notifications"
-                />
-              </FormControl>
-              <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Download />}
-                  onClick={handleExportData}
-                  fullWidth
-                >
-                  Export Data
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<Upload />}
-                  onClick={handleImportClick}
-                  fullWidth
-                >
-                  Import Data
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                  ref={fileInputRef}
-                />
-              </Box>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => setShowResetConfirm(true)}
-                fullWidth
-              >
-                Reset Database
-              </Button>
-              {importError && (
-                <Alert severity="error" onClose={() => setImportError(null)}>
-                  {importError}
-                </Alert>
-              )}
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleResetSettings} color="secondary">
-              Reset to Defaults
-            </Button>
-            <Box sx={{ flex: 1 }} />
-            <Button onClick={handleCloseSettings}>Cancel</Button>
-            <Button onClick={handleSaveSettings} variant="contained">
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={showResetConfirm}
-          onClose={() => setShowResetConfirm(false)}
-        >
-          <DialogTitle>Reset Database</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to reset the database? This will delete all
-              activities, time entries, and categories. This action cannot be
-              undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
-            <Button
-              onClick={handleResetDatabase}
-              color="error"
-              variant="contained"
-            >
-              Reset Database
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Snackbar
-          open={showResetSuccess}
-          autoHideDuration={3000}
-          onClose={() => setShowResetSuccess(false)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => setShowResetSuccess(false)}
-            severity="success"
-            sx={{ width: '100%' }}
-          >
-            Database has been reset successfully
-          </Alert>
-        </Snackbar>
-
-        <Snackbar
-          open={showSaveSuccess}
-          autoHideDuration={3000}
-          onClose={() => setShowSaveSuccess(false)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => setShowSaveSuccess(false)}
-            severity="success"
-            sx={{ width: '100%' }}
-          >
-            Settings have been saved successfully
-          </Alert>
-        </Snackbar>
-
-        <Snackbar
-          open={showImportSuccess}
-          autoHideDuration={3000}
-          onClose={() => setShowImportSuccess(false)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => setShowImportSuccess(false)}
-            severity="success"
-            sx={{ width: '100%' }}
-          >
-            Data imported successfully
-          </Alert>
-        </Snackbar>
-
-        {/* Goal Notification Snackbar */}
-        <Snackbar
-          open={!!goalNotification}
-          autoHideDuration={5000}
-          onClose={() => setGoalNotification(null)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => setGoalNotification(null)}
-            severity={goalNotification?.isCompletion ? "success" : "info"}
-            sx={{ width: '100%' }}
-          >
-            {goalNotification?.isCompletion
-              ? `🎉 Congratulations! You've completed your ${goalNotification.goal.period} goal for ${goalNotification.activity.name}!`
-              : `Goal Progress Alert! You reached ${goalNotification?.goal.progressPercentage.toFixed(1)}% of your ${goalNotification?.goal.period} goal for ${goalNotification?.activity.name}`
-            }
-          </Alert>
-        </Snackbar>
-
-        <Dialog
-          open={showImportDialog}
-          onClose={handleCloseImportDialog}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Import Data</DialogTitle>
-          <DialogContent>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              {importFile ? (
-                <>
-                  <Typography>Selected file: {importFile.name}</Typography>
-                  <FormControl>
-                    <FormLabel>Import Mode</FormLabel>
-                    <RadioGroup
-                      value={importMode}
-                      onChange={(e) =>
-                        setImportMode(e.target.value as 'clear' | 'merge')
-                      }
+                  <Tooltip title="View History">
+                    <IconButton
+                      onClick={() => handleOpenDetail(activity)}
+                      color="primary"
                     >
-                      <FormControlLabel
-                        value="clear"
-                        control={<Radio />}
-                        label="Clear existing data and import"
-                      />
-                      <FormControlLabel
-                        value="merge"
-                        control={<Radio />}
-                        label="Merge with existing data"
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                  {importMode === 'clear' && (
-                    <Alert severity="warning">
-                      This will delete all existing data before importing.
-                    </Alert>
-                  )}
-                  {importMode === 'merge' && (
-                    <Alert severity="info">
-                      Duplicate entries will be skipped during import.
-                    </Alert>
-                  )}
-                </>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <Typography gutterBottom>
-                    Please select a JSON file to import.
-                  </Typography>
+                      <History />
+                    </IconButton>
+                  </Tooltip>
                   <Button
                     variant="contained"
-                    component="label"
-                    startIcon={<Upload />}
+                    color="primary"
+                    startIcon={<PlayArrow />}
+                    onClick={() => startTracking(activity)}
+                    disabled={isTracking}
                   >
-                    Choose File
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                    />
+                    Start Tracking
                   </Button>
                 </Box>
-              )}
-              {importError && (
-                <Alert severity="error" onClose={() => setImportError(null)}>
-                  {importError}
+              </Box>
+            </CardContent>
+          </ListItem>
+        ))}
+      </List>
+
+      <Dialog
+        open={isDetailOpen}
+        onClose={handleCloseDetail}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Time Entries for {selectedActivity?.name}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenEntryDialog()}
+            >
+              Add Entry
+            </Button>
+          </Box>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Start Time</TableCell>
+                  <TableCell>End Time</TableCell>
+                  <TableCell>Duration</TableCell>
+                  <TableCell>Notes</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {timeEntries.map((entry) => (
+                  <TableRow
+                    key={entry.id}
+                    sx={{
+                      bgcolor: !entry.end_time ? 'action.hover' : 'inherit',
+                      '&:hover': {
+                        bgcolor: !entry.end_time
+                          ? 'action.selected'
+                          : 'action.hover',
+                      },
+                    }}
+                  >
+                    <TableCell>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        {!entry.end_time && (
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              bgcolor: 'primary.main',
+                              animation: 'pulse 2s infinite',
+                              '@keyframes pulse': {
+                                '0%': {
+                                  opacity: 1,
+                                },
+                                '50%': {
+                                  opacity: 0.4,
+                                },
+                                '100%': {
+                                  opacity: 1,
+                                },
+                              },
+                            }}
+                          />
+                        )}
+                        {new Date(entry.start_time).toLocaleString()}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {entry.end_time ? (
+                        new Date(entry.end_time).toLocaleString()
+                      ) : (
+                        <Typography
+                          color="primary"
+                          sx={{ fontWeight: 'medium' }}
+                        >
+                          In Progress
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {entry.duration ? formatDuration(entry.duration) : '-'}
+                    </TableCell>
+                    <TableCell>{entry.notes || '-'}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEntryDialog(entry)}
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(entry)}
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetail}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isEntryDialogOpen}
+        onClose={handleCloseEntryDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingEntry ? 'Edit Time Entry' : 'Add Time Entry'}
+        </DialogTitle>
+        <DialogContent>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              {timeError && (
+                <Alert severity="error" onClose={() => setTimeError(null)}>
+                  {timeError}
                 </Alert>
               )}
+              <DateTimePicker
+                label="Start Time"
+                value={entryFormData.start_time}
+                onChange={(newValue: Date | null) =>
+                  newValue && handleEntryFormChange('start_time', newValue)
+                }
+              />
+              <DateTimePicker
+                label="End Time"
+                value={entryFormData.end_time}
+                onChange={(newValue: Date | null) =>
+                  newValue && handleEntryFormChange('end_time', newValue)
+                }
+              />
+              <TextField
+                label="Duration"
+                value={formatDuration(entryFormData.duration)}
+                disabled
+              />
+              <TextField
+                label="Notes"
+                multiline
+                rows={3}
+                value={entryFormData.notes}
+                onChange={(e) =>
+                  handleEntryFormChange('notes', e.target.value)
+                }
+              />
             </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseImportDialog}>Cancel</Button>
-            <Button
-              onClick={handleImportConfirm}
-              variant="contained"
-              disabled={!importFile}
-            >
-              Import
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </LocalizationProvider>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEntryDialog}>Cancel</Button>
+          <Button
+            onClick={handleSaveEntry}
+            variant="contained"
+            disabled={!!timeError}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Dialog
-          open={showAnalytics}
-          onClose={handleCloseAnalytics}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
+      <Dialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Time Entry</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this time entry? This action
+            cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isActivityDialogOpen}
+        onClose={handleCloseActivityDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingActivity ? 'Edit Activity' : 'Add Activity'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <TextField
+              label="Name"
+              value={activityFormData.name}
+              onChange={(e) =>
+                handleActivityFormChange('name', e.target.value)
+              }
+              required
+              fullWidth
+            />
+            <TextField
+              select
+              label="Category"
+              value={activityFormData.category}
+              onChange={(e) =>
+                handleActivityFormChange('category', e.target.value)
+              }
+              required
+              fullWidth
             >
-              <Typography variant="h6">Analytics</Typography>
+              {categories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Description"
+              value={activityFormData.description}
+              onChange={(e) =>
+                handleActivityFormChange('description', e.target.value)
+              }
+              multiline
+              rows={3}
+              fullWidth
+            />
+            <TextField
+              label="External System"
+              value={activityFormData.external_system}
+              onChange={(e) =>
+                handleActivityFormChange('external_system', e.target.value)
+              }
+              fullWidth
+            />
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Time Goal
+              </Typography>
+              <Stack spacing={2}>
+                <TextField
+                  label="Target Hours"
+                  type="number"
+                  value={activityFormData.goal?.target_hours || ''}
+                  onChange={(e) =>
+                    handleActivityFormChange('goal', {
+                      ...activityFormData.goal,
+                      target_hours: Number(e.target.value),
+                    })
+                  }
+                  inputProps={{ min: 0, step: 0.5 }}
+                  fullWidth
+                />
+                <TextField
+                  select
+                  label="Period"
+                  value={activityFormData.goal?.period || ''}
+                  onChange={(e) =>
+                    handleActivityFormChange('goal', {
+                      ...activityFormData.goal,
+                      period: e.target.value as
+                        | 'daily'
+                        | 'weekly'
+                        | 'monthly',
+                    })
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="daily">Daily</MenuItem>
+                  <MenuItem value="weekly">Weekly</MenuItem>
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                </TextField>
+                <TextField
+                  label="Notification Threshold (%)"
+                  type="number"
+                  value={
+                    activityFormData.goal?.notification_threshold ||
+                    trackingSettings.defaultGoalNotificationThreshold
+                  }
+                  onChange={(e) =>
+                    handleActivityFormChange('goal', {
+                      ...activityFormData.goal,
+                      notification_threshold: Number(e.target.value),
+                    })
+                  }
+                  inputProps={{ min: 0, max: 100, step: 5 }}
+                  fullWidth
+                  helperText="You'll be notified when you reach this percentage of your goal"
+                />
+              </Stack>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseActivityDialog}>Cancel</Button>
+          <Button
+            onClick={handleSaveActivity}
+            variant="contained"
+            disabled={!activityFormData.name || !activityFormData.category}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={showWarning}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          severity="warning"
+          action={
+            <Button color="inherit" size="small" onClick={handleExtendTime}>
+              Extend Time
+            </Button>
+          }
+        >
+          Warning: Time tracking will stop in{' '}
+          {Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)}{' '}
+          minutes
+        </Alert>
+      </Snackbar>
+
+      <Dialog
+        open={showSettingsDialog}
+        onClose={handleCloseSettings}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Tracking Settings</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <TextField
+              label="Maximum Tracking Duration (hours)"
+              type="number"
+              value={settingsFormData.maxDuration / 3600}
+              onChange={(e) =>
+                setSettingsFormData((prev) => ({
+                  ...prev,
+                  maxDuration: Number(e.target.value) * 3600,
+                }))
+              }
+              inputProps={{ min: 1, max: 24 }}
+              fullWidth
+            />
+            <TextField
+              label="Warning Threshold (minutes)"
+              type="number"
+              value={settingsFormData.warningThreshold / 60}
+              onChange={(e) =>
+                setSettingsFormData((prev) => ({
+                  ...prev,
+                  warningThreshold: Number(e.target.value) * 60,
+                }))
+              }
+              inputProps={{ min: 5, max: 60 }}
+              fullWidth
+            />
+            <TextField
+              label="Default Goal Notification Threshold (%)"
+              type="number"
+              value={settingsFormData.defaultGoalNotificationThreshold}
+              onChange={(e) =>
+                setSettingsFormData((prev) => ({
+                  ...prev,
+                  defaultGoalNotificationThreshold: Number(e.target.value),
+                }))
+              }
+              inputProps={{ min: 0, max: 100, step: 5 }}
+              fullWidth
+              helperText="Default percentage at which to notify when reaching a goal"
+            />
+            <FormControl>
+              <FormLabel>First Day of Week</FormLabel>
+              <RadioGroup
+                value={settingsFormData.firstDayOfWeek}
+                onChange={(e) =>
+                  setSettingsFormData((prev) => ({
+                    ...prev,
+                    firstDayOfWeek: e.target.value as 'monday' | 'sunday',
+                  }))
+                }
+              >
+                <FormControlLabel
+                  value="monday"
+                  control={<Radio />}
+                  label="Monday"
+                />
+                <FormControlLabel
+                  value="sunday"
+                  control={<Radio />}
+                  label="Sunday"
+                />
+              </RadioGroup>
+            </FormControl>
+            <FormControl>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={isMonthlyView}
-                    onChange={handleViewChange}
-                    color="primary"
+                    checked={settingsFormData.notificationsEnabled}
+                    onChange={(e) =>
+                      setSettingsFormData((prev) => ({
+                        ...prev,
+                        notificationsEnabled: e.target.checked,
+                      }))
+                    }
                   />
                 }
-                label={isMonthlyView ? 'Monthly View' : 'Weekly View'}
+                label="Enable Goal Notifications"
+              />
+            </FormControl>
+            <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Download />}
+                onClick={handleExportData}
+                fullWidth
+              >
+                Export Data
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Upload />}
+                onClick={handleImportClick}
+                fullWidth
+              >
+                Import Data
+              </Button>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+                ref={fileInputRef}
               />
             </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {isMonthlyView
-                      ? "This Month's Overview"
-                      : "This Week's Overview"}
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {formatDuration(weeklyStats.totalTime)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total time tracked{' '}
-                    {isMonthlyView ? 'this month' : 'this week'}
-                  </Typography>
-                </CardContent>
-              </Card>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setShowResetConfirm(true)}
+              fullWidth
+            >
+              Reset Database
+            </Button>
+            {importError && (
+              <Alert severity="error" onClose={() => setImportError(null)}>
+                {importError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleResetSettings} color="secondary">
+            Reset to Defaults
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={handleCloseSettings}>Cancel</Button>
+          <Button onClick={handleSaveSettings} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              <Grid container spacing={2}>
-                <Grid size={{xs:12, md:6}}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Time by Activity
-                      </Typography>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>Activity</TableCell>
-                              <TableCell align="right">Time</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(weeklyStats.byActivity)
-                              .sort(([, a], [, b]) => b - a)
-                              .map(([activity, duration]) => (
-                                <TableRow key={activity}>
-                                  <TableCell>{activity}</TableCell>
-                                  <TableCell align="right">
-                                    {formatDuration(duration)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
+      <Dialog
+        open={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+      >
+        <DialogTitle>Reset Database</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to reset the database? This will delete all
+            activities, time entries, and categories. This action cannot be
+            undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
+          <Button
+            onClick={handleResetDatabase}
+            color="error"
+            variant="contained"
+          >
+            Reset Database
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-                <Grid size={{xs:12, md:6}}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Time by Category
-                      </Typography>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>Category</TableCell>
-                              <TableCell align="right">Time</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(weeklyStats.byCategory)
-                              .sort(([, a], [, b]) => b - a)
-                              .map(([category, duration]) => (
-                                <TableRow key={category}>
-                                  <TableCell>{category}</TableCell>
-                                  <TableCell align="right">
-                                    {formatDuration(duration)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
+      <Snackbar
+        open={showResetSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowResetSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowResetSuccess(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          Database has been reset successfully
+        </Alert>
+      </Snackbar>
 
-                <Grid size={{xs:12}}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Time by External System
-                      </Typography>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>External System</TableCell>
-                              <TableCell align="right">Time</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {Object.entries(weeklyStats.byExternalSystem)
-                              .sort(([, a], [, b]) => b - a)
-                              .map(([system, duration]) => (
-                                <TableRow key={system}>
-                                  <TableCell>{system}</TableCell>
-                                  <TableCell align="right">
-                                    {formatDuration(duration)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            {Object.keys(weeklyStats.byExternalSystem)
-                              .length === 0 && (
-                              <TableRow>
-                                <TableCell colSpan={2} align="center">
-                                  No external systems tracked this week
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
+      <Snackbar
+        open={showSaveSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowSaveSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowSaveSuccess(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          Settings have been saved successfully
+        </Alert>
+      </Snackbar>
 
-                {!isMonthlyView && (
-                  <Grid size={{xs:12}}>
-                    <Card>
-                      <CardContent>
-                        <Typography variant="h6" gutterBottom>
-                          Weekly Activity Breakdown
-                        </Typography>
-                        <TableContainer>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Activity</TableCell>
-                                {[
-                                  'Sunday',
-                                  'Monday',
-                                  'Tuesday',
-                                  'Wednesday',
-                                  'Thursday',
-                                  'Friday',
-                                  'Saturday',
-                                ].map((day) => (
-                                  <TableCell key={day} align="right">
-                                    {day}
-                                  </TableCell>
-                                ))}
-                                <TableCell align="right">Total</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {Object.entries(weeklyStats.byActivity)
-                                .sort(([, a], [, b]) => b - a)
-                                .map(([activity, totalDuration]) => (
-                                  <TableRow key={activity}>
-                                    <TableCell>{activity}</TableCell>
-                                    {[
-                                      'Sunday',
-                                      'Monday',
-                                      'Tuesday',
-                                      'Wednesday',
-                                      'Thursday',
-                                      'Friday',
-                                      'Saturday',
-                                    ].map((day) => (
-                                      <TableCell key={day} align="right">
-                                        {weeklyStats.dailyBreakdown[activity]?.[
-                                          day
-                                        ]
-                                          ? formatDuration(
-                                              weeklyStats.dailyBreakdown[
-                                                activity
-                                              ][day]
-                                            )
-                                          : '-'}
-                                      </TableCell>
-                                    ))}
-                                    <TableCell align="right">
-                                      {formatDuration(totalDuration)}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+      <Snackbar
+        open={showImportSuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowImportSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowImportSuccess(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          Data imported successfully
+        </Alert>
+      </Snackbar>
+
+      {/* Goal Notification Snackbar */}
+      <Snackbar
+        open={!!goalNotification}
+        autoHideDuration={5000}
+        onClose={() => setGoalNotification(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setGoalNotification(null)}
+          severity={goalNotification?.isCompletion ? "success" : "info"}
+          sx={{ width: '100%' }}
+        >
+          {goalNotification?.isCompletion
+            ? `🎉 Congratulations! You've completed your ${goalNotification.goal.period} goal for ${goalNotification.activity.name}!`
+            : `Goal Progress Alert! You reached ${goalNotification?.goal.progressPercentage.toFixed(1)}% of your ${goalNotification?.goal.period} goal for ${goalNotification?.activity.name}`
+          }
+        </Alert>
+      </Snackbar>
+
+      <Dialog
+        open={showImportDialog}
+        onClose={handleCloseImportDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Import Data</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            {importFile ? (
+              <>
+                <Typography>Selected file: {importFile.name}</Typography>
+                <FormControl>
+                  <FormLabel>Import Mode</FormLabel>
+                  <RadioGroup
+                    value={importMode}
+                    onChange={(e) =>
+                      setImportMode(e.target.value as 'clear' | 'merge')
+                    }
+                  >
+                    <FormControlLabel
+                      value="clear"
+                      control={<Radio />}
+                      label="Clear existing data and import"
+                    />
+                    <FormControlLabel
+                      value="merge"
+                      control={<Radio />}
+                      label="Merge with existing data"
+                    />
+                  </RadioGroup>
+                </FormControl>
+                {importMode === 'clear' && (
+                  <Alert severity="warning">
+                    This will delete all existing data before importing.
+                  </Alert>
                 )}
-              </Grid>
+                {importMode === 'merge' && (
+                  <Alert severity="info">
+                    Duplicate entries will be skipped during import.
+                  </Alert>
+                )}
+              </>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 2 }}>
+                <Typography gutterBottom>
+                  Please select a JSON file to import.
+                </Typography>
+                <Button
+                  variant="contained"
+                  component="label"
+                  startIcon={<Upload />}
+                >
+                  Choose File
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                  />
+                </Button>
+              </Box>
+            )}
+            {importError && (
+              <Alert severity="error" onClose={() => setImportError(null)}>
+                {importError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseImportDialog}>Cancel</Button>
+          <Button
+            onClick={handleImportConfirm}
+            variant="contained"
+            disabled={!importFile}
+          >
+            Import
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-              {/* Goal Statistics */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Goal Statistics
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{xs:12, md:4}}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="primary">
-                          {weeklyStats.goalStats.completedGoals}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Completed Goals
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid size={{xs:12, md:4}}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="primary">
-                          {weeklyStats.goalStats.inProgressGoals}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          In Progress
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid size={{xs:12, md:4}}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="primary">
-                          {weeklyStats.goalStats.totalGoals}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Goals
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  </Grid>
+      <Dialog
+        open={showAnalytics}
+        onClose={handleCloseAnalytics}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h6">Analytics</Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isMonthlyView}
+                  onChange={handleViewChange}
+                  color="primary"
+                />
+              }
+              label={isMonthlyView ? 'Monthly View' : 'Weekly View'}
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {isMonthlyView
+                    ? "This Month's Overview"
+                    : "This Week's Overview"}
+                </Typography>
+                <Typography variant="h4" color="primary">
+                  {formatDuration(weeklyStats.totalTime)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total time tracked{' '}
+                  {isMonthlyView ? 'this month' : 'this week'}
+                </Typography>
+              </CardContent>
+            </Card>
 
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Goals by Period
-                    </Typography>
-                    <Grid container spacing={2}>
-                      {Object.entries(weeklyStats.goalStats.byPeriod).map(
-                        ([period, stats]) => (
-                          <Grid size={{xs:12, md:4}} key={period}>
-                            <Paper sx={{ p: 2 }}>
-                              <Typography variant="subtitle2" gutterBottom>
-                                {period.charAt(0).toUpperCase() +
-                                  period.slice(1)}{' '}
-                                Goals
-                              </Typography>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  mb: 1,
-                                }}
-                              >
-                                <Typography variant="body2">
-                                  Completed: {stats.completed}
-                                </Typography>
-                                <Typography variant="body2">
-                                  Total: {stats.total}
-                                </Typography>
-                              </Box>
-                              <LinearProgress
-                                variant="determinate"
-                                value={(stats.completed / stats.total) * 100}
-                                sx={{ height: 8, borderRadius: 4 }}
-                              />
-                            </Paper>
-                          </Grid>
-                        )
-                      )}
-                    </Grid>
-                  </Box>
-
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      Goal Progress by Activity
+            <Grid container spacing={2}>
+              <Grid size={{xs:12, md:6}}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Time by Activity
                     </Typography>
                     <TableContainer>
                       <Table size="small">
                         <TableHead>
                           <TableRow>
                             <TableCell>Activity</TableCell>
-                            <TableCell>Period</TableCell>
-                            <TableCell>Target</TableCell>
-                            <TableCell>Progress</TableCell>
-                            <TableCell align="right">Percentage</TableCell>
+                            <TableCell align="right">Time</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {Object.entries(weeklyStats.goalStats.byActivity)
-                            .sort(([, a], [, b]) => b.percentage - a.percentage)
-                            .map(([id, goal]) => (
-                              <TableRow key={id}>
-                                <TableCell>{goal.name}</TableCell>
-                                <TableCell>
-                                  {goal.period.charAt(0).toUpperCase() +
-                                    goal.period.slice(1)}
-                                </TableCell>
-                                <TableCell>{goal.target}h</TableCell>
-                                <TableCell>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 1,
-                                    }}
-                                  >
-                                    <Box sx={{ width: '100%', mr: 1 }}>
-                                      <LinearProgress
-                                        variant="determinate"
-                                        value={goal.percentage}
-                                        sx={{ height: 8, borderRadius: 4 }}
-                                      />
-                                    </Box>
-                                    <Typography variant="body2">
-                                      {formatDuration(goal.progress * 3600)}
-                                    </Typography>
-                                  </Box>
-                                </TableCell>
+                          {Object.entries(weeklyStats.byActivity)
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([activity, duration]) => (
+                              <TableRow key={activity}>
+                                <TableCell>{activity}</TableCell>
                                 <TableCell align="right">
-                                  {goal.percentage.toFixed(1)}%
+                                  {formatDuration(duration)}
                                 </TableCell>
                               </TableRow>
                             ))}
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseAnalytics}>Close</Button>
-          </DialogActions>
-        </Dialog>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-        {/* Notification Center Dialog */}
-        <Dialog
-          open={showNotificationCenter}
-          onClose={() => setShowNotificationCenter(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Typography variant="h6">Notification Center</Typography>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={trackingSettings.notificationsEnabled}
-                    onChange={(e) => {
-                      const newSettings = {
-                        ...trackingSettings,
-                        notificationsEnabled: e.target.checked,
-                      };
-                      setTrackingSettings(newSettings);
-                      db.updateTrackingSettings(
-                        newSettings.maxDuration,
-                        newSettings.warningThreshold,
-                        newSettings.firstDayOfWeek,
-                        newSettings.defaultGoalNotificationThreshold,
-                        newSettings.notificationsEnabled
-                      );
-                    }}
-                  />
-                }
-                label="Enable Notifications"
-              />
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Stack spacing={2}>
-              {notificationHistory.length === 0 ? (
-                <Typography
-                  color="text.secondary"
-                  align="center"
-                  sx={{ py: 4 }}
-                >
-                  No notifications yet
-                </Typography>
-              ) : (
-                notificationHistory.map((notification) => (
-                  <Paper key={notification.id} sx={{ p: 2 }}>
-                    <Typography variant="subtitle1" gutterBottom>
-                      {notification.isCompletion ? "🎉 Goal Completed!" : "Goal Progress Alert!"}
+              <Grid size={{xs:12, md:6}}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Time by Category
                     </Typography>
-                    <Typography variant="body2">
-                      {notification.isCompletion
-                        ? `You've completed your ${notification.goal.period} goal for ${notification.activity.name}!`
-                        : `You reached ${notification.goal.progressPercentage.toFixed(1)}% of your ${notification.goal.period} goal for ${notification.activity.name}`
-                      }
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Category</TableCell>
+                            <TableCell align="right">Time</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {Object.entries(weeklyStats.byCategory)
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([category, duration]) => (
+                              <TableRow key={category}>
+                                <TableCell>{category}</TableCell>
+                                <TableCell align="right">
+                                  {formatDuration(duration)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{xs:12}}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Time by External System
                     </Typography>
-                    <Typography variant="body2">
-                      {formatDuration(notification.goal.progress * 3600)} /{' '}
-                      {notification.goal.target_hours}h
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {notification.timestamp.toLocaleString()}
-                    </Typography>
-                  </Paper>
-                ))
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>External System</TableCell>
+                            <TableCell align="right">Time</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {Object.entries(weeklyStats.byExternalSystem)
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([system, duration]) => (
+                              <TableRow key={system}>
+                                <TableCell>{system}</TableCell>
+                                <TableCell align="right">
+                                  {formatDuration(duration)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          {Object.keys(weeklyStats.byExternalSystem)
+                            .length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={2} align="center">
+                                No external systems tracked this week
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {!isMonthlyView && (
+                <Grid size={{xs:12}}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Weekly Activity Breakdown
+                      </Typography>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Activity</TableCell>
+                              {[
+                                'Sunday',
+                                'Monday',
+                                'Tuesday',
+                                'Wednesday',
+                                'Thursday',
+                                'Friday',
+                                'Saturday',
+                              ].map((day) => (
+                                <TableCell key={day} align="right">
+                                  {day}
+                                </TableCell>
+                              ))}
+                              <TableCell align="right">Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {Object.entries(weeklyStats.byActivity)
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([activity, totalDuration]) => (
+                                <TableRow key={activity}>
+                                  <TableCell>{activity}</TableCell>
+                                  {[
+                                    'Sunday',
+                                    'Monday',
+                                    'Tuesday',
+                                    'Wednesday',
+                                    'Thursday',
+                                    'Friday',
+                                    'Saturday',
+                                  ].map((day) => (
+                                    <TableCell key={day} align="right">
+                                      {weeklyStats.dailyBreakdown[activity]?.[
+                                        day
+                                      ]
+                                        ? formatDuration(
+                                            weeklyStats.dailyBreakdown[
+                                              activity
+                                            ][day]
+                                          )
+                                        : '-'}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell align="right">
+                                    {formatDuration(totalDuration)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
               )}
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowNotificationCenter(false)}>
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </Container>
+            </Grid>
+
+            {/* Goal Statistics */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Goal Statistics
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{xs:12, md:4}}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h4" color="primary">
+                        {weeklyStats.goalStats.completedGoals}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Completed Goals
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid size={{xs:12, md:4}}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h4" color="primary">
+                        {weeklyStats.goalStats.inProgressGoals}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        In Progress
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid size={{xs:12, md:4}}>
+                    <Paper sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h4" color="primary">
+                        {weeklyStats.goalStats.totalGoals}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Goals
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Goals by Period
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {Object.entries(weeklyStats.goalStats.byPeriod).map(
+                      ([period, stats]) => (
+                        <Grid size={{xs:12, md:4}} key={period}>
+                          <Paper sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                              {period.charAt(0).toUpperCase() +
+                                period.slice(1)}{' '}
+                              Goals
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                mb: 1,
+                              }}
+                            >
+                              <Typography variant="body2">
+                                Completed: {stats.completed}
+                              </Typography>
+                              <Typography variant="body2">
+                                Total: {stats.total}
+                              </Typography>
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(stats.completed / stats.total) * 100}
+                              sx={{ height: 8, borderRadius: 4 }}
+                            />
+                          </Paper>
+                        </Grid>
+                      )
+                    )}
+                  </Grid>
+                </Box>
+
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Goal Progress by Activity
+                  </Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Activity</TableCell>
+                          <TableCell>Period</TableCell>
+                          <TableCell>Target</TableCell>
+                          <TableCell>Progress</TableCell>
+                          <TableCell align="right">Percentage</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {Object.entries(weeklyStats.goalStats.byActivity)
+                          .sort(([, a], [, b]) => b.percentage - a.percentage)
+                          .map(([id, goal]) => (
+                            <TableRow key={id}>
+                              <TableCell>{goal.name}</TableCell>
+                              <TableCell>
+                                {goal.period.charAt(0).toUpperCase() +
+                                  goal.period.slice(1)}
+                              </TableCell>
+                              <TableCell>{goal.target}h</TableCell>
+                              <TableCell>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Box sx={{ width: '100%', mr: 1 }}>
+                                    <LinearProgress
+                                      variant="determinate"
+                                      value={goal.percentage}
+                                      sx={{ height: 8, borderRadius: 4 }}
+                                    />
+                                  </Box>
+                                  <Typography variant="body2">
+                                    {formatDuration(goal.progress * 3600)}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell align="right">
+                                {goal.percentage.toFixed(1)}%
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAnalytics}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Notification Center Dialog */}
+      <Dialog
+        open={showNotificationCenter}
+        onClose={() => setShowNotificationCenter(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h6">Notification Center</Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={trackingSettings.notificationsEnabled}
+                  onChange={(e) => {
+                    const newSettings = {
+                      ...trackingSettings,
+                      notificationsEnabled: e.target.checked,
+                    };
+                    setTrackingSettings(newSettings);
+                    db.updateTrackingSettings(
+                      newSettings.maxDuration,
+                      newSettings.warningThreshold,
+                      newSettings.firstDayOfWeek,
+                      newSettings.defaultGoalNotificationThreshold,
+                      newSettings.notificationsEnabled
+                    );
+                  }}
+                />
+              }
+              label="Enable Notifications"
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            {notificationHistory.length === 0 ? (
+              <Typography
+                color="text.secondary"
+                align="center"
+                sx={{ py: 4 }}
+              >
+                No notifications yet
+              </Typography>
+            ) : (
+              notificationHistory.map((notification) => (
+                <Paper key={notification.id} sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    {notification.isCompletion ? "🎉 Goal Completed!" : "Goal Progress Alert!"}
+                  </Typography>
+                  <Typography variant="body2">
+                    {notification.isCompletion
+                      ? `You've completed your ${notification.goal.period} goal for ${notification.activity.name}!`
+                      : `You reached ${notification.goal.progressPercentage.toFixed(1)}% of your ${notification.goal.period} goal for ${notification.activity.name}`
+                    }
+                  </Typography>
+                  <Typography variant="body2">
+                    {formatDuration(notification.goal.progress * 3600)} /{' '}
+                    {notification.goal.target_hours}h
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {notification.timestamp.toLocaleString()}
+                  </Typography>
+                </Paper>
+              ))
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowNotificationCenter(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
