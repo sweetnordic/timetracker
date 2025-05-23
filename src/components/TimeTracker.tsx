@@ -41,9 +41,9 @@ import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, Download, Upload
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress, WeeklyStats, FirstDayOfWeek, Period } from '../database/types';
+import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress, WeeklyStats, FirstDayOfWeek, Period } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK, WEEKDAYS } from '../database/types';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK, WEEKDAYS } from '../database/models';
 import { WorkScheduleConfig } from './WorkScheduleConfig';
 import { OffTimeManager } from './OffTimeManager';
 import { WorkScheduleProgress } from './WorkScheduleProgress';

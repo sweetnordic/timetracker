@@ -12,7 +12,7 @@ import {
   type TimeEntry,
   type Goal,
   type FirstDayOfWeek,
-} from './types';
+} from './models';
 
 interface TimeTrackerDB extends DBSchema {
   categories: {

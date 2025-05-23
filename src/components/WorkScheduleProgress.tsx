@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { Info as InfoIcon } from '@mui/icons-material';
 import { db } from '../database/db';
-import type { WorkSchedule } from '../database/types';
+import type { WorkSchedule } from '../database/models';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday } from 'date-fns';
 
 interface WorkScheduleProgressProps {

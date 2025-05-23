@@ -14,8 +14,8 @@ import {
   Divider
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import type { Activity, Category } from '../database/types';
-import { DEFAULT_ORDER } from '../database/types';
+import type { Activity, Category } from '../database/models';
+import { DEFAULT_ORDER } from '../database/models';
 
 interface ActivityManagerProps {
   db: DatabaseService;

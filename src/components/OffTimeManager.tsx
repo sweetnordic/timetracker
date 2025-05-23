@@ -30,7 +30,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { db } from '../database/db';
-import type { OffTime } from '../database/types';
+import type { OffTime } from '../database/models';
 
 type OffTimeType = 'vacation' | 'sick' | 'business_trip' | 'education' | 'other';
 

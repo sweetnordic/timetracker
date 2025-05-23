@@ -21,7 +21,7 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { db } from '../database/db';
-import type { WorkSchedule } from '../database/types';
+import type { WorkSchedule } from '../database/models';
 
 const DAYS_OF_WEEK = [
   'Sunday',
