@@ -42,7 +42,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import type { Activity, TrackingSettings, ImportData, TimeEntry, GoalWithProgress, WeeklyStats } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from '../database/models';
+import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK, DAYS_OF_WEEK } from '../database/models';
 
 interface ActivityWithStats extends Activity {
   totalDuration: number;
@@ -99,7 +99,7 @@ export const TimeTracker: React.FC = () => {
   const [trackingSettings, setTrackingSettings] = useState<TrackingSettings>({
     maxDuration: 12 * 3600, // 12 hours in seconds
     warningThreshold: 3600, // 1 hour warning
-    firstDayOfWeek: 'monday',
+    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
   });
@@ -108,7 +108,7 @@ export const TimeTracker: React.FC = () => {
   const [settingsFormData, setSettingsFormData] = useState<TrackingSettings>({
     maxDuration: 12 * 3600,
     warningThreshold: 3600,
-    firstDayOfWeek: 'monday',
+    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
   });
@@ -622,9 +622,9 @@ export const TimeTracker: React.FC = () => {
     const defaultSettings = {
       maxDuration: 12 * 3600, // 12 hours in seconds
       warningThreshold: 3600, // 1 hour warning
-      firstDayOfWeek: 'monday' as const,
+      firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
       defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-      notificationsEnabled: true
+      notificationsEnabled: true,
     };
     await db.updateTrackingSettings(
       defaultSettings.maxDuration,
@@ -928,8 +928,6 @@ export const TimeTracker: React.FC = () => {
       }
     };
 
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
     for (const entry of filteredEntries) {
       if (entry.duration) {
         stats.totalTime += entry.duration;
@@ -945,7 +943,7 @@ export const TimeTracker: React.FC = () => {
 
           // Update daily breakdown
           const entryDate = new Date(entry.start_time);
-          const dayOfWeek = daysOfWeek[entryDate.getDay()];
+          const dayOfWeek = DAYS_OF_WEEK[entryDate.getDay()];
 
           if (!stats.dailyBreakdown[activity.name]) {
             stats.dailyBreakdown[activity.name] = {};
