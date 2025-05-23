@@ -1,5 +1,18 @@
+export type Period = 'daily' | 'weekly' | 'monthly';
+export type FirstDayOfWeek = 'monday' | 'sunday';
+
 export const DEFAULT_ORDER: number = 1;
 export const DEFAULT_NOTIFICATION_THRESHOLD: number = 90;
+export const DEFAULT_FIRST_DAY_OF_WEEK: FirstDayOfWeek = 'monday';
+export const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 export interface Activity {
   id?: string;
@@ -34,7 +47,7 @@ export interface TimeEntry {
 export interface TrackingSettings {
   maxDuration: number; // in seconds
   warningThreshold: number; // in seconds
-  firstDayOfWeek: 'monday' | 'sunday';
+  firstDayOfWeek: FirstDayOfWeek;
   defaultGoalNotificationThreshold: number; // percentage (0-100)
   notificationsEnabled: boolean;
 }
@@ -52,7 +65,7 @@ export interface Goal {
   id?: string;
   activity_id: string;
   target_hours: number;
-  period: 'daily' | 'weekly' | 'monthly';
+  period: Period;
   notification_threshold: number; // percentage (0-100)
   created_at: Date;
   updated_at: Date;
@@ -69,9 +82,10 @@ export interface WeeklyStats {
   byCategory: { [key: string]: number };
   byExternalSystem: { [key: string]: number };
   dailyBreakdown: {
-    [key: string]: { // activity name
-      [key: string]: number // day of week -> duration
-    }
+    [key: string]: {
+      // activity name
+      [key: string]: number; // day of week -> duration
+    };
   };
   goalStats: {
     totalGoals: number;
@@ -88,7 +102,7 @@ export interface WeeklyStats {
         target: number;
         progress: number;
         percentage: number;
-        period: 'daily' | 'weekly' | 'monthly';
+        period: Period;
       };
     };
   };
