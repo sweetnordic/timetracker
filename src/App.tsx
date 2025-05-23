@@ -53,8 +53,10 @@ const theme = createTheme({
   },
 });
 
+type Tabs = 'tracker' | 'manager' | 'help'
+
 function App() {
-  const [activeTab, setActiveTab] = useState<'tracker' | 'manager' | 'help'>( 'tracker' );
+  const [activeTab, setActiveTab] = useState<Tabs>( 'tracker' );
 
   useEffect(() => {
     const initializeDb = async () => {
@@ -69,45 +71,38 @@ function App() {
 
   const handleTabChange = (
     _: React.SyntheticEvent,
-    newValue: 'tracker' | 'manager' | 'help'
+    newValue: Tabs
   ) => {
     setActiveTab(newValue);
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container maxWidth="xl">
+    <>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
         <AppBar position="static">
           <Toolbar>
-            <Timer sx={{ mr: 1 }} /> Time Tracker
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1 }}
-            ></Typography>
+            <Timer sx={{ mr: 2 }} />
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Time Tracker
+            </Typography>
             <Tooltip title="Help">
-              <IconButton
-                color="inherit"
-                onClick={() => setActiveTab('help')}
-                sx={{ ml: 2 }}
-              >
+              <IconButton color="inherit" onClick={() => setActiveTab('help')} sx={{ ml: 2 }}>
                 <HelpIcon />
               </IconButton>
             </Tooltip>
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="lg" sx={{ mt: 4 }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Container maxWidth="xl" sx={{ minHeight: '100dvh', mt: 1 }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
             <Tabs centered value={activeTab} onChange={handleTabChange}>
               <Tab label="Time Tracker" value="tracker" />
               <Tab label="Activity Manager" value="manager" />
               <Tab label="Help" value="help" />
             </Tabs>
           </Box>
-
-          <Box sx={{ mt: 2 }}>
+          <Box>
             {activeTab === 'tracker' ? (
               <TimeTracker db={db} />
             ) : activeTab === 'manager' ? (
@@ -117,8 +112,8 @@ function App() {
             )}
           </Box>
         </Container>
-      </Container>
-    </ThemeProvider>
+      </ThemeProvider>
+    </>
   );
 }
 
