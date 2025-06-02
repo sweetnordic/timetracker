@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -33,7 +33,7 @@ import {
   useDeleteCategory,
   useUpdateCategoryOrder
 } from '../hooks';
-import { EditCategoryDialog, EditActivityDialog } from '../components';
+import { EditCategoryDialog, EditActivityDialog, DeleteConfirmationDialog } from '../components';
 import { useToast } from '../contexts';
 import type { DatabaseActivity, DatabaseCategory } from '../database/models';
 import type { Activity } from '../models';
@@ -64,10 +64,47 @@ export const ActivityManager: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<DatabaseCategory | null>(null);
+
+  // Use ref to track if order fixing has been performed to prevent infinite loops
+  const orderFixingPerformed = useRef(false);
 
   // Sort categories and activities by order
   const sortedCategories = [...categories].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
   const sortedActivities = [...activities].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
+
+  // Fix activities with duplicate order values (only once)
+  useEffect(() => {
+    if (activities.length > 0 && !orderFixingPerformed.current && !updateActivityOrder.isPending) {
+      const orderCounts = new Map<number, number>();
+      activities.forEach(activity => {
+        const order = activity.order || DEFAULT_ORDER;
+        orderCounts.set(order, (orderCounts.get(order) || 0) + 1);
+      });
+
+      // If there are duplicate orders, fix them
+      const hasDuplicates = Array.from(orderCounts.values()).some(count => count > 1);
+      if (hasDuplicates) {
+        console.log('Fixing duplicate activity orders...');
+        orderFixingPerformed.current = true;
+
+        const duplicateActivities = activities.filter(activity =>
+          activity.order === DEFAULT_ORDER ||
+          activities.filter(a => a.order === activity.order).length > 1
+        );
+
+        duplicateActivities.forEach((activity, index) => {
+          updateActivityOrder.mutateAsync({
+            activityId: activity.id!,
+            newOrder: DEFAULT_ORDER + index
+          }).catch(error => {
+            console.error('Error fixing activity order:', error);
+          });
+        });
+      }
+    }
+  }, [activities, updateActivityOrder, updateActivityOrder.isPending]);
 
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +116,7 @@ export const ActivityManager: React.FC = () => {
       category: selectedCategory,
       description: '',
       external_system: '',
-      order: DEFAULT_ORDER,
+      order: activities.length > 0 ? Math.max(...activities.map(a => a.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
       created_at: now,
       updated_at: now,
     };
@@ -125,15 +162,27 @@ export const ActivityManager: React.FC = () => {
     const categoryToDelete = categories.find(c => c.id === categoryId);
     if (!categoryToDelete) return;
 
-    if (window.confirm('Are you sure you want to delete this category? This will also remove all associated activities.')) {
-      try {
-        await deleteCategory.mutateAsync(categoryId);
-        showSuccess(`Category "${categoryToDelete.name}" deleted successfully`);
-      } catch (error) {
-        console.error('Error deleting category:', error);
-        showError('Failed to delete category');
-      }
+    setCategoryToDelete(categoryToDelete);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      await deleteCategory.mutateAsync(categoryToDelete.id!);
+      setDeleteConfirmOpen(false);
+      setCategoryToDelete(null);
+      showSuccess(`Category "${categoryToDelete.name}" deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      showError('Failed to delete category');
     }
+  };
+
+  const handleCancelDeleteCategory = () => {
+    setDeleteConfirmOpen(false);
+    setCategoryToDelete(null);
   };
 
   const handleSaveCategoryEdit = async (updatedCategory: DatabaseCategory) => {
@@ -442,6 +491,16 @@ export const ActivityManager: React.FC = () => {
         onClose={handleCloseActivityEditDialog}
         onSave={handleSaveActivityEdit}
         isLoading={updateActivity.isPending}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteConfirmOpen}
+        title="Delete Category"
+        message={`Are you sure you want to delete the category "${categoryToDelete?.name}"? This will also remove all associated activities. This action cannot be undone.`}
+        onClose={handleCancelDeleteCategory}
+        onConfirm={handleConfirmDeleteCategory}
+        confirmButtonText="Delete Category"
+        isLoading={deleteCategory.isPending}
       />
     </Box>
   );

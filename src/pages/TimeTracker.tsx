@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -87,13 +87,16 @@ export const TimeTracker: React.FC = () => {
   const deleteTimeEntry = useDeleteTimeEntry();
   const clearAllData = useClearAllData();
 
-  // Convert database models to UI models
-  const activities: ActivityWithStats[] = dbActivities.map(dbActivity => ({
-    ...convertDatabaseActivityToUI(dbActivity),
-    totalDuration: 0, // Will be updated separately
-  }));
+  // Convert database models to UI models with useMemo to prevent infinite loops
+  const activities: ActivityWithStats[] = useMemo(() =>
+    dbActivities.map(dbActivity => ({
+      ...convertDatabaseActivityToUI(dbActivity),
+      totalDuration: 0, // Will be updated separately
+    })),
+    [dbActivities]
+  );
 
-  const trackingSettings: TrackingSettings = dbSettings ? {
+  const trackingSettings: TrackingSettings = useMemo(() => dbSettings ? {
     maxDuration: dbSettings.max_duration,
     warningThreshold: dbSettings.warning_threshold,
     firstDayOfWeek: dbSettings.first_day_of_week,
@@ -105,7 +108,7 @@ export const TimeTracker: React.FC = () => {
     firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
-  };
+  }, [dbSettings]);
 
   // State management
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
