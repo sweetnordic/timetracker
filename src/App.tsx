@@ -13,7 +13,6 @@ import {
   CircularProgress,
   Typography
 } from '@mui/material'
-import './App.css'
 
 // Create a client for React Query
 const queryClient = new QueryClient({
