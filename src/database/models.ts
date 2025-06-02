@@ -14,7 +14,8 @@ export const DAYS_OF_WEEK = [
   'Saturday',
 ];
 
-export interface Activity {
+// Database layer models - snake_case naming, includes database-specific fields
+export interface DatabaseActivity {
   id?: string;
   name: string;
   category: string;
@@ -25,7 +26,7 @@ export interface Activity {
   updated_at: Date;
 }
 
-export interface Category {
+export interface DatabaseCategory {
   id?: string;
   name: string;
   order: number;
@@ -33,7 +34,7 @@ export interface Category {
   updated_at: Date;
 }
 
-export interface TimeEntry {
+export interface DatabaseTimeEntry {
   id?: string;
   activity_id: string;
   start_time: Date;
@@ -44,19 +45,32 @@ export interface TimeEntry {
   updated_at: Date;
 }
 
-export interface TrackingSettings {
-  maxDuration: number; // in seconds
-  warningThreshold: number; // in seconds
-  firstDayOfWeek: FirstDayOfWeek;
-  defaultGoalNotificationThreshold: number; // percentage (0-100)
-  notificationsEnabled: boolean;
+export interface DatabaseSettings {
+  id?: string;
+  max_duration: number; // in seconds
+  warning_threshold: number; // in seconds
+  first_day_of_week: 'monday' | 'sunday';
+  default_goal_notification_threshold: number; // percentage (0-100)
+  notifications_enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DatabaseGoal {
+  id?: string;
+  activity_id: string;
+  target_hours: number;
+  period: Period;
+  notification_threshold: number; // percentage (0-100)
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface ImportData {
-  activities: Activity[];
-  timeEntries: TimeEntry[];
-  categories: Category[];
-  goals: Goal[];
+  activities: DatabaseActivity[];
+  timeEntries: DatabaseTimeEntry[];
+  categories: DatabaseCategory[];
+  goals: DatabaseGoal[];
   exportDate: string;
   databaseVersion: number;
 }

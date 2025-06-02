@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '../database/db';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -13,10 +12,8 @@ import {
   MenuItem,
   Divider,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -25,35 +22,47 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
-import type { Activity, Category } from '../database/models';
+import {
+  useActivities,
+  useAddActivity,
+  useCategories,
+  useAddCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+  useUpdateCategoryOrder
+} from '../hooks';
+import { EditCategoryDialog } from '../components';
+import type { DatabaseActivity, DatabaseCategory } from '../database/models';
 import { DEFAULT_ORDER } from '../database/models';
 
 export const ActivityManager: React.FC = () => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Queries
+  const { data: activities = [], isLoading: activitiesLoading, error: activitiesError } = useActivities();
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useCategories();
+
+  // Mutations
+  const addActivity = useAddActivity();
+  const addCategory = useAddCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  const updateCategoryOrder = useUpdateCategoryOrder();
+
+  // Local state
   const [newActivityName, setNewActivityName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<DatabaseCategory | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editedCategoryName, setEditedCategoryName] = useState('');
 
-  useEffect(() => {
-    const loadData = async () => {
-      const loadedActivities = await db.getActivities();
-      const loadedCategories = await db.getCategories();
-      setActivities(loadedActivities);
-      setCategories(loadedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
-    };
-    loadData();
-  }, []);
+  // Sort categories by order
+  const sortedCategories = [...categories].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
 
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newActivityName || !selectedCategory) return;
 
     const now = new Date();
-    const newActivity: Omit<Activity, 'id'> = {
+    const newActivity: Omit<DatabaseActivity, 'id'> = {
       name: newActivityName,
       category: selectedCategory,
       description: '',
@@ -63,10 +72,12 @@ export const ActivityManager: React.FC = () => {
       updated_at: now,
     };
 
-    await db.addActivity(newActivity);
-    const updatedActivities = await db.getActivities();
-    setActivities(updatedActivities);
-    setNewActivityName('');
+    try {
+      await addActivity.mutateAsync(newActivity);
+      setNewActivityName('');
+    } catch (error) {
+      console.error('Error adding activity:', error);
+    }
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -74,69 +85,89 @@ export const ActivityManager: React.FC = () => {
     if (!newCategoryName) return;
 
     const now = new Date();
-    const newCategory: Omit<Category, 'id'> = {
+    const newCategory: Omit<DatabaseCategory, 'id'> = {
       name: newCategoryName,
       order: categories.length > 0 ? Math.max(...categories.map(c => c.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
       created_at: now,
       updated_at: now,
     };
 
-    await db.addCategory(newCategory);
-    const updatedCategories = await db.getCategories();
-    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
-    setNewCategoryName('');
+    try {
+      await addCategory.mutateAsync(newCategory);
+      setNewCategoryName('');
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
   };
 
-  const handleEditCategory = (category: Category) => {
+  const handleEditCategory = (category: DatabaseCategory) => {
     setEditingCategory(category);
-    setEditedCategoryName(category.name);
     setEditDialogOpen(true);
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (window.confirm('Are you sure you want to delete this category? This will also remove all associated activities.')) {
-      await db.deleteCategory(categoryId);
-      const updatedCategories = await db.getCategories();
-      setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
+      try {
+        await deleteCategory.mutateAsync(categoryId);
+      } catch (error) {
+        console.error('Error deleting category:', error);
+      }
     }
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingCategory || !editedCategoryName) return;
+  const handleSaveCategoryEdit = async (updatedCategory: DatabaseCategory) => {
+    await updateCategory.mutateAsync(updatedCategory);
+  };
 
-    const updatedCategory = {
-      ...editingCategory,
-      name: editedCategoryName,
-      updated_at: new Date()
-    };
-
-    await db.updateCategory(updatedCategory);
-    const updatedCategories = await db.getCategories();
-    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
+  const handleCloseEditDialog = () => {
     setEditDialogOpen(false);
     setEditingCategory(null);
-    setEditedCategoryName('');
   };
 
   const handleMoveCategory = async (categoryId: string, direction: 'up' | 'down') => {
-    const currentIndex = categories.findIndex(c => c.id === categoryId);
+    const currentIndex = sortedCategories.findIndex(c => c.id === categoryId);
     if (currentIndex === -1) return;
 
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= categories.length) return;
+    if (targetIndex < 0 || targetIndex >= sortedCategories.length) return;
 
-    const currentCategory = categories[currentIndex];
-    const targetCategory = categories[targetIndex];
+    const currentCategory = sortedCategories[currentIndex];
+    const targetCategory = sortedCategories[targetIndex];
 
-    // Swap orders
-    await Promise.all([
-      db.updateCategoryOrder(currentCategory.id!, targetCategory.order || DEFAULT_ORDER),
-      db.updateCategoryOrder(targetCategory.id!, currentCategory.order || DEFAULT_ORDER)
-    ]);
-
-    const updatedCategories = await db.getCategories();
-    setCategories(updatedCategories.sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)));
+    try {
+      // Swap orders
+      await Promise.all([
+        updateCategoryOrder.mutateAsync({
+          categoryId: currentCategory.id!,
+          newOrder: targetCategory.order || DEFAULT_ORDER
+        }),
+        updateCategoryOrder.mutateAsync({
+          categoryId: targetCategory.id!,
+          newOrder: currentCategory.order || DEFAULT_ORDER
+        })
+      ]);
+    } catch (error) {
+      console.error('Error updating category order:', error);
+    }
   };
+
+  if (activitiesLoading || categoriesLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (activitiesError || categoriesError) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error">
+          Error loading data: {activitiesError?.message || categoriesError?.message}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -158,19 +189,20 @@ export const ActivityManager: React.FC = () => {
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 variant="outlined"
                 size="small"
+                disabled={addCategory.isPending}
               />
               <Button
                 type="submit"
                 variant="contained"
                 startIcon={<AddIcon />}
-                disabled={!newCategoryName}
+                disabled={!newCategoryName || addCategory.isPending}
               >
-                Add
+                {addCategory.isPending ? 'Adding...' : 'Add'}
               </Button>
             </Stack>
           </Box>
           <List>
-            {categories.map((category, index) => (
+            {sortedCategories.map((category, index) => (
               <ListItem
                 key={category.id}
                 secondaryAction={
@@ -179,7 +211,7 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="move up"
                       onClick={() => handleMoveCategory(category.id!, 'up')}
-                      disabled={index === 0}
+                      disabled={index === 0 || updateCategoryOrder.isPending}
                     >
                       <ArrowUpwardIcon />
                     </IconButton>
@@ -187,7 +219,7 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="move down"
                       onClick={() => handleMoveCategory(category.id!, 'down')}
-                      disabled={index === categories.length - 1}
+                      disabled={index === sortedCategories.length - 1 || updateCategoryOrder.isPending}
                     >
                       <ArrowDownwardIcon />
                     </IconButton>
@@ -195,6 +227,7 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="edit"
                       onClick={() => handleEditCategory(category)}
+                      disabled={updateCategory.isPending}
                     >
                       <EditIcon />
                     </IconButton>
@@ -202,6 +235,7 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="delete"
                       onClick={() => handleDeleteCategory(category.id!)}
+                      disabled={deleteCategory.isPending}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -227,6 +261,7 @@ export const ActivityManager: React.FC = () => {
                 onChange={(e) => setNewActivityName(e.target.value)}
                 variant="outlined"
                 size="small"
+                disabled={addActivity.isPending}
               />
               <TextField
                 fullWidth
@@ -236,11 +271,12 @@ export const ActivityManager: React.FC = () => {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 variant="outlined"
                 size="small"
+                disabled={addActivity.isPending}
               >
                 <MenuItem value="">
                   <em>Select a category</em>
                 </MenuItem>
-                {categories.map((category) => (
+                {sortedCategories.map((category) => (
                   <MenuItem key={category.id} value={category.name}>
                     {category.name}
                   </MenuItem>
@@ -250,10 +286,10 @@ export const ActivityManager: React.FC = () => {
                 type="submit"
                 variant="contained"
                 startIcon={<AddIcon />}
-                disabled={!newActivityName || !selectedCategory}
+                disabled={!newActivityName || !selectedCategory || addActivity.isPending}
                 fullWidth
               >
-                Add Activity
+                {addActivity.isPending ? 'Adding...' : 'Add Activity'}
               </Button>
             </Stack>
           </Box>
@@ -271,25 +307,13 @@ export const ActivityManager: React.FC = () => {
         </Paper>
       </Stack>
 
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-        <DialogTitle>Edit Category</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Category Name"
-            fullWidth
-            value={editedCategoryName}
-            onChange={(e) => setEditedCategoryName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EditCategoryDialog
+        open={editDialogOpen}
+        category={editingCategory}
+        onClose={handleCloseEditDialog}
+        onSave={handleSaveCategoryEdit}
+        isLoading={updateCategory.isPending}
+      />
     </Box>
   );
 };
