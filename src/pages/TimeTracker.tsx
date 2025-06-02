@@ -11,8 +11,12 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Chip,
+  Stack,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
-import { PlayArrow, Stop, History } from '@mui/icons-material';
+import { PlayArrow, Stop, History, Timer, Category } from '@mui/icons-material';
 import {
   useActivities,
   useTimeEntriesByActivity,
@@ -66,6 +70,9 @@ const convertDatabaseTimeEntryToUI = (dbEntry: DatabaseTimeEntry): TimeEntry => 
 });
 
 export const TimeTracker: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   // Toast notifications
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
@@ -126,6 +133,18 @@ export const TimeTracker: React.FC = () => {
 
   // Query for time entries when detail dialog is open
   const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(selectedActivity?.id || '');
+
+  // Group activities by category for better organization
+  const activitiesByCategory = useMemo(() => {
+    const grouped = activities.reduce((acc, activity) => {
+      if (!acc[activity.category]) {
+        acc[activity.category] = [];
+      }
+      acc[activity.category].push(activity);
+      return acc;
+    }, {} as Record<string, ActivityWithStats[]>);
+    return grouped;
+  }, [activities]);
 
   // Initialize component state on load
   useEffect(() => {
@@ -378,6 +397,163 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
+  // Render compact activity card for desktop
+  const renderActivityCard = (activity: ActivityWithStats) => (
+    <Card
+      elevation={2}
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        '&:hover': {
+          elevation: 4,
+          transform: 'translateY(-2px)',
+          transition: 'all 0.2s ease-in-out'
+        }
+      }}
+    >
+      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h6" component="h3" sx={{ fontWeight: 600, fontSize: '1rem' }}>
+            {activity.name}
+          </Typography>
+          <Tooltip title="View History">
+            <IconButton
+              size="small"
+              onClick={() => handleOpenDetail(activity)}
+              sx={{ ml: 1 }}
+            >
+              <History fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+          <Chip
+            icon={<Category />}
+            label={activity.category}
+            size="small"
+            variant="outlined"
+            sx={{ fontSize: '0.75rem' }}
+          />
+          <Chip
+            icon={<Timer />}
+            label={formatDuration(activity.totalDuration)}
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: '0.75rem' }}
+          />
+        </Stack>
+
+        {activity.description && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              fontSize: '0.875rem'
+            }}
+          >
+            {activity.description}
+          </Typography>
+        )}
+
+        {activity.externalSystem && (
+          <Typography variant="caption" color="text.secondary" display="block">
+            External: {activity.externalSystem}
+          </Typography>
+        )}
+      </CardContent>
+
+      <Box sx={{ p: 2, pt: 0 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          startIcon={<PlayArrow />}
+          onClick={() => startTracking(activity)}
+          disabled={isTracking}
+          size="small"
+        >
+          {isTracking && currentActivity?.id === activity.id ? 'Tracking...' : 'Start Tracking'}
+        </Button>
+      </Box>
+    </Card>
+  );
+
+  // Render mobile list item
+  const renderMobileActivityItem = (activity: ActivityWithStats) => (
+    <ListItem key={activity.id} component={Card} sx={{ mb: 2 }}>
+      <CardContent sx={{ width: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                {activity.name}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Category: {activity.category}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Time: {formatDuration(activity.totalDuration)}
+              </Typography>
+            </Box>
+            {activity.description && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1 }}
+              >
+                {activity.description}
+              </Typography>
+            )}
+            {activity.externalSystem && (
+              <Typography variant="body2" color="text.secondary">
+                External System: {activity.externalSystem}
+              </Typography>
+            )}
+          </Box>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
+          >
+            <Tooltip title="View History">
+              <IconButton
+                onClick={() => handleOpenDetail(activity)}
+                color="primary"
+              >
+                <History />
+              </IconButton>
+            </Tooltip>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrow />}
+              onClick={() => startTracking(activity)}
+              disabled={isTracking}
+            >
+              Start Tracking
+            </Button>
+          </Box>
+        </Box>
+      </CardContent>
+    </ListItem>
+  );
+
   if (activitiesLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -387,13 +563,14 @@ export const TimeTracker: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: { xs: '100%', xl: '1400px' }, mx: 'auto' }}>
+      {/* Header */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4,
+          mb: 3,
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -401,6 +578,7 @@ export const TimeTracker: React.FC = () => {
         </Typography>
       </Box>
 
+      {/* Current Tracking Status */}
       <Paper
         elevation={3}
         sx={{
@@ -456,75 +634,58 @@ export const TimeTracker: React.FC = () => {
         )}
       </Paper>
 
-      <Typography variant="h5" gutterBottom>
+      {/* Activities Section */}
+      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
         Activities
       </Typography>
-      <List>
-        {activities.map((activity) => (
-          <ListItem key={activity.id} component={Card} sx={{ mb: 2 }}>
-            <CardContent sx={{ width: '100%' }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <Typography variant="h6" gutterBottom>
-                      {activity.name}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Category: {activity.category}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Time: {formatDuration(activity.totalDuration)}
-                    </Typography>
-                  </Box>
-                  {activity.description && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mt: 1 }}
-                    >
-                      {activity.description}
-                    </Typography>
-                  )}
-                  {activity.externalSystem && (
-                    <Typography variant="body2" color="text.secondary">
-                      External System: {activity.externalSystem}
-                    </Typography>
-                  )}
-                </Box>
-                <Box
-                  sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
+
+      {isMobile ? (
+        // Mobile: List view
+        <List>
+          {activities.map(renderMobileActivityItem)}
+        </List>
+      ) : (
+        // Desktop: Grid view grouped by category
+        <Box>
+          {Object.keys(activitiesByCategory).length === 0 ? (
+            <Typography variant="body1" color="text.secondary" align="center">
+              No activities found. Create some activities in the Activity Manager to get started.
+            </Typography>
+          ) : (
+            Object.entries(activitiesByCategory).map(([category, categoryActivities]) => (
+              <Box key={category} sx={{ mb: 4 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 2,
+                    color: 'primary.main',
+                    fontWeight: 600,
+                    borderBottom: `2px solid ${theme.palette.primary.main}`,
+                    pb: 1,
+                    display: 'inline-block'
+                  }}
                 >
-                  <Tooltip title="View History">
-                    <IconButton
-                      onClick={() => handleOpenDetail(activity)}
-                      color="primary"
-                    >
-                      <History />
-                    </IconButton>
-                  </Tooltip>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<PlayArrow />}
-                    onClick={() => startTracking(activity)}
-                    disabled={isTracking}
-                  >
-                    Start Tracking
-                  </Button>
+                  {category}
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: 'repeat(2, 1fr)',
+                      lg: 'repeat(3, 1fr)',
+                      xl: 'repeat(4, 1fr)'
+                    },
+                    gap: 3
+                  }}
+                >
+                  {categoryActivities.map(renderActivityCard)}
                 </Box>
               </Box>
-            </CardContent>
-          </ListItem>
-        ))}
-      </List>
+            ))
+          )}
+        </Box>
+      )}
 
       {/* Component Dialogs */}
       <TimeEntryDetailDialog

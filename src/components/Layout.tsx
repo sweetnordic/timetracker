@@ -31,7 +31,6 @@ import type { TrackingSettings } from '../models';
 const theme = createTheme({
   palette: {
     mode: 'light',
-    /*
     primary: {
       main: '#1976d2',
     },
@@ -45,19 +44,32 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#1976d2',
+          color: '#ffffff',
         },
       },
     },
     MuiTab: {
       styleOverrides: {
         root: {
-          color: '#666',
+          color: 'rgba(255, 255, 255, 0.7)',
           '&.Mui-selected': {
-            color: '#1976d2',
+            color: '#ffffff',
+            fontWeight: 600,
+          },
+          '&:hover': {
+            color: 'rgba(255, 255, 255, 0.9)',
           },
         },
       },
-    }, **/
+    },
+    MuiTabs: {
+      styleOverrides: {
+        indicator: {
+          backgroundColor: '#ffffff',
+          height: 3,
+        },
+      },
+    },
   },
 });
 
@@ -218,8 +230,8 @@ export const Layout: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="static">
-        <Toolbar>
+      <AppBar position="static" elevation={2}>
+        <Toolbar sx={{ minHeight: 64 }}>
           <Timer sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ mr: 4 }}>
             Time Tracker
@@ -228,18 +240,7 @@ export const Layout: React.FC = () => {
           <Tabs
             value={getCurrentTab()}
             onChange={handleTabChange}
-            sx={{
-              flexGrow: 1,
-              '& .MuiTab-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                '&.Mui-selected': {
-                  color: 'white',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'white',
-              },
-            }}
+            sx={{ flexGrow: 1 }}
           >
             <Tab label="Time Tracker" value="tracker" />
             <Tab label="Activity Manager" value="manager" />
