@@ -24,7 +24,7 @@
   "bugs": {
     "url": "https://github.com/sweetnordic/timetracker/issues"
   },
-  "homepage": "https://github.com/sweetnordic/timetracker#readme",
+  "homepage": "https://sweetnordic.github.io/timetracker",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
