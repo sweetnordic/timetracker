@@ -37,6 +37,7 @@ export interface TrackingSettings {
   firstDayOfWeek: FirstDayOfWeek;
   defaultGoalNotificationThreshold: number; // percentage (0-100)
   notificationsEnabled: boolean;
+  darkMode?: boolean; // Optional for backwards compatibility
 }
 
 export interface Goal {

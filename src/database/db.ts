@@ -1,9 +1,9 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD } from './models';
-import type { DatabaseActivity, DatabaseCategory, DatabaseTimeEntry, DatabaseGoal, DatabaseSettings } from './models';
-import type { Activity, Category, TimeEntry, Goal, TrackingSettings } from '../models';
+import { DEFAULT_ORDER } from './models';
+import type { DatabaseActivity, DatabaseCategory, DatabaseTimeEntry, DatabaseGoal } from './models';
+import type { Activity, Category, TimeEntry, Goal } from '../models';
 
 export interface TimeTrackerDB extends DBSchema {
   categories: {
@@ -20,10 +20,6 @@ export interface TimeTrackerDB extends DBSchema {
     key: string;
     value: DatabaseTimeEntry;
     indexes: { 'by-activity': string; 'by-date': Date };
-  };
-  settings: {
-    key: string;
-    value: DatabaseSettings;
   };
   goals: {
     key: string;
@@ -113,25 +109,6 @@ const convertUIGoalToDatabase = (uiGoal: Goal): DatabaseGoal => ({
   updated_at: uiGoal.updatedAt,
 });
 
-const convertDatabaseSettingsToUI = (dbSettings: DatabaseSettings): TrackingSettings => ({
-  maxDuration: dbSettings.max_duration,
-  warningThreshold: dbSettings.warning_threshold,
-  firstDayOfWeek: dbSettings.first_day_of_week,
-  defaultGoalNotificationThreshold: dbSettings.default_goal_notification_threshold,
-  notificationsEnabled: dbSettings.notifications_enabled,
-});
-
-const convertUISettingsToDatabase = (uiSettings: TrackingSettings, existingDbSettings?: DatabaseSettings): DatabaseSettings => ({
-  id: existingDbSettings?.id || 'default',
-  max_duration: uiSettings.maxDuration,
-  warning_threshold: uiSettings.warningThreshold,
-  first_day_of_week: uiSettings.firstDayOfWeek,
-  default_goal_notification_threshold: uiSettings.defaultGoalNotificationThreshold,
-  notifications_enabled: uiSettings.notificationsEnabled,
-  created_at: existingDbSettings?.created_at || new Date(),
-  updated_at: new Date(),
-});
-
 /**
  * Name of the Database in the browser's IndexedDB
  */
@@ -170,11 +147,6 @@ class DatabaseService {
           });
           timeEntriesStore.createIndex('by-activity', 'activity_id');
           timeEntriesStore.createIndex('by-date', 'start_time');
-
-          // Create settings store
-          db.createObjectStore('settings', {
-            keyPath: 'id',
-          });
 
           // Create goals store
           const goalsStore = db.createObjectStore('goals', {
@@ -358,64 +330,6 @@ class DatabaseService {
     }
   }
 
-  async getTrackingSettings(): Promise<TrackingSettings> {
-    if (!this.db) {
-      throw new Error('Database not initialized');
-    }
-
-    try {
-      const settings = await this.db.getAll('settings');
-      if (settings.length === 0) {
-        // Return default settings if none exist
-        const defaultDbSettings: DatabaseSettings = {
-          id: 'default',
-          max_duration: 12 * 3600, // 12 hours in seconds
-          warning_threshold: 3600, // 1 hour warning
-          first_day_of_week: 'monday' as const,
-          default_goal_notification_threshold: DEFAULT_NOTIFICATION_THRESHOLD,
-          notifications_enabled: true,
-          created_at: new Date(),
-          updated_at: new Date()
-        };
-        try {
-          await this.db.add('settings', defaultDbSettings);
-        } catch (error) {
-          // If settings already exist, try to get them
-          const existingSettings = await this.db.getAll('settings');
-          if (existingSettings.length > 0) {
-            return convertDatabaseSettingsToUI(existingSettings[0]);
-          }
-          throw error;
-        }
-        return convertDatabaseSettingsToUI(defaultDbSettings);
-      }
-      return convertDatabaseSettingsToUI(settings[0]);
-    } catch (error) {
-      console.error('Error getting tracking settings:', error);
-      throw error;
-    }
-  }
-
-  async updateTrackingSettings(settings: TrackingSettings): Promise<void> {
-    if (!this.db) {
-      throw new Error('Database not initialized');
-    }
-
-    try {
-      const existingSettings = await this.db.getAll('settings');
-      const dbSettings = convertUISettingsToDatabase(settings, existingSettings[0]);
-
-      if (existingSettings.length === 0) {
-        await this.db.add('settings', dbSettings);
-      } else {
-        await this.db.put('settings', dbSettings);
-      }
-    } catch (error) {
-      console.error('Error updating tracking settings:', error);
-      throw error;
-    }
-  }
-
   async getOpenTimeEntries(): Promise<TimeEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
     try {
@@ -434,10 +348,10 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     try {
       await Promise.all([
+        this.db.clear('categories'),
         this.db.clear('activities'),
         this.db.clear('timeEntries'),
-        this.db.clear('categories'),
-        this.db.clear('settings')
+        this.db.clear('goals'),
       ]);
     } catch (error) {
       console.error('Error clearing data:', error);

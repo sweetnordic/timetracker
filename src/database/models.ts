@@ -45,17 +45,6 @@ export interface DatabaseTimeEntry {
   updated_at: Date;
 }
 
-export interface DatabaseSettings {
-  id?: string;
-  max_duration: number; // in seconds
-  warning_threshold: number; // in seconds
-  first_day_of_week: 'monday' | 'sunday';
-  default_goal_notification_threshold: number; // percentage (0-100)
-  notifications_enabled: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
 export interface DatabaseGoal {
   id?: string;
   activity_id: string;

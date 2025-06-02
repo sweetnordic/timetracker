@@ -70,7 +70,6 @@ function App() {
       try {
         await db.init()
         setIsDbInitialized(true)
-        console.log('Database initialized successfully')
       } catch (error) {
         console.error('Failed to initialize database:', error)
         setDbError('Failed to initialize database. Please refresh the page.')

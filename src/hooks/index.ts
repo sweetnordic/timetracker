@@ -10,9 +10,8 @@ export { ACTIVITIES_QUERY_KEY } from './useActivities';
 export * from './useTimeEntries';
 export { TIME_ENTRIES_QUERY_KEY, OPEN_TIME_ENTRIES_QUERY_KEY } from './useTimeEntries';
 
-// Settings
-export * from './useSettings';
-export { SETTINGS_QUERY_KEY } from './useSettings';
+// Settings (now LocalStorage-based)
+export { useSettings, settingsStorage } from './useSettings';
 
 // Goals
 export * from './useGoals';

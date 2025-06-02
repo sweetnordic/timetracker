@@ -20,63 +20,75 @@ import {
   Help as HelpIcon,
   Notifications,
   NotificationsOff,
-  Settings
+  Settings,
+  LightMode,
+  DarkMode
 } from '@mui/icons-material';
-import { useNotifications, useTrackingSettings, useUpdateTrackingSettings, useClearAllData } from '../hooks';
+import { useNotifications, useClearAllData } from '../hooks';
+import { useSettings } from '../hooks/useSettings';
 import { NotificationDialog, SettingsDialog, DeleteConfirmationDialog } from './';
 import { useToast } from '../contexts';
-import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../database/models';
-import type { TrackingSettings } from '../models';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-  components: {
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1976d2',
-          color: '#ffffff',
-        },
-      },
-    },
-    MuiTab: {
-      styleOverrides: {
-        root: {
-          color: 'rgba(255, 255, 255, 0.7)',
-          '&.Mui-selected': {
-            color: '#ffffff',
-            fontWeight: 600,
-          },
-          '&:hover': {
-            color: 'rgba(255, 255, 255, 0.9)',
-          },
-        },
-      },
-    },
-    MuiTabs: {
-      styleOverrides: {
-        indicator: {
-          backgroundColor: '#ffffff',
-          height: 3,
-        },
-      },
-    },
-  },
-});
 
 export const Layout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
+
+  // Use new LocalStorage-based settings
+  const {
+    settings,
+    updateSettings,
+    updateSetting,
+    resetSettings,
+    isDarkMode,
+    notificationsEnabled
+  } = useSettings();
+
+  // Create theme based on settings
+  const theme = createTheme({
+    palette: {
+      mode: isDarkMode ? 'dark' : 'light',
+      primary: {
+        main: '#1976d2',
+      },
+      background: {
+        default: isDarkMode ? '#121212' : '#f5f5f5',
+        paper: isDarkMode ? '#1e1e1e' : '#ffffff',
+      },
+    },
+    components: {
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: '#1976d2',
+            color: '#ffffff',
+          },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            color: 'rgba(255, 255, 255, 0.7)',
+            '&.Mui-selected': {
+              color: '#ffffff',
+              fontWeight: 600,
+            },
+            '&:hover': {
+              color: 'rgba(255, 255, 255, 0.9)',
+            },
+          },
+        },
+      },
+      MuiTabs: {
+        styleOverrides: {
+          indicator: {
+            backgroundColor: '#ffffff',
+            height: 3,
+          },
+        },
+      },
+    },
+  });
 
   // Notification management
   const {
@@ -88,31 +100,12 @@ export const Layout: React.FC = () => {
     clearAll: clearAllNotifications
   } = useNotifications();
 
-  // Settings for notification toggle and settings dialog
-  const { data: dbSettings } = useTrackingSettings();
-  const updateSettings = useUpdateTrackingSettings();
+  // Database operations
   const clearAllData = useClearAllData();
 
   const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  const notificationsEnabled = dbSettings?.notifications_enabled ?? true;
-
-  // Convert database settings to UI format
-  const trackingSettings: TrackingSettings = dbSettings ? {
-    maxDuration: dbSettings.max_duration,
-    warningThreshold: dbSettings.warning_threshold,
-    firstDayOfWeek: dbSettings.first_day_of_week,
-    defaultGoalNotificationThreshold: dbSettings.default_goal_notification_threshold,
-    notificationsEnabled: dbSettings.notifications_enabled,
-  } : {
-    maxDuration: 12 * 3600,
-    warningThreshold: 3600,
-    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
-    defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-    notificationsEnabled: true
-  };
 
   const getCurrentTab = () => {
     switch (location.pathname) {
@@ -142,6 +135,10 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const handleThemeToggle = () => {
+    updateSetting('darkMode', !isDarkMode);
+  };
+
   const handleOpenNotificationCenter = () => {
     setIsNotificationDialogOpen(true);
   };
@@ -151,20 +148,7 @@ export const Layout: React.FC = () => {
   };
 
   const handleToggleNotifications = async (enabled: boolean) => {
-    if (!dbSettings) return;
-
-    try {
-      await updateSettings.mutateAsync({
-        max_duration: dbSettings.max_duration,
-        warning_threshold: dbSettings.warning_threshold,
-        first_day_of_week: dbSettings.first_day_of_week,
-        default_goal_notification_threshold: dbSettings.default_goal_notification_threshold,
-        notifications_enabled: enabled,
-      });
-    } catch (error) {
-      console.error('Error updating notification settings:', error);
-      showError('Failed to update notification settings');
-    }
+    updateSetting('notificationsEnabled', enabled);
   };
 
   const handleOpenSettings = () => {
@@ -175,15 +159,9 @@ export const Layout: React.FC = () => {
     setShowSettingsDialog(false);
   };
 
-  const handleSaveSettings = async (settings: TrackingSettings) => {
+  const handleSaveSettings = async (newSettings: typeof settings) => {
     try {
-      await updateSettings.mutateAsync({
-        max_duration: settings.maxDuration,
-        warning_threshold: settings.warningThreshold,
-        first_day_of_week: settings.firstDayOfWeek,
-        default_goal_notification_threshold: settings.defaultGoalNotificationThreshold,
-        notifications_enabled: settings.notificationsEnabled,
-      });
+      updateSettings(newSettings);
       setShowSettingsDialog(false);
       showSuccess('Settings saved successfully');
     } catch (error) {
@@ -193,22 +171,8 @@ export const Layout: React.FC = () => {
   };
 
   const handleResetSettings = async () => {
-    const defaultSettings = {
-      maxDuration: 12 * 3600, // 12 hours in seconds
-      warningThreshold: 3600, // 1 hour warning
-      firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
-      defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-      notificationsEnabled: true,
-    };
-
     try {
-      await updateSettings.mutateAsync({
-        max_duration: defaultSettings.maxDuration,
-        warning_threshold: defaultSettings.warningThreshold,
-        first_day_of_week: defaultSettings.firstDayOfWeek,
-        default_goal_notification_threshold: defaultSettings.defaultGoalNotificationThreshold,
-        notifications_enabled: defaultSettings.notificationsEnabled,
-      });
+      resetSettings();
       showSuccess('Settings reset to defaults');
     } catch (error) {
       console.error('Error resetting settings:', error);
@@ -257,6 +221,22 @@ export const Layout: React.FC = () => {
             </IconButton>
           </Tooltip>
 
+          <Tooltip title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            <IconButton
+              color="inherit"
+              onClick={handleThemeToggle}
+              sx={{ ml: 1 }}
+            >
+              {isDarkMode ? <LightMode /> : <DarkMode />}
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Help">
+            <IconButton color="inherit" onClick={() => navigate('/help')} sx={{ ml: 1 }}>
+              <HelpIcon />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title="Notifications">
             <IconButton
               color="inherit"
@@ -272,12 +252,6 @@ export const Layout: React.FC = () => {
               </Badge>
             </IconButton>
           </Tooltip>
-
-          <Tooltip title="Help">
-            <IconButton color="inherit" onClick={() => navigate('/help')} sx={{ ml: 1 }}>
-              <HelpIcon />
-            </IconButton>
-          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -290,12 +264,12 @@ export const Layout: React.FC = () => {
       {/* Global Settings Dialog */}
       <SettingsDialog
         open={showSettingsDialog}
-        settings={trackingSettings}
+        settings={settings}
         onClose={handleCloseSettings}
         onSave={handleSaveSettings}
         onReset={handleResetSettings}
         onResetDatabase={() => setShowResetConfirm(true)}
-        isLoading={updateSettings.isPending}
+        isLoading={false}
       />
 
       {/* Database Reset Confirmation */}

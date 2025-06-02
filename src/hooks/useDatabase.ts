@@ -3,7 +3,6 @@ import { db } from '../database/db';
 import { CATEGORIES_QUERY_KEY } from './useCategories';
 import { ACTIVITIES_QUERY_KEY } from './useActivities';
 import { TIME_ENTRIES_QUERY_KEY, OPEN_TIME_ENTRIES_QUERY_KEY } from './useTimeEntries';
-import { SETTINGS_QUERY_KEY } from './useSettings';
 import { GOALS_QUERY_KEY, GOAL_PROGRESS_QUERY_KEY } from './useGoals';
 
 // Clear all data
@@ -18,7 +17,6 @@ export const useClearAllData = () => {
       queryClient.invalidateQueries({ queryKey: [ACTIVITIES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [SETTINGS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [GOALS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [GOAL_PROGRESS_QUERY_KEY] });
     },

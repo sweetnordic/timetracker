@@ -24,7 +24,7 @@ import {
   useAddTimeEntry,
   useUpdateTimeEntry,
   useDeleteTimeEntry,
-  useTrackingSettings,
+  useSettings,
   useClearAllData,
   useNotifications
 } from '../hooks';
@@ -34,10 +34,9 @@ import {
   DeleteConfirmationDialog
 } from '../components';
 import { useToast } from '../contexts';
-import type { Activity, ActivityWithStats, TrackingSettings, TimeEntry } from '../models';
+import type { Activity, ActivityWithStats, TimeEntry } from '../models';
 import type { DatabaseActivity, DatabaseTimeEntry } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../database/models';
 
 interface TimeEntryFormData {
   startTime: Date;
@@ -83,9 +82,11 @@ export const TimeTracker: React.FC = () => {
     addErrorNotification,
   } = useNotifications();
 
+  // Use LocalStorage-based settings
+  const { settings: trackingSettings } = useSettings();
+
   // Queries
   const { data: dbActivities = [], isLoading: activitiesLoading } = useActivities();
-  const { data: dbSettings } = useTrackingSettings();
   const { data: dbOpenEntries = [] } = useOpenTimeEntries();
 
   // Mutations
@@ -102,20 +103,6 @@ export const TimeTracker: React.FC = () => {
     })),
     [dbActivities]
   );
-
-  const trackingSettings: TrackingSettings = useMemo(() => dbSettings ? {
-    maxDuration: dbSettings.max_duration,
-    warningThreshold: dbSettings.warning_threshold,
-    firstDayOfWeek: dbSettings.first_day_of_week,
-    defaultGoalNotificationThreshold: dbSettings.default_goal_notification_threshold,
-    notificationsEnabled: dbSettings.notifications_enabled,
-  } : {
-    maxDuration: 12 * 3600,
-    warningThreshold: 3600,
-    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
-    defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-    notificationsEnabled: true
-  }, [dbSettings]);
 
   // State management
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
@@ -490,7 +477,7 @@ export const TimeTracker: React.FC = () => {
 
   // Render mobile list item
   const renderMobileActivityItem = (activity: ActivityWithStats) => (
-    <ListItem key={activity.id} component={Card} sx={{ mb: 2 }}>
+    <ListItem component={Card} sx={{ mb: 2 }}>
       <CardContent sx={{ width: '100%' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box>
@@ -642,7 +629,11 @@ export const TimeTracker: React.FC = () => {
       {isMobile ? (
         // Mobile: List view
         <List>
-          {activities.map(renderMobileActivityItem)}
+          {activities.map((activity) => (
+            <Box key={activity.id}>
+              {renderMobileActivityItem(activity)}
+            </Box>
+          ))}
         </List>
       ) : (
         // Desktop: Grid view grouped by category
@@ -679,7 +670,11 @@ export const TimeTracker: React.FC = () => {
                     gap: 3
                   }}
                 >
-                  {categoryActivities.map(renderActivityCard)}
+                  {categoryActivities.map((activity) => (
+                    <Box key={activity.id}>
+                      {renderActivityCard(activity)}
+                    </Box>
+                  ))}
                 </Box>
               </Box>
             ))
