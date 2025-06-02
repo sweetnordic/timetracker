@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -18,41 +18,7 @@ import {
   LinearProgress,
 } from '@mui/material';
 import { useActivities, useTimeEntries, useGoals } from '../hooks';
-import type { WeeklyStats, Activity, TimeEntry, Goal } from '../models';
-import type { DatabaseActivity, DatabaseTimeEntry, DatabaseGoal } from '../database/models';
-
-// Helper to convert database models to UI models
-const convertDatabaseActivityToUI = (dbActivity: DatabaseActivity): Activity => ({
-  id: dbActivity.id,
-  name: dbActivity.name,
-  category: dbActivity.category,
-  description: dbActivity.description,
-  externalSystem: dbActivity.external_system,
-  order: dbActivity.order,
-  createdAt: dbActivity.created_at,
-  updatedAt: dbActivity.updated_at,
-});
-
-const convertDatabaseTimeEntryToUI = (dbEntry: DatabaseTimeEntry): TimeEntry => ({
-  id: dbEntry.id,
-  activityId: dbEntry.activity_id,
-  startTime: dbEntry.start_time,
-  endTime: dbEntry.end_time,
-  duration: dbEntry.duration,
-  notes: dbEntry.notes,
-  createdAt: dbEntry.created_at,
-  updatedAt: dbEntry.updated_at,
-});
-
-const convertDatabaseGoalToUI = (dbGoal: DatabaseGoal): Goal => ({
-  id: dbGoal.id,
-  activityId: dbGoal.activity_id,
-  targetHours: dbGoal.target_hours,
-  period: dbGoal.period,
-  notificationThreshold: dbGoal.notification_threshold,
-  createdAt: dbGoal.created_at,
-  updatedAt: dbGoal.updated_at,
-});
+import type { WeeklyStats } from '../models';
 
 export const Analytics: React.FC = () => {
   const [isMonthlyView, setIsMonthlyView] = useState(false);
@@ -75,25 +41,9 @@ export const Analytics: React.FC = () => {
     }
   });
 
-  const { data: dbActivities = [] } = useActivities();
-  const { data: dbTimeEntries = [] } = useTimeEntries();
-  const { data: dbGoals = [] } = useGoals();
-
-  // Convert database models to UI models with useMemo
-  const activities: Activity[] = useMemo(() =>
-    dbActivities.map(convertDatabaseActivityToUI),
-    [dbActivities]
-  );
-
-  const timeEntries: TimeEntry[] = useMemo(() =>
-    dbTimeEntries.map(convertDatabaseTimeEntryToUI),
-    [dbTimeEntries]
-  );
-
-  const goals: Goal[] = useMemo(() =>
-    dbGoals.map(convertDatabaseGoalToUI),
-    [dbGoals]
-  );
+  const { data: activities = [] } = useActivities();
+  const { data: timeEntries = [] } = useTimeEntries();
+  const { data: goals = [] } = useGoals();
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

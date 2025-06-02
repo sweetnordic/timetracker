@@ -16,16 +16,15 @@ import {
   Radio,
 } from '@mui/material';
 import { Download, Upload } from '@mui/icons-material';
-import { useActivities, useTimeEntries, useCategories, useGoals } from '../hooks';
-import type { DatabaseActivity, DatabaseTimeEntry, DatabaseCategory, DatabaseGoal } from '../database/models';
+import type { Activity, TimeEntry, Category, Goal } from '../models';
 import { db } from '../database/db';
 import { useToast } from '../contexts';
 
 interface ImportData {
-  activities: DatabaseActivity[];
-  timeEntries: DatabaseTimeEntry[];
-  categories: DatabaseCategory[];
-  goals: DatabaseGoal[];
+  activities: Activity[];
+  timeEntries: TimeEntry[];
+  categories: Category[];
+  goals: Goal[];
   exportDate: string;
   databaseVersion?: number;
 }
@@ -44,19 +43,16 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { showSuccess, showError } = useToast();
-  const { data: activities = [] } = useActivities();
-  const { data: timeEntries = [] } = useTimeEntries();
-  const { data: categories = [] } = useCategories();
-  const { data: goals = [] } = useGoals();
 
   const handleExportData = async () => {
     setIsExporting(true);
     try {
+      // Get data directly from database service to ensure UI format
       const exportData: ImportData = {
-        activities,
-        timeEntries,
-        categories,
-        goals,
+        activities: await db.getActivities(),
+        timeEntries: await db.getTimeEntries(),
+        categories: await db.getCategories(),
+        goals: await db.getGoals(),
         exportDate: new Date().toISOString(),
         databaseVersion: 1
       };
@@ -102,7 +98,7 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
     for (const entry of typedData.timeEntries) {
       if (!entry || typeof entry !== 'object') return false;
       const ent = entry as Record<string, unknown>;
-      if (!ent.activity_id || !ent.start_time) return false;
+      if (!ent.activityId || !ent.startTime) return false;
     }
 
     // Validate categories
@@ -116,7 +112,7 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
     for (const goal of typedData.goals) {
       if (!goal || typeof goal !== 'object') return false;
       const g = goal as Record<string, unknown>;
-      if (!g.activity_id || typeof g.target_hours !== 'number' || !g.period) return false;
+      if (!g.activityId || typeof g.targetHours !== 'number' || !g.period) return false;
     }
 
     return true;
@@ -147,7 +143,7 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
         await db.clearAllData();
       }
 
-      // Get existing data for merging
+      // Get existing data for merging - use direct DB calls to get UI format
       const existingCategories = await db.getCategories();
       const existingActivities = await db.getActivities();
       const existingTimeEntries = await db.getTimeEntries();
@@ -162,8 +158,8 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
         await db.addCategory({
           name: category.name,
           order: category.order || 0,
-          createdAt: new Date(category.created_at),
-          updatedAt: new Date(category.updated_at),
+          createdAt: new Date(category.createdAt),
+          updatedAt: new Date(category.updatedAt),
         });
       }
 
@@ -180,10 +176,10 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
           name: activity.name,
           category: activity.category,
           description: activity.description || '',
-          externalSystem: activity.external_system || '',
+          externalSystem: activity.externalSystem || '',
           order: activity.order || 0,
-          createdAt: new Date(activity.created_at),
-          updatedAt: new Date(activity.updated_at),
+          createdAt: new Date(activity.createdAt),
+          updatedAt: new Date(activity.updatedAt),
         });
         activityIdMap.set(activity.id!, newId);
       }
@@ -192,22 +188,22 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       for (const entry of data.timeEntries) {
         // Skip if time entry already exists (when merging)
         if (importMode === 'merge' && existingTimeEntries.some(e =>
-          e.activity_id === entry.activity_id &&
-          new Date(e.start_time).getTime() === new Date(entry.start_time).getTime()
+          e.activityId === entry.activityId &&
+          new Date(e.startTime).getTime() === new Date(entry.startTime).getTime()
         )) {
           continue;
         }
         // Map the old activity_id to the new one
-        const newActivityId = activityIdMap.get(entry.activity_id);
+        const newActivityId = activityIdMap.get(entry.activityId);
         if (newActivityId) {
           await db.addTimeEntry({
             activityId: newActivityId,
-            startTime: new Date(entry.start_time),
-            endTime: entry.end_time ? new Date(entry.end_time) : null,
+            startTime: new Date(entry.startTime),
+            endTime: entry.endTime ? new Date(entry.endTime) : null,
             duration: entry.duration,
             notes: entry.notes || '',
-            createdAt: new Date(entry.created_at),
-            updatedAt: new Date(entry.updated_at)
+            createdAt: new Date(entry.createdAt),
+            updatedAt: new Date(entry.updatedAt)
           });
         }
       }
@@ -216,22 +212,22 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       for (const goal of data.goals) {
         // Skip if goal already exists (when merging)
         if (importMode === 'merge' && existingGoals.some(g =>
-          g.activity_id === goal.activity_id &&
+          g.activityId === goal.activityId &&
           g.period === goal.period &&
-          g.target_hours === goal.target_hours
+          g.targetHours === goal.targetHours
         )) {
           continue;
         }
         // Map the old activity_id to the new one
-        const newActivityId = activityIdMap.get(goal.activity_id);
+        const newActivityId = activityIdMap.get(goal.activityId);
         if (newActivityId) {
           await db.addGoal({
             activityId: newActivityId,
-            targetHours: goal.target_hours,
+            targetHours: goal.targetHours,
             period: goal.period,
-            notificationThreshold: goal.notification_threshold,
-            createdAt: new Date(goal.created_at),
-            updatedAt: new Date(goal.updated_at)
+            notificationThreshold: goal.notificationThreshold,
+            createdAt: new Date(goal.createdAt),
+            updatedAt: new Date(goal.updatedAt)
           });
         }
       }

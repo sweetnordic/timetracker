@@ -35,9 +35,8 @@ import {
 } from '../hooks';
 import { EditCategoryDialog, EditActivityDialog, DeleteConfirmationDialog } from '../components';
 import { useToast } from '../contexts';
-import type { DatabaseActivity, DatabaseCategory } from '../database/models';
-import type { Activity } from '../models';
-import { DEFAULT_ORDER } from '../database/models';
+import type { Activity, Category } from '../models';
+import { DEFAULT_ORDER } from '../utils/constants';
 
 export const ActivityManager: React.FC = () => {
   // Toast notifications
@@ -60,12 +59,12 @@ export const ActivityManager: React.FC = () => {
   const [newActivityName, setNewActivityName] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [editingCategory, setEditingCategory] = useState<DatabaseCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<DatabaseCategory | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Use ref to track if order fixing has been performed to prevent infinite loops
   const orderFixingPerformed = useRef(false);
@@ -111,14 +110,14 @@ export const ActivityManager: React.FC = () => {
     if (!newActivityName || !selectedCategory) return;
 
     const now = new Date();
-    const newActivity: Omit<DatabaseActivity, 'id'> = {
+    const newActivity: Omit<Activity, 'id'> = {
       name: newActivityName,
       category: selectedCategory,
       description: '',
-      external_system: '',
+      externalSystem: '',
       order: activities.length > 0 ? Math.max(...activities.map(a => a.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
-      created_at: now,
-      updated_at: now,
+      createdAt: now,
+      updatedAt: now,
     };
 
     try {
@@ -136,11 +135,11 @@ export const ActivityManager: React.FC = () => {
     if (!newCategoryName) return;
 
     const now = new Date();
-    const newCategory: Omit<DatabaseCategory, 'id'> = {
+    const newCategory: Omit<Category, 'id'> = {
       name: newCategoryName,
       order: categories.length > 0 ? Math.max(...categories.map(c => c.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
-      created_at: now,
-      updated_at: now,
+      createdAt: now,
+      updatedAt: now,
     };
 
     try {
@@ -153,7 +152,7 @@ export const ActivityManager: React.FC = () => {
     }
   };
 
-  const handleEditCategory = (category: DatabaseCategory) => {
+  const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setEditDialogOpen(true);
   };
@@ -185,7 +184,7 @@ export const ActivityManager: React.FC = () => {
     setCategoryToDelete(null);
   };
 
-  const handleSaveCategoryEdit = async (updatedCategory: DatabaseCategory) => {
+  const handleSaveCategoryEdit = async (updatedCategory: Category) => {
     try {
       await updateCategory.mutateAsync(updatedCategory);
       showSuccess(`Category "${updatedCategory.name}" updated successfully`);
@@ -229,17 +228,17 @@ export const ActivityManager: React.FC = () => {
     }
   };
 
-  const handleEditActivity = (activity: DatabaseActivity) => {
-    // Convert DatabaseActivity to Activity for editing
+  const handleEditActivity = (activity: Activity) => {
+    // Convert Activity to Activity for editing
     const activityForEdit: Activity = {
       id: activity.id,
       name: activity.name,
       category: activity.category,
       description: activity.description,
-      externalSystem: activity.external_system,
+      externalSystem: activity.externalSystem,
       order: activity.order,
-      createdAt: activity.created_at,
-      updatedAt: activity.updated_at,
+      createdAt: activity.createdAt,
+      updatedAt: activity.updatedAt,
     };
     setEditingActivity(activityForEdit);
     setActivityEditDialogOpen(true);
@@ -250,7 +249,7 @@ export const ActivityManager: React.FC = () => {
     setEditingActivity(null);
   };
 
-  const handleSaveActivityEdit = async (updatedActivity: DatabaseActivity) => {
+  const handleSaveActivityEdit = async (updatedActivity: Activity) => {
     try {
       await updateActivity.mutateAsync(updatedActivity);
       handleCloseActivityEditDialog();

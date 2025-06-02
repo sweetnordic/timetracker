@@ -1,113 +1,31 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER } from './models';
-import type { DatabaseActivity, DatabaseCategory, DatabaseTimeEntry, DatabaseGoal } from './models';
+import { DEFAULT_ORDER } from '../utils/constants';
 import type { Activity, Category, TimeEntry, Goal } from '../models';
 
 export interface TimeTrackerDB extends DBSchema {
   categories: {
     key: string;
-    value: DatabaseCategory;
+    value: Category;
     indexes: { 'by-order': number; };
   };
   activities: {
     key: string;
-    value: DatabaseActivity;
+    value: Activity;
     indexes: { 'by-category': string; 'by-order': number; };
   };
   timeEntries: {
     key: string;
-    value: DatabaseTimeEntry;
+    value: TimeEntry;
     indexes: { 'by-activity': string; 'by-date': Date };
   };
   goals: {
     key: string;
-    value: DatabaseGoal;
+    value: Goal;
     indexes: { 'by-activity': string };
   };
 }
-
-// Conversion utilities between database and UI models
-const convertDatabaseActivityToUI = (dbActivity: DatabaseActivity): Activity => ({
-  id: dbActivity.id,
-  name: dbActivity.name,
-  category: dbActivity.category,
-  description: dbActivity.description,
-  externalSystem: dbActivity.external_system,
-  order: dbActivity.order,
-  createdAt: dbActivity.created_at,
-  updatedAt: dbActivity.updated_at,
-});
-
-const convertUIActivityToDatabase = (uiActivity: Activity): DatabaseActivity => ({
-  id: uiActivity.id,
-  name: uiActivity.name,
-  category: uiActivity.category,
-  description: uiActivity.description,
-  external_system: uiActivity.externalSystem,
-  order: uiActivity.order,
-  created_at: uiActivity.createdAt,
-  updated_at: uiActivity.updatedAt,
-});
-
-const convertDatabaseCategoryToUI = (dbCategory: DatabaseCategory): Category => ({
-  id: dbCategory.id,
-  name: dbCategory.name,
-  order: dbCategory.order,
-  createdAt: dbCategory.created_at,
-  updatedAt: dbCategory.updated_at,
-});
-
-const convertUICategoryToDatabase = (uiCategory: Category): DatabaseCategory => ({
-  id: uiCategory.id,
-  name: uiCategory.name,
-  order: uiCategory.order,
-  created_at: uiCategory.createdAt,
-  updated_at: uiCategory.updatedAt,
-});
-
-const convertDatabaseTimeEntryToUI = (dbEntry: DatabaseTimeEntry): TimeEntry => ({
-  id: dbEntry.id,
-  activityId: dbEntry.activity_id,
-  startTime: dbEntry.start_time,
-  endTime: dbEntry.end_time,
-  duration: dbEntry.duration,
-  notes: dbEntry.notes,
-  createdAt: dbEntry.created_at,
-  updatedAt: dbEntry.updated_at,
-});
-
-const convertUITimeEntryToDatabase = (uiEntry: TimeEntry): DatabaseTimeEntry => ({
-  id: uiEntry.id,
-  activity_id: uiEntry.activityId,
-  start_time: uiEntry.startTime,
-  end_time: uiEntry.endTime,
-  duration: uiEntry.duration,
-  notes: uiEntry.notes,
-  created_at: uiEntry.createdAt,
-  updated_at: uiEntry.updatedAt,
-});
-
-const convertDatabaseGoalToUI = (dbGoal: DatabaseGoal): Goal => ({
-  id: dbGoal.id,
-  activityId: dbGoal.activity_id,
-  targetHours: dbGoal.target_hours,
-  period: dbGoal.period,
-  notificationThreshold: dbGoal.notification_threshold,
-  createdAt: dbGoal.created_at,
-  updatedAt: dbGoal.updated_at,
-});
-
-const convertUIGoalToDatabase = (uiGoal: Goal): DatabaseGoal => ({
-  id: uiGoal.id,
-  activity_id: uiGoal.activityId,
-  target_hours: uiGoal.targetHours,
-  period: uiGoal.period,
-  notification_threshold: uiGoal.notificationThreshold,
-  created_at: uiGoal.createdAt,
-  updated_at: uiGoal.updatedAt,
-});
 
 /**
  * Name of the Database in the browser's IndexedDB
@@ -145,14 +63,14 @@ class DatabaseService {
           const timeEntriesStore = db.createObjectStore('timeEntries', {
             keyPath: 'id',
           });
-          timeEntriesStore.createIndex('by-activity', 'activity_id');
-          timeEntriesStore.createIndex('by-date', 'start_time');
+          timeEntriesStore.createIndex('by-activity', 'activityId');
+          timeEntriesStore.createIndex('by-date', 'startTime');
 
           // Create goals store
           const goalsStore = db.createObjectStore('goals', {
             keyPath: 'id',
           });
-          goalsStore.createIndex('by-activity', 'activity_id');
+          goalsStore.createIndex('by-activity', 'activityId');
         }
       },
     });
@@ -165,17 +83,18 @@ class DatabaseService {
     }
   }
 
-  // Activity methods - now return UI models
+  // Activity methods - now work directly with UI models
   async addActivity(activity: Omit<Activity, 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
     try {
-      const dbActivity = convertUIActivityToDatabase({
+      const newActivity: Activity = {
         id: uuidv4(),
         ...activity,
         createdAt: activity.createdAt || new Date(),
         updatedAt: activity.updatedAt || new Date(),
-      });
-      return await this.db.add('activities', dbActivity);
+      };
+      await this.db.add('activities', newActivity);
+      return newActivity.id!;
     } catch (error) {
       console.error('Error adding activity:', error);
       throw error;
@@ -186,11 +105,11 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     if (!activity.id) throw new Error('Activity ID is required for update');
     try {
-      const dbActivity = convertUIActivityToDatabase({
+      const updatedActivity = {
         ...activity,
         updatedAt: new Date()
-      });
-      await this.db.put('activities', dbActivity);
+      };
+      await this.db.put('activities', updatedActivity);
     } catch (error) {
       console.error('Error updating activity:', error);
       throw error;
@@ -202,7 +121,6 @@ class DatabaseService {
     try {
       const dbActivities = await this.db.getAll('activities');
       return dbActivities
-        .map(convertDatabaseActivityToUI)
         .sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
     } catch (error) {
       console.error('Error getting activities:', error);
@@ -218,7 +136,7 @@ class DatabaseService {
 
     if (dbActivity) {
       dbActivity.order = newOrder;
-      dbActivity.updated_at = new Date();
+      dbActivity.updatedAt = new Date();
       await store.put(dbActivity);
     }
 
@@ -228,18 +146,21 @@ class DatabaseService {
   // Time entry methods - now return UI models
   async addTimeEntry(entry: Omit<TimeEntry, 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    const dbEntry = convertUITimeEntryToDatabase({
+    const dbEntry = {
       id: uuidv4(),
       ...entry,
       createdAt: entry.createdAt || new Date(),
       updatedAt: entry.updatedAt || new Date()
-    });
+    };
     return this.db.add('timeEntries', dbEntry);
   }
 
   async updateTimeEntry(entry: TimeEntry): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    const dbEntry = convertUITimeEntryToDatabase(entry);
+    const dbEntry = {
+      ...entry,
+      updatedAt: new Date()
+    };
     await this.db.put('timeEntries', dbEntry);
   }
 
@@ -251,14 +172,14 @@ class DatabaseService {
   async getTimeEntries(): Promise<TimeEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
     const dbEntries = await this.db.getAll('timeEntries');
-    return dbEntries.map(convertDatabaseTimeEntryToUI);
+    return dbEntries;
   }
 
   async getTimeEntriesByActivity(activityId: string): Promise<TimeEntry[]> {
     if (!this.db) throw new Error('Database not initialized');
     const index = this.db.transaction('timeEntries').store.index('by-activity');
     const dbEntries = await index.getAll(activityId);
-    return dbEntries.map(convertDatabaseTimeEntryToUI);
+    return dbEntries;
   }
 
   async getTotalDurationByActivity(activityId: string): Promise<number> {
@@ -275,19 +196,19 @@ class DatabaseService {
   // Category methods - now return UI models
   async addCategory(category: Omit<Category, 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    const dbCategory = convertUICategoryToDatabase({
+    const dbCategory = {
       id: uuidv4(),
       ...category,
       createdAt: category.createdAt || new Date(),
       updatedAt: category.updatedAt || new Date(),
-    });
+    };
     return this.db.add('categories', dbCategory);
   }
 
   async getCategories(): Promise<Category[]> {
     if (!this.db) throw new Error('Database not initialized');
     const dbCategories = await this.db.getAll('categories');
-    return dbCategories.map(convertDatabaseCategoryToUI);
+    return dbCategories;
   }
 
   async updateCategoryOrder(categoryId: string, newOrder: number): Promise<void> {
@@ -298,7 +219,7 @@ class DatabaseService {
 
     if (dbCategory) {
       dbCategory.order = newOrder;
-      dbCategory.updated_at = new Date();
+      dbCategory.updatedAt = new Date();
       await store.put(dbCategory);
     }
 
@@ -309,11 +230,11 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
     if (!category.id) throw new Error('Category ID is required for update');
     try {
-      const dbCategory = convertUICategoryToDatabase({
+      const updatedCategory = {
         ...category,
         updatedAt: new Date()
-      });
-      await this.db.put('categories', dbCategory);
+      };
+      await this.db.put('categories', updatedCategory);
     } catch (error) {
       console.error('Error updating category:', error);
       throw error;
@@ -335,8 +256,7 @@ class DatabaseService {
     try {
       const allDbEntries = await this.db.getAll('timeEntries');
       return allDbEntries
-        .filter(entry => entry.end_time === null)
-        .map(convertDatabaseTimeEntryToUI)
+        .filter(entry => entry.endTime === null)
         .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     } catch (error) {
       console.error('Error getting open time entries:', error);
@@ -362,23 +282,23 @@ class DatabaseService {
   // Goal methods - now return UI models
   async addGoal(goal: Omit<Goal, 'id'>): Promise<string> {
     if (!this.db) throw new Error('Database not initialized');
-    const dbGoal = convertUIGoalToDatabase({
+    const dbGoal = {
       id: uuidv4(),
       ...goal,
       createdAt: goal.createdAt || new Date(),
       updatedAt: goal.updatedAt || new Date(),
-    });
+    };
     return this.db.add('goals', dbGoal);
   }
 
   async updateGoal(goal: Goal): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     if (!goal.id) throw new Error('Goal ID is required for update');
-    const dbGoal = convertUIGoalToDatabase({
+    const updatedGoal = {
       ...goal,
       updatedAt: new Date()
-    });
-    await this.db.put('goals', dbGoal);
+    };
+    await this.db.put('goals', updatedGoal);
   }
 
   async deleteGoal(goalId: string): Promise<void> {
@@ -389,14 +309,14 @@ class DatabaseService {
   async getGoals(): Promise<Goal[]> {
     if (!this.db) throw new Error('Database not initialized');
     const dbGoals = await this.db.getAll('goals');
-    return dbGoals.map(convertDatabaseGoalToUI);
+    return dbGoals;
   }
 
   async getGoalsByActivity(activityId: string): Promise<Goal[]> {
     if (!this.db) throw new Error('Database not initialized');
     const index = this.db.transaction('goals').store.index('by-activity');
     const dbGoals = await index.getAll(activityId);
-    return dbGoals.map(convertDatabaseGoalToUI);
+    return dbGoals;
   }
 
   async getGoalProgress(goalId: string): Promise<number> {
@@ -423,7 +343,7 @@ class DatabaseService {
         return 0;
     }
 
-    const entries = await this.getTimeEntriesByActivity(dbGoal.activity_id);
+    const entries = await this.getTimeEntriesByActivity(dbGoal.activityId);
     const relevantEntries = entries.filter(entry =>
       entry.endTime &&
       new Date(entry.startTime) >= startDate &&

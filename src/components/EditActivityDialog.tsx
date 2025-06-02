@@ -10,22 +10,14 @@ import {
   MenuItem
 } from '@mui/material';
 import type { Activity } from '../models';
-import type { DatabaseActivity } from '../database/models';
 
 interface EditActivityDialogProps {
   open: boolean;
   activity: Activity | null;
   categories: string[];
   onClose: () => void;
-  onSave: (updatedActivity: DatabaseActivity) => Promise<void>;
+  onSave: (updatedActivity: Activity) => Promise<void>;
   isLoading?: boolean;
-}
-
-interface ActivityFormData {
-  name: string;
-  category: string;
-  description: string;
-  externalSystem: string;
 }
 
 export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
@@ -36,43 +28,41 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   onSave,
   isLoading = false
 }) => {
-  const [formData, setFormData] = useState<ActivityFormData>({
+  const [formData, setFormData] = useState({
     name: '',
     category: '',
     description: '',
-    externalSystem: '',
+    externalSystem: ''
   });
 
   useEffect(() => {
     if (activity) {
       setFormData({
-        name: activity.name || '',
-        category: activity.category || '',
-        description: activity.description || '',
-        externalSystem: activity.externalSystem || '',
+        name: activity.name,
+        category: activity.category,
+        description: activity.description,
+        externalSystem: activity.externalSystem
       });
     } else {
       setFormData({
         name: '',
         category: '',
         description: '',
-        externalSystem: '',
+        externalSystem: ''
       });
     }
-  }, [activity, open]);
+  }, [activity]);
 
   const handleSave = async () => {
-    if (!activity || !formData.name.trim() || !formData.category.trim()) return;
+    if (!activity || !formData.name.trim() || !formData.category) return;
 
-    const updatedActivity: DatabaseActivity = {
-      id: activity.id!,
+    const updatedActivity: Activity = {
+      ...activity,
       name: formData.name.trim(),
-      category: formData.category.trim(),
-      description: formData.description.trim(),
-      external_system: formData.externalSystem.trim(),
-      order: activity.order,
-      created_at: activity.createdAt,
-      updated_at: new Date()
+      category: formData.category,
+      description: formData.description,
+      externalSystem: formData.externalSystem,
+      updatedAt: new Date()
     };
 
     try {
@@ -88,7 +78,7 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
       name: '',
       category: '',
       description: '',
-      externalSystem: '',
+      externalSystem: ''
     });
     onClose();
   };

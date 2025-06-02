@@ -36,7 +36,6 @@ import {
 } from '../components';
 import { useToast } from '../contexts';
 import type { Activity, ActivityWithStats, TimeEntry } from '../models';
-import type { DatabaseActivity, DatabaseTimeEntry } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
 
 interface TimeEntryFormData {
@@ -45,29 +44,6 @@ interface TimeEntryFormData {
   duration: number;
   notes: string;
 }
-
-// Helper to convert database models to UI models
-const convertDatabaseActivityToUI = (dbActivity: DatabaseActivity): Activity => ({
-  id: dbActivity.id,
-  name: dbActivity.name,
-  category: dbActivity.category,
-  description: dbActivity.description,
-  externalSystem: dbActivity.external_system,
-  order: dbActivity.order,
-  createdAt: dbActivity.created_at,
-  updatedAt: dbActivity.updated_at,
-});
-
-const convertDatabaseTimeEntryToUI = (dbEntry: DatabaseTimeEntry): TimeEntry => ({
-  id: dbEntry.id,
-  activityId: dbEntry.activity_id,
-  startTime: dbEntry.start_time,
-  endTime: dbEntry.end_time,
-  duration: dbEntry.duration,
-  notes: dbEntry.notes,
-  createdAt: dbEntry.created_at,
-  updatedAt: dbEntry.updated_at,
-});
 
 export const TimeTracker: React.FC = () => {
   const theme = useTheme();
@@ -99,7 +75,7 @@ export const TimeTracker: React.FC = () => {
   // Convert database models to UI models with useMemo to prevent infinite loops
   const activities: ActivityWithStats[] = useMemo(() =>
     dbActivities.map(dbActivity => ({
-      ...convertDatabaseActivityToUI(dbActivity),
+      ...dbActivity,
       totalDuration: 0, // Will be updated separately
     })),
     [dbActivities]
@@ -142,12 +118,12 @@ export const TimeTracker: React.FC = () => {
     const inProgressEntry = dbOpenEntries[0]; // Get the most recent open entry
 
     if (inProgressEntry) {
-      const activity = activities.find(a => a.id === inProgressEntry.activity_id);
+      const activity = activities.find(a => a.id === inProgressEntry.activityId);
       if (activity) {
         setCurrentActivity(activity);
         setIsTracking(true);
-        setStartTime(new Date(inProgressEntry.start_time));
-        const elapsed = Math.floor((new Date().getTime() - new Date(inProgressEntry.start_time).getTime()) / 1000);
+        setStartTime(new Date(inProgressEntry.startTime));
+        const elapsed = Math.floor((new Date().getTime() - new Date(inProgressEntry.startTime).getTime()) / 1000);
         setElapsedTime(elapsed);
       }
     }
@@ -156,7 +132,7 @@ export const TimeTracker: React.FC = () => {
   // Update time entries when activity changes
   useEffect(() => {
     if (selectedActivity && dbActivityTimeEntries) {
-      setTimeEntries(dbActivityTimeEntries.map(convertDatabaseTimeEntryToUI));
+      setTimeEntries(dbActivityTimeEntries);
     }
   }, [selectedActivity, dbActivityTimeEntries]);
 
@@ -210,13 +186,13 @@ export const TimeTracker: React.FC = () => {
 
     try {
       await addTimeEntry.mutateAsync({
-        activity_id: activity.id!,
-        start_time: now,
-        end_time: null,
+        activityId: activity.id!,
+        startTime: now,
+        endTime: null,
         duration: null,
         notes: '',
-        created_at: now,
-        updated_at: now,
+        createdAt: now,
+        updatedAt: now,
       });
 
       const title = "Time Tracking Started";
@@ -255,19 +231,19 @@ export const TimeTracker: React.FC = () => {
     try {
       // Find the most recent open entry for this activity
       const openEntry = dbOpenEntries.find(entry =>
-        entry.activity_id === currentActivity.id && entry.end_time === null
+        entry.activityId === currentActivity.id && entry.endTime === null
       );
 
       if (openEntry) {
         await updateTimeEntry.mutateAsync({
           id: openEntry.id,
-          activity_id: currentActivity.id!,
-          start_time: startTime,
-          end_time: now,
+          activityId: currentActivity.id!,
+          startTime: startTime,
+          endTime: now,
           duration: roundedDuration,
           notes: '',
-          created_at: startTime,
-          updated_at: now,
+          createdAt: startTime,
+          updatedAt: now,
         });
       }
 
@@ -333,15 +309,15 @@ export const TimeTracker: React.FC = () => {
   const handleSaveEntry = async (formData: TimeEntryFormData) => {
     if (!selectedActivity) return;
 
-    const entry: DatabaseTimeEntry = {
+    const entry: TimeEntry = {
       id: editingEntry?.id || uuidv4(),
-      activity_id: selectedActivity.id!,
-      start_time: formData.startTime,
-      end_time: formData.endTime,
+      activityId: selectedActivity.id!,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
       duration: formData.duration,
       notes: formData.notes,
-      created_at: editingEntry?.createdAt || new Date(),
-      updated_at: new Date()
+      createdAt: editingEntry?.createdAt || new Date(),
+      updatedAt: new Date()
     };
 
     try {

@@ -1,56 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../database/db';
-import type { DatabaseTimeEntry } from '../database/models';
 import type { TimeEntry } from '../models';
 
 export const TIME_ENTRIES_QUERY_KEY = 'timeEntries';
 export const OPEN_TIME_ENTRIES_QUERY_KEY = 'openTimeEntries';
 
-// Convert UI time entry to database format
-const convertUIToDatabase = (entry: TimeEntry): DatabaseTimeEntry => ({
-  id: entry.id,
-  activity_id: entry.activityId,
-  start_time: entry.startTime,
-  end_time: entry.endTime,
-  duration: entry.duration,
-  notes: entry.notes,
-  created_at: entry.createdAt,
-  updated_at: entry.updatedAt,
-});
-
-// Get all time entries - returns database models
+// Get all time entries - returns UI models directly
 export const useTimeEntries = () => {
   return useQuery({
     queryKey: [TIME_ENTRIES_QUERY_KEY],
-    queryFn: async () => {
-      const uiEntries = await db.getTimeEntries();
-      return uiEntries.map(convertUIToDatabase);
-    },
+    queryFn: () => db.getTimeEntries(),
     staleTime: 30 * 1000, // 30 seconds - shorter for time tracking
   });
 };
 
-// Get time entries by activity - returns database models
+// Get time entries by activity - returns UI models directly
 export const useTimeEntriesByActivity = (activityId: string) => {
   return useQuery({
     queryKey: [TIME_ENTRIES_QUERY_KEY, 'by-activity', activityId],
-    queryFn: async () => {
-      const uiEntries = await db.getTimeEntriesByActivity(activityId);
-      return uiEntries.map(convertUIToDatabase);
-    },
+    queryFn: () => db.getTimeEntriesByActivity(activityId),
     staleTime: 30 * 1000,
     enabled: !!activityId,
   });
 };
 
-// Get open time entries - returns database models
+// Get open time entries - returns UI models directly
 export const useOpenTimeEntries = () => {
   return useQuery({
     queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY],
-    queryFn: async () => {
-      const uiEntries = await db.getOpenTimeEntries();
-      return uiEntries.map(convertUIToDatabase);
-    },
+    queryFn: () => db.getOpenTimeEntries(),
     staleTime: 5 * 1000, // 5 seconds - very fresh for active tracking
     refetchInterval: 5 * 1000, // Auto-refresh every 5 seconds
   });
@@ -66,24 +44,12 @@ export const useTotalDurationByActivity = (activityId: string) => {
   });
 };
 
-// Add time entry - accepts database model
+// Add time entry - accepts UI model directly
 export const useAddTimeEntry = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (entry: Omit<DatabaseTimeEntry, 'id'>) => {
-      // Convert database format to UI format for the database service
-      const uiEntry = {
-        activityId: entry.activity_id,
-        startTime: entry.start_time,
-        endTime: entry.end_time,
-        duration: entry.duration,
-        notes: entry.notes,
-        createdAt: entry.created_at,
-        updatedAt: entry.updated_at,
-      };
-      return db.addTimeEntry(uiEntry);
-    },
+    mutationFn: (entry: Omit<TimeEntry, 'id'>) => db.addTimeEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });
@@ -91,25 +57,12 @@ export const useAddTimeEntry = () => {
   });
 };
 
-// Update time entry - accepts database model
+// Update time entry - accepts UI model directly
 export const useUpdateTimeEntry = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (entry: DatabaseTimeEntry) => {
-      // Convert database format to UI format for the database service
-      const uiEntry = {
-        id: entry.id,
-        activityId: entry.activity_id,
-        startTime: entry.start_time,
-        endTime: entry.end_time,
-        duration: entry.duration,
-        notes: entry.notes,
-        createdAt: entry.created_at,
-        updatedAt: entry.updated_at,
-      };
-      return db.updateTimeEntry(uiEntry);
-    },
+    mutationFn: (entry: TimeEntry) => db.updateTimeEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });

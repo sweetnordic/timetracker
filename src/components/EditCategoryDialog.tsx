@@ -7,13 +7,13 @@ import {
   TextField,
   Button
 } from '@mui/material';
-import type { DatabaseCategory } from '../database/models';
+import type { Category } from '../models';
 
 interface EditCategoryDialogProps {
   open: boolean;
-  category: DatabaseCategory | null;
+  category: Category | null;
   onClose: () => void;
-  onSave: (updatedCategory: DatabaseCategory) => Promise<void>;
+  onSave: (updatedCategory: Category) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -37,10 +37,10 @@ export const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
   const handleSave = async () => {
     if (!category || !categoryName.trim()) return;
 
-    const updatedCategory: DatabaseCategory = {
+    const updatedCategory: Category = {
       ...category,
       name: categoryName.trim(),
-      updated_at: new Date()
+      updatedAt: new Date()
     };
 
     try {

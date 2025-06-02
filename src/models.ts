@@ -1,4 +1,4 @@
-import type { Period, FirstDayOfWeek } from './database/models';
+import type { Period, FirstDayOfWeek } from './utils/constants';
 
 // UI layer models - camelCase naming, business logic focused
 export interface Activity {

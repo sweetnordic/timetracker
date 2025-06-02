@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { TrackingSettings } from '../models';
-import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../database/models';
+import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../utils/constants';
 
 const SETTINGS_KEY = 'timetracker-settings';
 
