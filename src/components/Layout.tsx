@@ -22,11 +22,12 @@ import {
   NotificationsOff,
   Settings,
   LightMode,
-  DarkMode
+  DarkMode,
+  ImportExport
 } from '@mui/icons-material';
 import { useNotifications, useClearAllData } from '../hooks';
 import { useSettings } from '../hooks/useSettings';
-import { NotificationDialog, SettingsDialog, DeleteConfirmationDialog } from './';
+import { NotificationDialog, SettingsDialog, DeleteConfirmationDialog, DataDialog } from './';
 import { useToast } from '../contexts';
 
 export const Layout: React.FC = () => {
@@ -106,6 +107,7 @@ export const Layout: React.FC = () => {
   const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showDataDialog, setShowDataDialog] = useState(false);
 
   const getCurrentTab = () => {
     switch (location.pathname) {
@@ -114,6 +116,8 @@ export const Layout: React.FC = () => {
         return 'tracker';
       case '/manager':
         return 'manager';
+      case '/analytics':
+        return 'analytics';
       case '/help':
         return 'help';
       default:
@@ -128,6 +132,9 @@ export const Layout: React.FC = () => {
         break;
       case 'manager':
         navigate('/manager');
+        break;
+      case 'analytics':
+        navigate('/analytics');
         break;
       case 'help':
         navigate('/help');
@@ -208,7 +215,7 @@ export const Layout: React.FC = () => {
           >
             <Tab label="Time Tracker" value="tracker" />
             <Tab label="Activity Manager" value="manager" />
-            <Tab label="Help" value="help" />
+            <Tab label="Analytics" value="analytics" />
           </Tabs>
 
           <Tooltip title="Settings">
@@ -218,6 +225,16 @@ export const Layout: React.FC = () => {
               sx={{ ml: 1 }}
             >
               <Settings />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Export/Import Data">
+            <IconButton
+              color="inherit"
+              onClick={() => setShowDataDialog(true)}
+              sx={{ ml: 1 }}
+            >
+              <ImportExport />
             </IconButton>
           </Tooltip>
 
@@ -296,7 +313,11 @@ export const Layout: React.FC = () => {
         onToggleNotifications={handleToggleNotifications}
       />
 
-      {/* Database Reset Confirmation - will be handled by SettingsDialog's confirm */}
+      {/* Data Export/Import Dialog */}
+      <DataDialog
+        open={showDataDialog}
+        onClose={() => setShowDataDialog(false)}
+      />
     </ThemeProvider>
   );
 };

@@ -31,7 +31,8 @@ import {
 import {
   TimeEntryDetailDialog,
   TimeEntryFormDialog,
-  DeleteConfirmationDialog
+  DeleteConfirmationDialog,
+  ExtendTimeDialog
 } from '../components';
 import { useToast } from '../contexts';
 import type { Activity, ActivityWithStats, TimeEntry } from '../models';
@@ -117,6 +118,8 @@ export const TimeTracker: React.FC = () => {
   const [entryToDelete, setEntryToDelete] = useState<TimeEntry | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showExtendDialog, setShowExtendDialog] = useState(false);
+  const [warningShown, setWarningShown] = useState(false);
 
   // Query for time entries when detail dialog is open
   const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(selectedActivity?.id || '');
@@ -165,17 +168,18 @@ export const TimeTracker: React.FC = () => {
         const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
         setElapsedTime(elapsed);
 
-        // Check for warning threshold
-        if (trackingSettings.maxDuration - elapsed <= trackingSettings.warningThreshold) {
-          if (elapsed > 0 && (elapsed % trackingSettings.warningThreshold) === 0) {
-            const remainingMinutes = Math.ceil((trackingSettings.maxDuration - elapsed) / 60);
-            const title = "Time Tracking Warning";
-            const message = `Time tracking will stop in ${remainingMinutes} minutes`;
+        // Check for warning threshold - show dialog only once
+        const remainingTime = trackingSettings.maxDuration - elapsed;
+        if (remainingTime <= trackingSettings.warningThreshold && !warningShown) {
+          setShowExtendDialog(true);
+          setWarningShown(true);
 
-            if (trackingSettings.notificationsEnabled) {
-              addWarningNotification(title, message, currentActivity?.id);
-            }
-            showWarning(message, 6000);
+          const remainingMinutes = Math.ceil(remainingTime / 60);
+          const title = "Time Tracking Warning";
+          const message = `Time tracking will stop in ${remainingMinutes} minutes`;
+
+          if (trackingSettings.notificationsEnabled) {
+            addWarningNotification(title, message, currentActivity?.id);
           }
         }
 
@@ -193,13 +197,14 @@ export const TimeTracker: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTracking, startTime, trackingSettings, currentActivity, addWarningNotification, showWarning]);
+  }, [isTracking, startTime, trackingSettings, currentActivity, warningShown, addWarningNotification, showWarning]);
 
   const startTracking = async (activity: Activity) => {
     if (isTracking) return;
 
     setCurrentActivity(activity);
     setIsTracking(true);
+    setWarningShown(false);
     const now = new Date();
     setStartTime(now);
 
@@ -244,8 +249,8 @@ export const TimeTracker: React.FC = () => {
     const now = new Date();
     const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 
-    // Round to nearest 15 minutes (900 seconds)
-    const roundedDuration = Math.round(duration / 900) * 900;
+    // Round up to nearest 15 minutes (900 seconds) - always round up, never down
+    const roundedDuration = Math.ceil(duration / 900) * 900;
 
     try {
       // Find the most recent open entry for this activity
@@ -382,6 +387,21 @@ export const TimeTracker: React.FC = () => {
       console.error('Error resetting database:', error);
       showError('Failed to reset database');
     }
+  };
+
+  const handleExtendTime = () => {
+    setShowExtendDialog(false);
+    setWarningShown(false);
+    showInfo('Time tracking extended', 3000);
+  };
+
+  const handleStopFromDialog = () => {
+    setShowExtendDialog(false);
+    stopTracking();
+  };
+
+  const handleCloseExtendDialog = () => {
+    setShowExtendDialog(false);
   };
 
   // Render compact activity card for desktop
@@ -720,6 +740,15 @@ export const TimeTracker: React.FC = () => {
         onConfirm={handleResetDatabase}
         confirmButtonText="Reset Database"
         isLoading={clearAllData.isPending}
+      />
+
+      <ExtendTimeDialog
+        open={showExtendDialog}
+        remainingMinutes={Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)}
+        onExtend={handleExtendTime}
+        onStop={handleStopFromDialog}
+        onClose={handleCloseExtendDialog}
+        activityName={currentActivity?.name}
       />
     </Box>
   );

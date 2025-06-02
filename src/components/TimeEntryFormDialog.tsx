@@ -87,7 +87,7 @@ export const TimeEntryFormDialog: React.FC<TimeEntryFormDialogProps> = ({
 
         setFormData(prev => ({
           ...prev,
-          duration: Math.max(0, Math.round(duration / 900) * 900) // Round to nearest 15 minutes
+          duration: Math.max(0, Math.ceil(duration / 900) * 900) // Round up to nearest 15 minutes
         }));
       }
     }

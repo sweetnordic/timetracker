@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import { TimeTracker, ActivityManager, HelpCenter } from './pages'
+import { TimeTracker, ActivityManager, HelpCenter, Analytics } from './pages'
 import { Layout } from './components'
 import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
@@ -52,6 +52,10 @@ const router = createBrowserRouter([
       {
         path: '/manager',
         element: <ActivityManager />,
+      },
+      {
+        path: '/analytics',
+        element: <Analytics />,
       },
       {
         path: '/help',
