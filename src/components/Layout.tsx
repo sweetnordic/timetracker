@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -70,8 +70,6 @@ export const Layout: React.FC = () => {
   const {
     notifications,
     unreadCount,
-    addInfoNotification,
-    addWarningNotification,
     markAsRead,
     markAllAsRead,
     deleteNotification,
@@ -103,28 +101,6 @@ export const Layout: React.FC = () => {
     defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
     notificationsEnabled: true
   };
-
-  // Add demo notifications on first load
-  useEffect(() => {
-    if (notifications.length === 0) {
-      addInfoNotification(
-        "Welcome to Time Tracker!",
-        "Notifications will appear here to keep you informed about your activities and goals.",
-      );
-
-      addWarningNotification(
-        "Demo Notification",
-        "This is an example notification. You can manage notifications from this panel.",
-      );
-
-      // Mark welcome notification as read after a delay
-      setTimeout(() => {
-        if (notifications.length > 0) {
-          markAsRead(notifications[0].id);
-        }
-      }, 2000);
-    }
-  }, [notifications.length, addInfoNotification, addWarningNotification, markAsRead]);
 
   const getCurrentTab = () => {
     switch (location.pathname) {
