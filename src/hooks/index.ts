@@ -20,3 +20,6 @@ export { GOALS_QUERY_KEY, GOAL_PROGRESS_QUERY_KEY } from './useGoals';
 
 // Database
 export * from './useDatabase';
+
+// Notifications
+export * from './useNotifications';

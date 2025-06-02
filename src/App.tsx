@@ -1,27 +1,18 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createBrowserRouter, RouterProvider, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { TimeTracker, ActivityManager, HelpCenter } from './pages'
+import { Layout } from './components'
+import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Container,
   Box,
-  Tabs,
-  Tab,
   ThemeProvider,
   createTheme,
   CssBaseline,
-  IconButton,
-  Tooltip,
-  CircularProgress
+  CircularProgress,
+  Typography
 } from '@mui/material'
-import {
-  Timer,
-  Help as HelpIcon
-} from '@mui/icons-material';
 import './App.css'
 
 // Create a client for React Query
@@ -41,116 +32,8 @@ const queryClient = new QueryClient({
 const theme = createTheme({
   palette: {
     mode: 'light',
-    /*
-    primary: {
-      main: '#1976d2',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-  components: {
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1976d2',
-        },
-      },
-    },
-    MuiTab: {
-      styleOverrides: {
-        root: {
-          color: '#666',
-          '&.Mui-selected': {
-            color: '#1976d2',
-          },
-        },
-      },
-    }, **/
   },
 })
-
-// Layout component that wraps all routes
-function Layout() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  const getCurrentTab = () => {
-    switch (location.pathname) {
-      case '/':
-      case '/tracker':
-        return 'tracker'
-      case '/manager':
-        return 'manager'
-      case '/help':
-        return 'help'
-      default:
-        return 'tracker'
-    }
-  }
-
-  const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
-    switch (newValue) {
-      case 'tracker':
-        navigate('/')
-        break
-      case 'manager':
-        navigate('/manager')
-        break
-      case 'help':
-        navigate('/help')
-        break
-    }
-  }
-
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppBar position="static">
-        <Toolbar>
-          <Timer sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ mr: 4 }}>
-            Time Tracker
-          </Typography>
-
-          <Tabs
-            value={getCurrentTab()}
-            onChange={handleTabChange}
-            sx={{
-              flexGrow: 1,
-              '& .MuiTab-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                '&.Mui-selected': {
-                  color: 'white',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: 'white',
-              },
-            }}
-          >
-            <Tab label="Time Tracker" value="tracker" />
-            <Tab label="Activity Manager" value="manager" />
-            <Tab label="Help" value="help" />
-          </Tabs>
-
-          <Tooltip title="Help">
-            <IconButton color="inherit" onClick={() => navigate('/help')} sx={{ ml: 2 }}>
-              <HelpIcon />
-            </IconButton>
-          </Tooltip>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="xl" sx={{ minHeight: '100dvh', mt: 2 }}>
-        <Box>
-          <Outlet />
-        </Box>
-      </Container>
-    </ThemeProvider>
-  )
-}
 
 // Create the router
 const router = createBrowserRouter([
@@ -228,7 +111,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ToastProvider maxToasts={5}>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

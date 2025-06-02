@@ -32,10 +32,14 @@ import {
   useUpdateCategoryOrder
 } from '../hooks';
 import { EditCategoryDialog } from '../components';
+import { useToast } from '../contexts';
 import type { DatabaseActivity, DatabaseCategory } from '../database/models';
 import { DEFAULT_ORDER } from '../database/models';
 
 export const ActivityManager: React.FC = () => {
+  // Toast notifications
+  const { showSuccess, showError, showInfo } = useToast();
+
   // Queries
   const { data: activities = [], isLoading: activitiesLoading, error: activitiesError } = useActivities();
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useCategories();
@@ -75,8 +79,10 @@ export const ActivityManager: React.FC = () => {
     try {
       await addActivity.mutateAsync(newActivity);
       setNewActivityName('');
+      showSuccess(`Activity "${newActivityName}" added successfully`);
     } catch (error) {
       console.error('Error adding activity:', error);
+      showError('Failed to add activity');
     }
   };
 
@@ -95,8 +101,10 @@ export const ActivityManager: React.FC = () => {
     try {
       await addCategory.mutateAsync(newCategory);
       setNewCategoryName('');
+      showSuccess(`Category "${newCategoryName}" added successfully`);
     } catch (error) {
       console.error('Error adding category:', error);
+      showError('Failed to add category');
     }
   };
 
@@ -106,17 +114,28 @@ export const ActivityManager: React.FC = () => {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
+    const categoryToDelete = categories.find(c => c.id === categoryId);
+    if (!categoryToDelete) return;
+
     if (window.confirm('Are you sure you want to delete this category? This will also remove all associated activities.')) {
       try {
         await deleteCategory.mutateAsync(categoryId);
+        showSuccess(`Category "${categoryToDelete.name}" deleted successfully`);
       } catch (error) {
         console.error('Error deleting category:', error);
+        showError('Failed to delete category');
       }
     }
   };
 
   const handleSaveCategoryEdit = async (updatedCategory: DatabaseCategory) => {
-    await updateCategory.mutateAsync(updatedCategory);
+    try {
+      await updateCategory.mutateAsync(updatedCategory);
+      showSuccess(`Category "${updatedCategory.name}" updated successfully`);
+    } catch (error) {
+      console.error('Error updating category:', error);
+      showError('Failed to update category');
+    }
   };
 
   const handleCloseEditDialog = () => {
@@ -146,8 +165,10 @@ export const ActivityManager: React.FC = () => {
           newOrder: currentCategory.order || DEFAULT_ORDER
         })
       ]);
+      showInfo(`Category "${currentCategory.name}" moved ${direction}`);
     } catch (error) {
       console.error('Error updating category order:', error);
+      showError(`Failed to move category ${direction}`);
     }
   };
 

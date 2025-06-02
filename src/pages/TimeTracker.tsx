@@ -9,45 +9,31 @@ import {
   ListItem,
   Paper,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   IconButton,
   Tooltip,
-  TextField,
-  Stack,
-  Alert,
-  Snackbar,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Switch,
 } from '@mui/material';
-import { PlayArrow, Stop, History, Add, Edit, Delete, Settings, ArrowUpward, ArrowDownward, Notifications, NotificationsOff } from '@mui/icons-material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { PlayArrow, Stop, History, ArrowUpward, ArrowDownward, Edit } from '@mui/icons-material';
 import {
   useActivities,
+  useUpdateActivity,
   useUpdateActivityOrder,
+  useCategories,
   useTimeEntriesByActivity,
   useOpenTimeEntries,
   useAddTimeEntry,
   useUpdateTimeEntry,
   useDeleteTimeEntry,
   useTrackingSettings,
-  useUpdateTrackingSettings,
-  useClearAllData
+  useClearAllData,
+  useNotifications
 } from '../hooks';
+import {
+  TimeEntryDetailDialog,
+  TimeEntryFormDialog,
+  DeleteConfirmationDialog,
+  EditActivityDialog
+} from '../components';
+import { useToast } from '../contexts';
 import type { Activity, ActivityWithStats, TrackingSettings, TimeEntry } from '../models';
 import type { DatabaseActivity, DatabaseTimeEntry } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
@@ -84,24 +70,37 @@ const convertDatabaseTimeEntryToUI = (dbEntry: DatabaseTimeEntry): TimeEntry => 
 });
 
 export const TimeTracker: React.FC = () => {
+  // Toast notifications
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
+
+  // Notification management (for adding notifications from TimeTracker actions)
+  const {
+    addWarningNotification,
+    addInfoNotification,
+    addErrorNotification,
+  } = useNotifications();
+
   // Queries
   const { data: dbActivities = [], isLoading: activitiesLoading } = useActivities();
+  const { data: dbCategories = [] } = useCategories();
   const { data: dbSettings } = useTrackingSettings();
   const { data: dbOpenEntries = [] } = useOpenTimeEntries();
 
   // Mutations
-  const updateActivityOrder = useUpdateActivityOrder();
+  const updateActivity = useUpdateActivity();
   const addTimeEntry = useAddTimeEntry();
   const updateTimeEntry = useUpdateTimeEntry();
   const deleteTimeEntry = useDeleteTimeEntry();
-  const updateSettings = useUpdateTrackingSettings();
   const clearAllData = useClearAllData();
+  const updateActivityOrder = useUpdateActivityOrder();
 
   // Convert database models to UI models
   const activities: ActivityWithStats[] = dbActivities.map(dbActivity => ({
     ...convertDatabaseActivityToUI(dbActivity),
     totalDuration: 0, // Will be updated separately
   }));
+
+  const categories = dbCategories.map(dbCategory => dbCategory.name);
 
   const trackingSettings: TrackingSettings = dbSettings ? {
     maxDuration: dbSettings.max_duration,
@@ -117,36 +116,21 @@ export const TimeTracker: React.FC = () => {
     notificationsEnabled: true
   };
 
-  // Local state
+  // State management
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-  const [isTracking, setIsTracking] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [isTracking, setIsTracking] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState<ActivityWithStats | null>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
-  const [entryFormData, setEntryFormData] = useState<TimeEntryFormData>({
-    startTime: new Date(),
-    endTime: new Date(),
-    duration: 0,
-    notes: ''
-  });
   const [entryToDelete, setEntryToDelete] = useState<TimeEntry | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [timeError, setTimeError] = useState<string | null>(null);
-  const [showWarning, setShowWarning] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [settingsFormData, setSettingsFormData] = useState<TrackingSettings>({
-    maxDuration: 12 * 3600,
-    warningThreshold: 3600,
-    firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
-    defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-    notificationsEnabled: true
-  });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [isActivityDialogOpen, setIsActivityDialogOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
   // Query for time entries when detail dialog is open
   const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(selectedActivity?.id || '');
@@ -166,10 +150,7 @@ export const TimeTracker: React.FC = () => {
         setElapsedTime(elapsed);
       }
     }
-
-    // Update settings form
-    setSettingsFormData(trackingSettings);
-  }, [dbOpenEntries, activities, trackingSettings]);
+  }, [dbOpenEntries, activities]);
 
   // Update time entries when activity changes
   useEffect(() => {
@@ -188,17 +169,33 @@ export const TimeTracker: React.FC = () => {
 
         // Check for warning threshold
         if (trackingSettings.maxDuration - elapsed <= trackingSettings.warningThreshold) {
-          setShowWarning(true);
+          if (elapsed > 0 && (elapsed % trackingSettings.warningThreshold) === 0) {
+            const remainingMinutes = Math.ceil((trackingSettings.maxDuration - elapsed) / 60);
+            const title = "Time Tracking Warning";
+            const message = `Time tracking will stop in ${remainingMinutes} minutes`;
+
+            if (trackingSettings.notificationsEnabled) {
+              addWarningNotification(title, message, currentActivity?.id);
+            }
+            showWarning(message, 6000);
+          }
         }
 
         // Auto-stop if max duration reached
         if (elapsed >= trackingSettings.maxDuration) {
           stopTracking();
+          const title = "Time Tracking Stopped";
+          const message = "Maximum duration reached";
+
+          if (trackingSettings.notificationsEnabled) {
+            addWarningNotification(title, message, currentActivity?.id);
+          }
+          showWarning(message);
         }
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTracking, startTime, trackingSettings]);
+  }, [isTracking, startTime, trackingSettings, currentActivity, addWarningNotification, showWarning]);
 
   const startTracking = async (activity: Activity) => {
     if (isTracking) return;
@@ -218,8 +215,28 @@ export const TimeTracker: React.FC = () => {
         created_at: now,
         updated_at: now,
       });
+
+      const title = "Time Tracking Started";
+      const message = `Started tracking: ${activity.name}`;
+
+      if (trackingSettings.notificationsEnabled) {
+        addInfoNotification(title, message, activity.id);
+      }
+      showInfo(message, 3000);
     } catch (error) {
       console.error('Error starting time tracking:', error);
+
+      const title = "Time Tracking Error";
+      const message = "Failed to start time tracking";
+
+      if (trackingSettings.notificationsEnabled) {
+        addErrorNotification(title, message, activity.id);
+      }
+      showError(message);
+
+      setIsTracking(false);
+      setCurrentActivity(null);
+      setStartTime(null);
     }
   };
 
@@ -255,8 +272,24 @@ export const TimeTracker: React.FC = () => {
       setCurrentActivity(null);
       setStartTime(null);
       setElapsedTime(0);
+
+      const title = "Time Tracking Completed";
+      const message = `Stopped tracking: ${currentActivity.name} (${formatDuration(roundedDuration)})`;
+
+      if (trackingSettings.notificationsEnabled) {
+        addInfoNotification(title, message, currentActivity.id);
+      }
+      showSuccess(message, 4000);
     } catch (error) {
       console.error('Error stopping time tracking:', error);
+
+      const title = "Time Tracking Error";
+      const message = "Failed to stop time tracking";
+
+      if (trackingSettings.notificationsEnabled) {
+        addErrorNotification(title, message, currentActivity?.id);
+      }
+      showError(message);
     }
   };
 
@@ -285,23 +318,7 @@ export const TimeTracker: React.FC = () => {
   };
 
   const handleOpenEntryDialog = (entry?: TimeEntry) => {
-    if (entry) {
-      setEditingEntry(entry);
-      setEntryFormData({
-        startTime: new Date(entry.startTime),
-        endTime: entry.endTime ? new Date(entry.endTime) : new Date(),
-        duration: entry.duration || 0,
-        notes: entry.notes
-      });
-    } else {
-      setEditingEntry(null);
-      setEntryFormData({
-        startTime: new Date(),
-        endTime: new Date(),
-        duration: 0,
-        notes: ''
-      });
-    }
+    setEditingEntry(entry || null);
     setIsEntryDialogOpen(true);
   };
 
@@ -310,34 +327,16 @@ export const TimeTracker: React.FC = () => {
     setEditingEntry(null);
   };
 
-  const handleEntryFormChange = (field: keyof TimeEntryFormData, value: Date | string) => {
-    setEntryFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // If start or end time changes, update duration
-    if (field === 'startTime' || field === 'endTime') {
-      const start = field === 'startTime' ? value as Date : entryFormData.startTime;
-      const end = field === 'endTime' ? value as Date : entryFormData.endTime;
-      const duration = Math.floor((end.getTime() - start.getTime()) / 1000);
-      setEntryFormData(prev => ({
-        ...prev,
-        duration: Math.round(duration / 900) * 900 // Round to nearest 15 minutes
-      }));
-    }
-  };
-
-  const handleSaveEntry = async () => {
+  const handleSaveEntry = async (formData: TimeEntryFormData) => {
     if (!selectedActivity) return;
 
     const entry: DatabaseTimeEntry = {
       id: editingEntry?.id || uuidv4(),
       activity_id: selectedActivity.id!,
-      start_time: entryFormData.startTime,
-      end_time: entryFormData.endTime,
-      duration: entryFormData.duration,
-      notes: entryFormData.notes,
+      start_time: formData.startTime,
+      end_time: formData.endTime,
+      duration: formData.duration,
+      notes: formData.notes,
       created_at: editingEntry?.createdAt || new Date(),
       updated_at: new Date()
     };
@@ -345,13 +344,15 @@ export const TimeTracker: React.FC = () => {
     try {
       if (editingEntry) {
         await updateTimeEntry.mutateAsync(entry);
+        showSuccess('Time entry updated successfully');
       } else {
         await addTimeEntry.mutateAsync(entry);
+        showSuccess('Time entry added successfully');
       }
-
       handleCloseEntryDialog();
     } catch (error) {
       console.error('Error saving time entry:', error);
+      showError('Failed to save time entry');
     }
   };
 
@@ -367,87 +368,33 @@ export const TimeTracker: React.FC = () => {
       await deleteTimeEntry.mutateAsync(entryToDelete.id!);
       setIsDeleteDialogOpen(false);
       setEntryToDelete(null);
+      showSuccess('Time entry deleted successfully');
     } catch (error) {
       console.error('Error deleting time entry:', error);
+      showError('Failed to delete time entry');
     }
   };
 
-  const handleOpenSettings = () => {
-    setSettingsFormData(trackingSettings);
-    setShowSettingsDialog(true);
-  };
+  const handleMoveActivity = async (activity: ActivityWithStats, direction: 'up' | 'down') => {
+    const currentIndex = activities.indexOf(activity);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 
-  const handleCloseSettings = () => {
-    setShowSettingsDialog(false);
-  };
+    if (targetIndex < 0 || targetIndex >= activities.length) return;
 
-  const handleSaveSettings = async () => {
-    try {
-      await updateSettings.mutateAsync({
-        max_duration: settingsFormData.maxDuration,
-        warning_threshold: settingsFormData.warningThreshold,
-        first_day_of_week: settingsFormData.firstDayOfWeek,
-        default_goal_notification_threshold: settingsFormData.defaultGoalNotificationThreshold,
-        notifications_enabled: settingsFormData.notificationsEnabled,
-      });
-      setShowSettingsDialog(false);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    }
-  };
+    const targetActivity = activities[targetIndex];
 
-  const handleResetSettings = async () => {
-    const defaultSettings = {
-      maxDuration: 12 * 3600, // 12 hours in seconds
-      warningThreshold: 3600, // 1 hour warning
-      firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
-      defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
-      notificationsEnabled: true,
-    };
+    const currentOrder = activity.order || DEFAULT_ORDER;
+    const targetOrder = targetActivity.order || DEFAULT_ORDER;
 
     try {
-      await updateSettings.mutateAsync({
-        max_duration: defaultSettings.maxDuration,
-        warning_threshold: defaultSettings.warningThreshold,
-        first_day_of_week: defaultSettings.firstDayOfWeek,
-        default_goal_notification_threshold: defaultSettings.defaultGoalNotificationThreshold,
-        notifications_enabled: defaultSettings.notificationsEnabled,
-      });
-      setSettingsFormData(defaultSettings);
-    } catch (error) {
-      console.error('Failed to reset settings:', error);
-    }
-  };
-
-  const handleExtendTime = () => {
-    setShowWarning(false);
-    // Extend the max duration by the warning threshold
-    setSettingsFormData(prev => ({
-      ...prev,
-      maxDuration: prev.maxDuration + prev.warningThreshold
-    }));
-  };
-
-  const handleMoveActivity = async (activity: Activity, direction: 'up' | 'down') => {
-    try {
-      const currentIndex = activities.findIndex(a => a.id === activity.id);
-      if (currentIndex === -1) return;
-
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-      if (targetIndex < 0 || targetIndex >= activities.length) return;
-
-      const targetActivity = activities[targetIndex];
-
-      // Swap orders
-      const currentOrder = activity.order || DEFAULT_ORDER;
-      const targetOrder = targetActivity.order || DEFAULT_ORDER;
-
       await Promise.all([
         updateActivityOrder.mutateAsync({ activityId: activity.id!, newOrder: targetOrder }),
         updateActivityOrder.mutateAsync({ activityId: targetActivity.id!, newOrder: currentOrder })
       ]);
+      showSuccess(`Activity "${activity.name}" moved ${direction}`);
     } catch (error) {
       console.error('Error moving activity:', error);
+      showError('Failed to move activity');
     }
   };
 
@@ -455,9 +402,31 @@ export const TimeTracker: React.FC = () => {
     try {
       await clearAllData.mutateAsync();
       setShowResetConfirm(false);
-      setShowResetSuccess(true);
+      showSuccess('Database has been reset successfully', 5000);
     } catch (error) {
       console.error('Error resetting database:', error);
+      showError('Failed to reset database');
+    }
+  };
+
+  const handleEditActivity = (activity: ActivityWithStats) => {
+    setEditingActivity(activity);
+    setIsActivityDialogOpen(true);
+  };
+
+  const handleCloseActivityDialog = () => {
+    setIsActivityDialogOpen(false);
+    setEditingActivity(null);
+  };
+
+  const handleSaveActivity = async (updatedActivity: DatabaseActivity) => {
+    try {
+      await updateActivity.mutateAsync(updatedActivity);
+      handleCloseActivityDialog();
+      showSuccess('Activity updated successfully');
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      showError('Failed to update activity');
     }
   };
 
@@ -482,21 +451,6 @@ export const TimeTracker: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Time Tracker
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton
-            onClick={() => console.log('Notification center not implemented')}
-            color="primary"
-          >
-            {trackingSettings.notificationsEnabled ? (
-              <Notifications />
-            ) : (
-              <NotificationsOff />
-            )}
-          </IconButton>
-          <IconButton onClick={handleOpenSettings} color="primary">
-            <Settings />
-          </IconButton>
-        </Box>
       </Box>
 
       <Paper
@@ -619,6 +573,14 @@ export const TimeTracker: React.FC = () => {
                 <Box
                   sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
                 >
+                  <Tooltip title="Edit Activity">
+                    <IconButton
+                      onClick={() => handleEditActivity(activity)}
+                      color="primary"
+                    >
+                      <Edit />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="View History">
                     <IconButton
                       onClick={() => handleOpenDetail(activity)}
@@ -643,376 +605,54 @@ export const TimeTracker: React.FC = () => {
         ))}
       </List>
 
-      {/* Time Entry Detail Dialog */}
-      <Dialog
+      {/* Component Dialogs */}
+      <EditActivityDialog
+        open={isActivityDialogOpen}
+        activity={editingActivity}
+        categories={categories}
+        onClose={handleCloseActivityDialog}
+        onSave={handleSaveActivity}
+        isLoading={updateActivity.isPending}
+      />
+
+      <TimeEntryDetailDialog
         open={isDetailOpen}
+        activity={selectedActivity}
+        timeEntries={timeEntries}
         onClose={handleCloseDetail}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Time Entries for {selectedActivity?.name}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => handleOpenEntryDialog()}
-            >
-              Add Entry
-            </Button>
-          </Box>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Start Time</TableCell>
-                  <TableCell>End Time</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Notes</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {timeEntries.map((entry) => (
-                  <TableRow
-                    key={entry.id}
-                    sx={{
-                      bgcolor: !entry.endTime ? 'action.hover' : 'inherit',
-                      '&:hover': {
-                        bgcolor: !entry.endTime
-                          ? 'action.selected'
-                          : 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        {!entry.endTime && (
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              bgcolor: 'primary.main',
-                              animation: 'pulse 2s infinite',
-                              '@keyframes pulse': {
-                                '0%': {
-                                  opacity: 1,
-                                },
-                                '50%': {
-                                  opacity: 0.4,
-                                },
-                                '100%': {
-                                  opacity: 1,
-                                },
-                              },
-                            }}
-                          />
-                        )}
-                        {new Date(entry.startTime).toLocaleString()}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {entry.endTime ? (
-                        new Date(entry.endTime).toLocaleString()
-                      ) : (
-                        <Typography
-                          color="primary"
-                          sx={{ fontWeight: 'medium' }}
-                        >
-                          In Progress
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {entry.duration ? formatDuration(entry.duration) : '-'}
-                    </TableCell>
-                    <TableCell>{entry.notes || '-'}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenEntryDialog(entry)}
-                        >
-                          <Edit />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteClick(entry)}
-                          color="error"
-                        >
-                          <Delete />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetail}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        onAddEntry={() => handleOpenEntryDialog()}
+        onEditEntry={handleOpenEntryDialog}
+        onDeleteEntry={handleDeleteClick}
+        formatDuration={formatDuration}
+      />
 
-      {/* Time Entry Form Dialog */}
-      <Dialog
+      <TimeEntryFormDialog
         open={isEntryDialogOpen}
+        editingEntry={editingEntry}
         onClose={handleCloseEntryDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingEntry ? 'Edit Time Entry' : 'Add Time Entry'}
-        </DialogTitle>
-        <DialogContent>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              {timeError && (
-                <Alert severity="error" onClose={() => setTimeError(null)}>
-                  {timeError}
-                </Alert>
-              )}
-              <DateTimePicker
-                label="Start Time"
-                value={entryFormData.startTime}
-                onChange={(newValue: Date | null) =>
-                  newValue && handleEntryFormChange('startTime', newValue)
-                }
-              />
-              <DateTimePicker
-                label="End Time"
-                value={entryFormData.endTime}
-                onChange={(newValue: Date | null) =>
-                  newValue && handleEntryFormChange('endTime', newValue)
-                }
-              />
-              <TextField
-                label="Duration"
-                value={formatDuration(entryFormData.duration)}
-                disabled
-              />
-              <TextField
-                label="Notes"
-                multiline
-                rows={3}
-                value={entryFormData.notes}
-                onChange={(e) =>
-                  handleEntryFormChange('notes', e.target.value)
-                }
-              />
-            </Stack>
-          </LocalizationProvider>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEntryDialog}>Cancel</Button>
-          <Button
-            onClick={handleSaveEntry}
-            variant="contained"
-            disabled={!!timeError}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSave={handleSaveEntry}
+        formatDuration={formatDuration}
+        isLoading={addTimeEntry.isPending || updateTimeEntry.isPending}
+      />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
+      <DeleteConfirmationDialog
         open={isDeleteDialogOpen}
+        title="Delete Time Entry"
+        message="Are you sure you want to delete this time entry? This action cannot be undone."
         onClose={() => setIsDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Delete Time Entry</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this time entry? This action
-            cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleDeleteConfirm}
+        isLoading={deleteTimeEntry.isPending}
+      />
 
-      {/* Warning Snackbar */}
-      <Snackbar
-        open={showWarning}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          severity="warning"
-          action={
-            <Button color="inherit" size="small" onClick={handleExtendTime}>
-              Extend Time
-            </Button>
-          }
-        >
-          Warning: Time tracking will stop in{' '}
-          {Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)}{' '}
-          minutes
-        </Alert>
-      </Snackbar>
-
-      {/* Settings Dialog */}
-      <Dialog
-        open={showSettingsDialog}
-        onClose={handleCloseSettings}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Tracking Settings</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} sx={{ mt: 2 }}>
-            <TextField
-              label="Maximum Tracking Duration (hours)"
-              type="number"
-              value={settingsFormData.maxDuration / 3600}
-              onChange={(e) =>
-                setSettingsFormData((prev) => ({
-                  ...prev,
-                  maxDuration: Number(e.target.value) * 3600,
-                }))
-              }
-              inputProps={{ min: 1, max: 24 }}
-              fullWidth
-            />
-            <TextField
-              label="Warning Threshold (minutes)"
-              type="number"
-              value={settingsFormData.warningThreshold / 60}
-              onChange={(e) =>
-                setSettingsFormData((prev) => ({
-                  ...prev,
-                  warningThreshold: Number(e.target.value) * 60,
-                }))
-              }
-              inputProps={{ min: 5, max: 60 }}
-              fullWidth
-            />
-            <TextField
-              label="Default Goal Notification Threshold (%)"
-              type="number"
-              value={settingsFormData.defaultGoalNotificationThreshold}
-              onChange={(e) =>
-                setSettingsFormData((prev) => ({
-                  ...prev,
-                  defaultGoalNotificationThreshold: Number(e.target.value),
-                }))
-              }
-              inputProps={{ min: 0, max: 100, step: 5 }}
-              fullWidth
-              helperText="Default percentage at which to notify when reaching a goal"
-            />
-            <FormControl>
-              <FormLabel>First Day of Week</FormLabel>
-              <RadioGroup
-                value={settingsFormData.firstDayOfWeek}
-                onChange={(e) =>
-                  setSettingsFormData((prev) => ({
-                    ...prev,
-                    firstDayOfWeek: e.target.value as 'monday' | 'sunday',
-                  }))
-                }
-              >
-                <FormControlLabel
-                  value="monday"
-                  control={<Radio />}
-                  label="Monday"
-                />
-                <FormControlLabel
-                  value="sunday"
-                  control={<Radio />}
-                  label="Sunday"
-                />
-              </RadioGroup>
-            </FormControl>
-            <FormControl>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settingsFormData.notificationsEnabled}
-                    onChange={(e) =>
-                      setSettingsFormData((prev) => ({
-                        ...prev,
-                        notificationsEnabled: e.target.checked,
-                      }))
-                    }
-                  />
-                }
-                label="Enable Goal Notifications"
-              />
-            </FormControl>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => setShowResetConfirm(true)}
-              fullWidth
-            >
-              Reset Database
-            </Button>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleResetSettings} color="secondary">
-            Reset to Defaults
-          </Button>
-          <Box sx={{ flex: 1 }} />
-          <Button onClick={handleCloseSettings}>Cancel</Button>
-          <Button onClick={handleSaveSettings} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Reset Database Confirmation */}
-      <Dialog
+      <DeleteConfirmationDialog
         open={showResetConfirm}
+        title="Reset Database"
+        message="Are you sure you want to reset the database? This will delete all activities, time entries, and categories. This action cannot be undone."
         onClose={() => setShowResetConfirm(false)}
-      >
-        <DialogTitle>Reset Database</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to reset the database? This will delete all
-            activities, time entries, and categories. This action cannot be
-            undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
-          <Button
-            onClick={handleResetDatabase}
-            color="error"
-            variant="contained"
-          >
-            Reset Database
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Success Messages */}
-      <Snackbar
-        open={showResetSuccess}
-        autoHideDuration={3000}
-        onClose={() => setShowResetSuccess(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setShowResetSuccess(false)}
-          severity="success"
-          sx={{ width: '100%' }}
-        >
-          Database has been reset successfully
-        </Alert>
-      </Snackbar>
+        onConfirm={handleResetDatabase}
+        confirmButtonText="Reset Database"
+        isLoading={clearAllData.isPending}
+      />
     </Box>
   );
 };
