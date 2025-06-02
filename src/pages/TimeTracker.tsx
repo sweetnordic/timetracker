@@ -12,12 +12,9 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { PlayArrow, Stop, History, ArrowUpward, ArrowDownward, Edit } from '@mui/icons-material';
+import { PlayArrow, Stop, History } from '@mui/icons-material';
 import {
   useActivities,
-  useUpdateActivity,
-  useUpdateActivityOrder,
-  useCategories,
   useTimeEntriesByActivity,
   useOpenTimeEntries,
   useAddTimeEntry,
@@ -30,14 +27,13 @@ import {
 import {
   TimeEntryDetailDialog,
   TimeEntryFormDialog,
-  DeleteConfirmationDialog,
-  EditActivityDialog
+  DeleteConfirmationDialog
 } from '../components';
 import { useToast } from '../contexts';
 import type { Activity, ActivityWithStats, TrackingSettings, TimeEntry } from '../models';
 import type { DatabaseActivity, DatabaseTimeEntry } from '../database/models';
 import { v4 as uuidv4 } from 'uuid';
-import { DEFAULT_ORDER, DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../database/models';
+import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../database/models';
 
 interface TimeEntryFormData {
   startTime: Date;
@@ -82,25 +78,20 @@ export const TimeTracker: React.FC = () => {
 
   // Queries
   const { data: dbActivities = [], isLoading: activitiesLoading } = useActivities();
-  const { data: dbCategories = [] } = useCategories();
   const { data: dbSettings } = useTrackingSettings();
   const { data: dbOpenEntries = [] } = useOpenTimeEntries();
 
   // Mutations
-  const updateActivity = useUpdateActivity();
   const addTimeEntry = useAddTimeEntry();
   const updateTimeEntry = useUpdateTimeEntry();
   const deleteTimeEntry = useDeleteTimeEntry();
   const clearAllData = useClearAllData();
-  const updateActivityOrder = useUpdateActivityOrder();
 
   // Convert database models to UI models
   const activities: ActivityWithStats[] = dbActivities.map(dbActivity => ({
     ...convertDatabaseActivityToUI(dbActivity),
     totalDuration: 0, // Will be updated separately
   }));
-
-  const categories = dbCategories.map(dbCategory => dbCategory.name);
 
   const trackingSettings: TrackingSettings = dbSettings ? {
     maxDuration: dbSettings.max_duration,
@@ -129,8 +120,6 @@ export const TimeTracker: React.FC = () => {
   const [entryToDelete, setEntryToDelete] = useState<TimeEntry | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [isActivityDialogOpen, setIsActivityDialogOpen] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
 
   // Query for time entries when detail dialog is open
   const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(selectedActivity?.id || '');
@@ -375,29 +364,6 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
-  const handleMoveActivity = async (activity: ActivityWithStats, direction: 'up' | 'down') => {
-    const currentIndex = activities.indexOf(activity);
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-
-    if (targetIndex < 0 || targetIndex >= activities.length) return;
-
-    const targetActivity = activities[targetIndex];
-
-    const currentOrder = activity.order || DEFAULT_ORDER;
-    const targetOrder = targetActivity.order || DEFAULT_ORDER;
-
-    try {
-      await Promise.all([
-        updateActivityOrder.mutateAsync({ activityId: activity.id!, newOrder: targetOrder }),
-        updateActivityOrder.mutateAsync({ activityId: targetActivity.id!, newOrder: currentOrder })
-      ]);
-      showSuccess(`Activity "${activity.name}" moved ${direction}`);
-    } catch (error) {
-      console.error('Error moving activity:', error);
-      showError('Failed to move activity');
-    }
-  };
-
   const handleResetDatabase = async () => {
     try {
       await clearAllData.mutateAsync();
@@ -406,27 +372,6 @@ export const TimeTracker: React.FC = () => {
     } catch (error) {
       console.error('Error resetting database:', error);
       showError('Failed to reset database');
-    }
-  };
-
-  const handleEditActivity = (activity: ActivityWithStats) => {
-    setEditingActivity(activity);
-    setIsActivityDialogOpen(true);
-  };
-
-  const handleCloseActivityDialog = () => {
-    setIsActivityDialogOpen(false);
-    setEditingActivity(null);
-  };
-
-  const handleSaveActivity = async (updatedActivity: DatabaseActivity) => {
-    try {
-      await updateActivity.mutateAsync(updatedActivity);
-      handleCloseActivityDialog();
-      showSuccess('Activity updated successfully');
-    } catch (error) {
-      console.error('Error updating activity:', error);
-      showError('Failed to update activity');
     }
   };
 
@@ -527,25 +472,6 @@ export const TimeTracker: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       {activity.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleMoveActivity(activity, 'up')}
-                        disabled={activities.indexOf(activity) === 0}
-                      >
-                        <ArrowUpward />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleMoveActivity(activity, 'down')}
-                        disabled={
-                          activities.indexOf(activity) ===
-                          activities.length - 1
-                        }
-                      >
-                        <ArrowDownward />
-                      </IconButton>
-                    </Box>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography variant="body2" color="text.secondary">
@@ -573,14 +499,6 @@ export const TimeTracker: React.FC = () => {
                 <Box
                   sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
                 >
-                  <Tooltip title="Edit Activity">
-                    <IconButton
-                      onClick={() => handleEditActivity(activity)}
-                      color="primary"
-                    >
-                      <Edit />
-                    </IconButton>
-                  </Tooltip>
                   <Tooltip title="View History">
                     <IconButton
                       onClick={() => handleOpenDetail(activity)}
@@ -606,15 +524,6 @@ export const TimeTracker: React.FC = () => {
       </List>
 
       {/* Component Dialogs */}
-      <EditActivityDialog
-        open={isActivityDialogOpen}
-        activity={editingActivity}
-        categories={categories}
-        onClose={handleCloseActivityDialog}
-        onSave={handleSaveActivity}
-        isLoading={updateActivity.isPending}
-      />
-
       <TimeEntryDetailDialog
         open={isDetailOpen}
         activity={selectedActivity}

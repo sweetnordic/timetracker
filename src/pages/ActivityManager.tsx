@@ -25,15 +25,18 @@ import {
 import {
   useActivities,
   useAddActivity,
+  useUpdateActivity,
+  useUpdateActivityOrder,
   useCategories,
   useAddCategory,
   useUpdateCategory,
   useDeleteCategory,
   useUpdateCategoryOrder
 } from '../hooks';
-import { EditCategoryDialog } from '../components';
+import { EditCategoryDialog, EditActivityDialog } from '../components';
 import { useToast } from '../contexts';
 import type { DatabaseActivity, DatabaseCategory } from '../database/models';
+import type { Activity } from '../models';
 import { DEFAULT_ORDER } from '../database/models';
 
 export const ActivityManager: React.FC = () => {
@@ -46,6 +49,8 @@ export const ActivityManager: React.FC = () => {
 
   // Mutations
   const addActivity = useAddActivity();
+  const updateActivity = useUpdateActivity();
+  const updateActivityOrder = useUpdateActivityOrder();
   const addCategory = useAddCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -57,9 +62,12 @@ export const ActivityManager: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [editingCategory, setEditingCategory] = useState<DatabaseCategory | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
 
-  // Sort categories by order
+  // Sort categories and activities by order
   const sortedCategories = [...categories].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
+  const sortedActivities = [...activities].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
 
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,6 +177,67 @@ export const ActivityManager: React.FC = () => {
     } catch (error) {
       console.error('Error updating category order:', error);
       showError(`Failed to move category ${direction}`);
+    }
+  };
+
+  const handleEditActivity = (activity: DatabaseActivity) => {
+    // Convert DatabaseActivity to Activity for editing
+    const activityForEdit: Activity = {
+      id: activity.id,
+      name: activity.name,
+      category: activity.category,
+      description: activity.description,
+      externalSystem: activity.external_system,
+      order: activity.order,
+      createdAt: activity.created_at,
+      updatedAt: activity.updated_at,
+    };
+    setEditingActivity(activityForEdit);
+    setActivityEditDialogOpen(true);
+  };
+
+  const handleCloseActivityEditDialog = () => {
+    setActivityEditDialogOpen(false);
+    setEditingActivity(null);
+  };
+
+  const handleSaveActivityEdit = async (updatedActivity: DatabaseActivity) => {
+    try {
+      await updateActivity.mutateAsync(updatedActivity);
+      handleCloseActivityEditDialog();
+      showSuccess(`Activity "${updatedActivity.name}" updated successfully`);
+    } catch (error) {
+      console.error('Error updating activity:', error);
+      showError('Failed to update activity');
+    }
+  };
+
+  const handleMoveActivity = async (activityId: string, direction: 'up' | 'down') => {
+    const currentIndex = sortedActivities.findIndex(a => a.id === activityId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sortedActivities.length) return;
+
+    const currentActivity = sortedActivities[currentIndex];
+    const targetActivity = sortedActivities[targetIndex];
+
+    try {
+      // Swap orders
+      await Promise.all([
+        updateActivityOrder.mutateAsync({
+          activityId: currentActivity.id!,
+          newOrder: targetActivity.order || DEFAULT_ORDER
+        }),
+        updateActivityOrder.mutateAsync({
+          activityId: targetActivity.id!,
+          newOrder: currentActivity.order || DEFAULT_ORDER
+        })
+      ]);
+      showInfo(`Activity "${currentActivity.name}" moved ${direction}`);
+    } catch (error) {
+      console.error('Error updating activity order:', error);
+      showError(`Failed to move activity ${direction}`);
     }
   };
 
@@ -316,11 +385,41 @@ export const ActivityManager: React.FC = () => {
           </Box>
           <Divider sx={{ my: 2 }} />
           <List>
-            {activities.map((activity) => (
-              <ListItem key={activity.id}>
+            {sortedActivities.map((activity, index) => (
+              <ListItem
+                key={activity.id}
+                secondaryAction={
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      edge="end"
+                      aria-label="move up"
+                      onClick={() => handleMoveActivity(activity.id!, 'up')}
+                      disabled={index === 0 || updateActivityOrder.isPending}
+                    >
+                      <ArrowUpwardIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="move down"
+                      onClick={() => handleMoveActivity(activity.id!, 'down')}
+                      disabled={index === sortedActivities.length - 1 || updateActivityOrder.isPending}
+                    >
+                      <ArrowDownwardIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="edit"
+                      onClick={() => handleEditActivity(activity)}
+                      disabled={updateActivity.isPending}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </Stack>
+                }
+              >
                 <ListItemText
                   primary={activity.name}
-                  secondary={`Category: ${activity.category}`}
+                  secondary={`Category: ${activity.category}${activity.description ? ` • ${activity.description}` : ''}`}
                 />
               </ListItem>
             ))}
@@ -334,6 +433,15 @@ export const ActivityManager: React.FC = () => {
         onClose={handleCloseEditDialog}
         onSave={handleSaveCategoryEdit}
         isLoading={updateCategory.isPending}
+      />
+
+      <EditActivityDialog
+        open={activityEditDialogOpen}
+        activity={editingActivity}
+        categories={sortedCategories.map(c => c.name)}
+        onClose={handleCloseActivityEditDialog}
+        onSave={handleSaveActivityEdit}
+        isLoading={updateActivity.isPending}
       />
     </Box>
   );
