@@ -68,10 +68,10 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   useEffect(() => {
     if (activity) {
       setFormData({
-        name: activity.name,
-        category: activity.category,
-        description: activity.description,
-        externalSystem: activity.externalSystem
+        name: activity.name || '',
+        category: activity.category || '',
+        description: activity.description || '',
+        externalSystem: activity.externalSystem || ''
       });
     } else {
       setFormData({
