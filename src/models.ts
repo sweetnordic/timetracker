@@ -78,6 +78,7 @@ export interface WeeklyStats {
       daily: { total: number; completed: number };
       weekly: { total: number; completed: number };
       monthly: { total: number; completed: number };
+      yearly: { total: number; completed: number };
     };
     byActivity: {
       [key: string]: {

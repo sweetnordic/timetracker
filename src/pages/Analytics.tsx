@@ -35,7 +35,8 @@ export const Analytics: React.FC = () => {
       byPeriod: {
         daily: { total: 0, completed: 0 },
         weekly: { total: 0, completed: 0 },
-        monthly: { total: 0, completed: 0 }
+        monthly: { total: 0, completed: 0 },
+        yearly: { total: 0, completed: 0 }
       },
       byActivity: {}
     }
@@ -84,7 +85,8 @@ export const Analytics: React.FC = () => {
         byPeriod: {
           daily: { total: 0, completed: 0 },
           weekly: { total: 0, completed: 0 },
-          monthly: { total: 0, completed: 0 }
+          monthly: { total: 0, completed: 0 },
+          yearly: { total: 0, completed: 0 }
         },
         byActivity: {}
       }
