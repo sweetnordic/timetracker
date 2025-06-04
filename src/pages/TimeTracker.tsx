@@ -15,10 +15,12 @@ import {
   Stack,
   useTheme,
   useMediaQuery,
+  LinearProgress,
 } from '@mui/material';
 import { PlayArrow, Stop, History, Timer, Category } from '@mui/icons-material';
 import {
   useActivities,
+  useTimeEntries,
   useTimeEntriesByActivity,
   useOpenTimeEntries,
   useAddTimeEntry,
@@ -26,7 +28,8 @@ import {
   useDeleteTimeEntry,
   useSettings,
   useClearAllData,
-  useNotifications
+  useNotifications,
+  useGoals
 } from '../hooks';
 import {
   TimeEntryDetailDialog,
@@ -65,6 +68,8 @@ export const TimeTracker: React.FC = () => {
   // Queries
   const { data: dbActivities = [], isLoading: activitiesLoading } = useActivities();
   const { data: dbOpenEntries = [] } = useOpenTimeEntries();
+  const { data: allTimeEntries = [] } = useTimeEntries();
+  const { data: allGoals = [] } = useGoals();
 
   // Mutations
   const addTimeEntry = useAddTimeEntry();
@@ -73,13 +78,22 @@ export const TimeTracker: React.FC = () => {
   const clearAllData = useClearAllData();
 
   // Convert database models to UI models with useMemo to prevent infinite loops
-  const activities: ActivityWithStats[] = useMemo(() =>
-    dbActivities.map(dbActivity => ({
-      ...dbActivity,
-      totalDuration: 0, // Will be updated separately
-    })),
-    [dbActivities]
-  );
+  const activities: ActivityWithStats[] = useMemo(() => {
+    return dbActivities.map(dbActivity => {
+      // Calculate total duration for this activity
+      const activityTimeEntries = allTimeEntries.filter((entry: TimeEntry) =>
+        entry.activityId === dbActivity.id && entry.duration !== null
+      );
+      const totalDuration = activityTimeEntries.reduce((total: number, entry: TimeEntry) =>
+        total + (entry.duration || 0), 0
+      );
+
+      return {
+        ...dbActivity,
+        totalDuration,
+      };
+    });
+  }, [dbActivities, allTimeEntries]);
 
   // State management
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
@@ -285,6 +299,60 @@ export const TimeTracker: React.FC = () => {
     return `${hours}h ${minutes}m`;
   };
 
+  // Calculate goal progress for an activity
+  const getGoalProgress = (activity: ActivityWithStats) => {
+    const activityGoals = allGoals.filter(goal => goal.activityId === activity.id);
+    if (activityGoals.length === 0) return null;
+
+    // For simplicity, let's show the first goal's progress
+    const goal = activityGoals[0];
+    const now = new Date();
+    let startDate: Date;
+
+    switch (goal.period) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'weekly': {
+        startDate = new Date(now);
+        const day = startDate.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+        startDate.setDate(now.getDate() + diff);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'monthly':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'yearly':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        return null;
+    }
+
+    // Filter time entries for the goal period
+    const relevantEntries = allTimeEntries.filter((entry: TimeEntry) =>
+      entry.activityId === activity.id &&
+      entry.endTime &&
+      new Date(entry.startTime) >= startDate &&
+      new Date(entry.startTime) <= now
+    );
+
+    const progressSeconds = relevantEntries.reduce((total: number, entry: TimeEntry) =>
+      total + (entry.duration || 0), 0
+    );
+    const progressHours = progressSeconds / 3600;
+    const progressPercentage = Math.min((progressHours / goal.targetHours) * 100, 100);
+
+    return {
+      goal,
+      progressHours,
+      progressPercentage,
+      period: goal.period
+    };
+  };
+
   const handleOpenDetail = (activity: ActivityWithStats) => {
     setSelectedActivity(activity);
     setIsDetailOpen(true);
@@ -381,7 +449,10 @@ export const TimeTracker: React.FC = () => {
   };
 
   // Render compact activity card for desktop
-  const renderActivityCard = (activity: ActivityWithStats) => (
+  const renderActivityCard = (activity: ActivityWithStats) => {
+    const goalProgress = getGoalProgress(activity);
+
+    return (
     <Card
       elevation={2}
       sx={{
@@ -430,6 +501,33 @@ export const TimeTracker: React.FC = () => {
           />
         </Stack>
 
+        {/* Goal Progress */}
+        {goalProgress && (
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                {goalProgress.goal.targetHours}h {goalProgress.period}ly goal
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {goalProgress.progressHours.toFixed(1)}h ({goalProgress.progressPercentage.toFixed(0)}%)
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={goalProgress.progressPercentage}
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                bgcolor: 'action.hover',
+                '& .MuiLinearProgress-bar': {
+                  borderRadius: 3,
+                  bgcolor: goalProgress.progressPercentage >= 100 ? 'success.main' : 'primary.main'
+                }
+              }}
+            />
+          </Box>
+        )}
+
         {activity.description && (
           <Typography
             variant="body2"
@@ -470,6 +568,7 @@ export const TimeTracker: React.FC = () => {
       </Box>
     </Card>
   );
+  };
 
   // Render mobile list item
   const renderMobileActivityItem = (activity: ActivityWithStats) => (
