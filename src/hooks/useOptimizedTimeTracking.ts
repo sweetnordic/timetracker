@@ -21,6 +21,7 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+
   const intervalRef = useRef<number | null>(null);
 
   // Hooks

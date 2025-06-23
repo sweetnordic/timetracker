@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { TimeTracker, ActivityManager, HelpCenter, Analytics } from './pages'
-import { Layout } from './components'
+import { Layout, ErrorBoundary, OfflineIndicator } from './components'
 import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
 import {
@@ -112,11 +112,14 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider maxToasts={5}>
-        <RouterProvider router={router} />
-      </ToastProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider maxToasts={5}>
+          <RouterProvider router={router} />
+          <OfflineIndicator />
+        </ToastProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 

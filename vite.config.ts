@@ -28,14 +28,14 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
 
           // Material-UI core
-          'mui-core': [
+          'ui': [
             '@mui/material',
             '@emotion/react',
             '@emotion/styled'
           ],
 
           // Material-UI icons and date pickers (large dependencies)
-          'mui-extended': [
+          'ui-extended': [
             '@mui/icons-material',
             '@mui/x-date-pickers'
           ],

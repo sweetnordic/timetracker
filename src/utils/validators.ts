@@ -1,10 +1,9 @@
 import type {
   ValidationResult,
-  FormFieldError,
-  ActivityFormData,
-  TimeFormData,
-  GoalFormData
+  FormFieldError
 } from '../types/ui';
+import { z } from 'zod';
+import type { Activity, TimeEntry, Category, Goal } from '../models';
 // Types are imported through ui types
 // Individual model types no longer needed since type guards were moved
 
@@ -98,115 +97,96 @@ export const validateDateRange = (
 };
 
 // Specific validation functions
-export const validateActivity = (data: ActivityFormData): ValidationResult => {
-  const errors: FormFieldError[] = [];
-
-  // Required fields
-  const requiredError = validateRequired('name', data.name, 'Activity name');
-  if (requiredError) errors.push(requiredError);
-
-  const categoryError = validateRequired('category', data.category, 'Category');
-  if (categoryError) errors.push(categoryError);
-
-  // Length validations
-  if (data.name) {
-    const minLengthError = validateMinLength('name', data.name, 1, 'Activity name');
-    if (minLengthError) errors.push(minLengthError);
-
-    const maxLengthError = validateMaxLength('name', data.name, 100, 'Activity name');
-    if (maxLengthError) errors.push(maxLengthError);
-  }
-
-  if (data.description) {
-    const descMaxLengthError = validateMaxLength('description', data.description, 500, 'Description');
-    if (descMaxLengthError) errors.push(descMaxLengthError);
-  }
-
-  // Order validation
-  if (data.order < 0) {
-    errors.push({
-      field: 'order',
-      message: 'Order must be a non-negative number',
-      code: 'INVALID_ORDER',
-    });
-  }
-
-  return createValidationResult(errors);
+export const validateActivity = (data: unknown): Activity => {
+  return ActivitySchema.parse(data);
 };
 
-export const validateTimeEntry = (data: TimeFormData): ValidationResult => {
-  const errors: FormFieldError[] = [];
-
-  // Required fields
-  const startTimeError = validateRequired('startTime', data.startTime, 'Start time');
-  if (startTimeError) errors.push(startTimeError);
-
-  // Date range validation
-  if (data.startTime && data.endTime) {
-    const dateRangeErrors = validateDateRange(
-      'endTime',
-      data.startTime,
-      data.endTime
-    );
-    errors.push(...dateRangeErrors);
-  }
-
-  // Duration validation
-  if (data.duration !== null && data.duration < 0) {
-    errors.push({
-      field: 'duration',
-      message: 'Duration must be a positive number',
-      code: 'INVALID_DURATION',
-    });
-  }
-
-  // Notes length validation
-  if (data.notes && data.notes.length > 1000) {
-    const notesError = validateMaxLength('notes', data.notes, 1000, 'Notes');
-    if (notesError) errors.push(notesError);
-  }
-
-  return createValidationResult(errors);
+export const validateTimeEntry = (data: unknown): TimeEntry => {
+  return TimeEntrySchema.parse(data);
 };
 
-export const validateGoal = (data: GoalFormData): ValidationResult => {
-  const errors: FormFieldError[] = [];
-
-  // Required fields
-  const activityError = validateRequired('activityId', data.activityId, 'Activity');
-  if (activityError) errors.push(activityError);
-
-  const targetError = validateRequired('targetHours', data.targetHours, 'Target hours');
-  if (targetError) errors.push(targetError);
-
-  const periodError = validateRequired('period', data.period, 'Period');
-  if (periodError) errors.push(periodError);
-
-  // Numeric validations
-  if (data.targetHours !== undefined) {
-    const positiveError = validatePositiveNumber('targetHours', data.targetHours, 'Target hours');
-    if (positiveError) errors.push(positiveError);
-
-    // Reasonable upper limit
-    if (data.targetHours > 1000) {
-      errors.push({
-        field: 'targetHours',
-        message: 'Target hours cannot exceed 1000',
-        code: 'EXCESSIVE_TARGET',
-      });
-    }
-  }
-
-  // Notification threshold validation
-  if (data.notificationThreshold < 0 || data.notificationThreshold > 100) {
-    errors.push({
-      field: 'notificationThreshold',
-      message: 'Notification threshold must be between 0 and 100',
-      code: 'INVALID_THRESHOLD',
-    });
-  }
-
-  return createValidationResult(errors);
+export const validateCategory = (data: unknown): Category => {
+  return CategorySchema.parse(data);
 };
+
+export const validateGoal = (data: unknown): Goal => {
+  return GoalSchema.parse(data);
+};
+
+// Partial validation for updates
+export const validateActivityUpdate = (data: unknown) => {
+  return ActivitySchema.partial().extend({ id: z.string().uuid() }).parse(data);
+};
+
+export const validateTimeEntryUpdate = (data: unknown) => {
+  const BaseTimeEntrySchema = z.object({
+    id: z.string().uuid().optional(),
+    activityId: z.string().uuid('Invalid activity ID'),
+    startTime: z.date(),
+    endTime: z.date().nullable(),
+    duration: z.number().min(0, 'Duration must be positive').nullable(),
+    notes: z.string().max(1000, 'Notes too long').default(''),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date()),
+  });
+
+  return BaseTimeEntrySchema.partial().extend({ id: z.string().uuid() }).parse(data);
+};
+
+// Business logic validations
+export const validateTrackingDuration = (startTime: Date, endTime?: Date | null): boolean => {
+  if (!endTime) return true;
+  const duration = endTime.getTime() - startTime.getTime();
+  const maxDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  return duration > 0 && duration <= maxDuration;
+};
+
+export const validateGoalProgress = (targetHours: number, currentHours: number): boolean => {
+  return currentHours >= 0 && currentHours <= targetHours * 2; // Allow 200% over-achievement
+};
+
+// Base schemas
+export const ActivitySchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1, 'Activity name is required').max(100, 'Activity name too long'),
+  category: z.string().min(1, 'Category is required'),
+  description: z.string().max(500, 'Description too long').default(''),
+  externalSystem: z.string().default(''),
+  order: z.number().int().min(0).default(0),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
+
+export const TimeEntrySchema = z.object({
+  id: z.string().uuid().optional(),
+  activityId: z.string().uuid('Invalid activity ID'),
+  startTime: z.date(),
+  endTime: z.date().nullable(),
+  duration: z.number().min(0, 'Duration must be positive').nullable(),
+  notes: z.string().max(1000, 'Notes too long').default(''),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+}).refine(
+  (data) => !data.endTime || data.endTime >= data.startTime,
+  { message: 'End time must be after start time', path: ['endTime'] }
+);
+
+export const CategorySchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1, 'Category name is required').max(50, 'Category name too long'),
+  order: z.number().int().min(0).default(0),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
+
+export const GoalSchema = z.object({
+  id: z.string().uuid().optional(),
+  activityId: z.string().uuid('Invalid activity ID'),
+  targetHours: z.number().min(0.1, 'Target hours must be at least 0.1').max(1000, 'Target hours too high'),
+  period: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+  notificationThreshold: z.number().min(0).max(100, 'Notification threshold must be between 0-100'),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
 
 // Note: Type guards are available in ../utils/type-guards.ts
