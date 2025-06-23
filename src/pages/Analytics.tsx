@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -18,10 +18,10 @@ import {
   LinearProgress,
 } from '@mui/material';
 import { useActivities, useTimeEntries, useGoals } from '../hooks';
-import type { WeeklyStats } from '../models';
+import type { WeeklyStats, TimeEntry, Activity } from '../models';
 
 export const Analytics: React.FC = () => {
-  const [isMonthlyView, setIsMonthlyView] = useState(false);
+  const [isMonthlyView, setIsMonthlyView] = useState<boolean>(false);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     totalTime: 0,
     byActivity: {},
@@ -52,7 +52,7 @@ export const Analytics: React.FC = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  const calculateStats = async () => {
+  const calculateStats = useCallback(() => {
     const now = new Date();
     let startDate: Date;
 
@@ -67,7 +67,7 @@ export const Analytics: React.FC = () => {
       startDate.setHours(0, 0, 0, 0);
     }
 
-    const filteredEntries = timeEntries.filter(entry =>
+    const filteredEntries = timeEntries.filter((entry: TimeEntry) =>
       new Date(entry.startTime) >= startDate &&
       entry.endTime !== null
     );
@@ -96,7 +96,7 @@ export const Analytics: React.FC = () => {
       if (entry.duration) {
         stats.totalTime += entry.duration;
 
-        const activity = activities.find(a => a.id === entry.activityId);
+        const activity = activities.find((a: Activity) => a.id === entry.activityId);
         if (activity) {
           // Update activity totals
           stats.byActivity[activity.name] = (stats.byActivity[activity.name] || 0) + entry.duration;
@@ -123,10 +123,10 @@ export const Analytics: React.FC = () => {
 
     for (const goal of goals) {
       // Calculate progress for this goal
-      const goalEntries = filteredEntries.filter(entry => entry.activityId === goal.activityId);
-      const progress = goalEntries.reduce((sum, entry) => sum + (entry.duration || 0), 0) / 3600; // Convert to hours
+      const goalEntries = filteredEntries.filter((entry: TimeEntry) => entry.activityId === goal.activityId);
+      const progress = goalEntries.reduce((sum: number, entry: TimeEntry) => sum + (entry.duration || 0), 0) / 3600; // Convert to hours
       const progressPercentage = (progress / goal.targetHours) * 100;
-      const activity = activities.find(a => a.id === goal.activityId);
+      const activity = activities.find((a: Activity) => a.id === goal.activityId);
 
       if (activity) {
         stats.goalStats.byActivity[goal.id!] = {
@@ -137,23 +137,26 @@ export const Analytics: React.FC = () => {
           period: goal.period
         };
 
-        // Update period stats
-        stats.goalStats.byPeriod[goal.period].total++;
-        if (progressPercentage >= 100) {
-          stats.goalStats.byPeriod[goal.period].completed++;
-          stats.goalStats.completedGoals++;
-        } else if (progressPercentage > 0) {
-          stats.goalStats.inProgressGoals++;
+        // Update period stats - with proper type safety
+        const periodStats = stats.goalStats.byPeriod[goal.period as keyof typeof stats.goalStats.byPeriod];
+        if (periodStats) {
+          periodStats.total++;
+          if (progressPercentage >= 100) {
+            periodStats.completed++;
+            stats.goalStats.completedGoals++;
+          } else if (progressPercentage > 0) {
+            stats.goalStats.inProgressGoals++;
+          }
         }
       }
     }
 
     setWeeklyStats(stats);
-  };
+  }, [activities, timeEntries, goals, isMonthlyView]);
 
   useEffect(() => {
     calculateStats();
-  }, [activities, timeEntries, goals, isMonthlyView]);
+  }, [calculateStats]);
 
   const handleViewChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsMonthlyView(event.target.checked);

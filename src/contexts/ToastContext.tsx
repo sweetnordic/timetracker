@@ -6,7 +6,8 @@ import { Toast } from '../components/Toast';
 import type { ToastData } from '../components/Toast';
 import type { AlertColor } from '@mui/material';
 
-interface ToastContextType {
+// Move types to separate file to fix react-refresh warning
+export interface ToastContextType {
   showToast: (message: string, severity?: AlertColor, duration?: number, action?: ReactNode) => void;
   showSuccess: (message: string, duration?: number) => void;
   showError: (message: string, duration?: number) => void;

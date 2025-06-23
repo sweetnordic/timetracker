@@ -41,51 +41,84 @@ class DatabaseService {
   private db: IDBPDatabase<TimeTrackerDB> | null = null;
   private readonly DB_NAME = DB_NAME;
   private readonly DB_VERSION = DB_VERSION;
+  private initPromise: Promise<void> | null = null;
+
+  /**
+   * Ensure database is initialized before operations
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.db) {
+      if (!this.initPromise) {
+        this.initPromise = this.init();
+      }
+      await this.initPromise;
+    }
+  }
+
+  /**
+   * Generic error handler for database operations
+   */
+  private handleError(operation: string, error: unknown): never {
+    const message = `Database ${operation} failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    console.error(message, error);
+    throw new Error(message);
+  }
 
   async init(): Promise<void> {
-    this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
-      async upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          // Create categories store
-          const categoriesStore = db.createObjectStore('categories', {
-            keyPath: 'id',
-          });
-          categoriesStore.createIndex('by-order', 'order', { unique: false });
+    try {
+      this.db = await openDB<TimeTrackerDB>(this.DB_NAME, this.DB_VERSION, {
+        async upgrade(db, oldVersion) {
+          if (oldVersion < 1) {
+            // Create categories store
+            const categoriesStore = db.createObjectStore('categories', {
+              keyPath: 'id',
+            });
+            categoriesStore.createIndex('by-order', 'order', { unique: false });
 
-          // Create activities store
-          const activitiesStore = db.createObjectStore('activities', {
-            keyPath: 'id',
-          });
-          activitiesStore.createIndex('by-category', 'category');
-          activitiesStore.createIndex('by-order', 'order', { unique: false });
+            // Create activities store
+            const activitiesStore = db.createObjectStore('activities', {
+              keyPath: 'id',
+            });
+            activitiesStore.createIndex('by-category', 'category');
+            activitiesStore.createIndex('by-order', 'order', { unique: false });
 
-          // Create time entries store
-          const timeEntriesStore = db.createObjectStore('timeEntries', {
-            keyPath: 'id',
-          });
-          timeEntriesStore.createIndex('by-activity', 'activityId');
-          timeEntriesStore.createIndex('by-date', 'startTime');
+            // Create time entries store
+            const timeEntriesStore = db.createObjectStore('timeEntries', {
+              keyPath: 'id',
+            });
+            timeEntriesStore.createIndex('by-activity', 'activityId');
+            timeEntriesStore.createIndex('by-date', 'startTime');
 
-          // Create goals store
-          const goalsStore = db.createObjectStore('goals', {
-            keyPath: 'id',
-          });
-          goalsStore.createIndex('by-activity', 'activityId');
-        }
-      },
-    });
+            // Create goals store
+            const goalsStore = db.createObjectStore('goals', {
+              keyPath: 'id',
+            });
+            goalsStore.createIndex('by-activity', 'activityId');
+          }
+        },
+        blocked() {
+          console.warn('Database upgrade blocked by another connection');
+        },
+        blocking() {
+          console.warn('Database connection is blocking an upgrade');
+        },
+      });
+    } catch (error) {
+      this.handleError('initialization', error);
+    }
   }
 
   async close(): Promise<void> {
     if (this.db) {
       await this.db.close();
       this.db = null;
+      this.initPromise = null;
     }
   }
 
   // Activity methods - now work directly with UI models
   async addActivity(activity: Omit<Activity, 'id'>): Promise<string> {
-    if (!this.db) throw new Error('Database not initialized');
+    await this.ensureInitialized();
     try {
       const newActivity: Activity = {
         id: uuidv4(),
@@ -93,104 +126,131 @@ class DatabaseService {
         createdAt: activity.createdAt || new Date(),
         updatedAt: activity.updatedAt || new Date(),
       };
-      await this.db.add('activities', newActivity);
+      await this.db!.add('activities', newActivity);
       return newActivity.id!;
     } catch (error) {
-      console.error('Error adding activity:', error);
-      throw error;
+      this.handleError('adding activity', error);
     }
   }
 
   async updateActivity(activity: Activity): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    await this.ensureInitialized();
     if (!activity.id) throw new Error('Activity ID is required for update');
     try {
       const updatedActivity = {
         ...activity,
         updatedAt: new Date()
       };
-      await this.db.put('activities', updatedActivity);
+      await this.db!.put('activities', updatedActivity);
     } catch (error) {
-      console.error('Error updating activity:', error);
-      throw error;
+      this.handleError('updating activity', error);
     }
   }
 
   async getActivities(): Promise<Activity[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    await this.ensureInitialized();
     try {
-      const dbActivities = await this.db.getAll('activities');
+      const dbActivities = await this.db!.getAll('activities');
       return dbActivities
         .sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
     } catch (error) {
-      console.error('Error getting activities:', error);
-      throw error;
+      this.handleError('getting activities', error);
     }
   }
 
   async updateActivityOrder(activityId: string, newOrder: number): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-    const tx = this.db.transaction('activities', 'readwrite');
-    const store = tx.objectStore('activities');
-    const dbActivity = await store.get(activityId);
+    await this.ensureInitialized();
+    const tx = this.db!.transaction('activities', 'readwrite');
+    try {
+      const store = tx.objectStore('activities');
+      const dbActivity = await store.get(activityId);
 
-    if (dbActivity) {
-      dbActivity.order = newOrder;
-      dbActivity.updatedAt = new Date();
-      await store.put(dbActivity);
+      if (dbActivity) {
+        dbActivity.order = newOrder;
+        dbActivity.updatedAt = new Date();
+        await store.put(dbActivity);
+      }
+
+      await tx.done;
+    } catch (error) {
+      await tx.abort();
+      this.handleError('updating activity order', error);
     }
-
-    await tx.done;
   }
 
   // Time entry methods - now return UI models
   async addTimeEntry(entry: Omit<TimeEntry, 'id'>): Promise<string> {
-    if (!this.db) throw new Error('Database not initialized');
-    const dbEntry = {
-      id: uuidv4(),
-      ...entry,
-      createdAt: entry.createdAt || new Date(),
-      updatedAt: entry.updatedAt || new Date()
-    };
-    return this.db.add('timeEntries', dbEntry);
+    await this.ensureInitialized();
+    try {
+      const dbEntry = {
+        id: uuidv4(),
+        ...entry,
+        createdAt: entry.createdAt || new Date(),
+        updatedAt: entry.updatedAt || new Date()
+      };
+      await this.db!.add('timeEntries', dbEntry);
+      return dbEntry.id;
+    } catch (error) {
+      this.handleError('adding time entry', error);
+    }
   }
 
   async updateTimeEntry(entry: TimeEntry): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-    const dbEntry = {
-      ...entry,
-      updatedAt: new Date()
-    };
-    await this.db.put('timeEntries', dbEntry);
+    await this.ensureInitialized();
+    try {
+      const dbEntry = {
+        ...entry,
+        updatedAt: new Date()
+      };
+      await this.db!.put('timeEntries', dbEntry);
+    } catch (error) {
+      this.handleError('updating time entry', error);
+    }
   }
 
   async deleteTimeEntry(entryId: string): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-    await this.db.delete('timeEntries', entryId);
+    await this.ensureInitialized();
+    try {
+      await this.db!.delete('timeEntries', entryId);
+    } catch (error) {
+      this.handleError('deleting time entry', error);
+    }
   }
 
   async getTimeEntries(): Promise<TimeEntry[]> {
-    if (!this.db) throw new Error('Database not initialized');
-    const dbEntries = await this.db.getAll('timeEntries');
-    return dbEntries;
+    await this.ensureInitialized();
+    try {
+      const dbEntries = await this.db!.getAll('timeEntries');
+      return dbEntries;
+    } catch (error) {
+      this.handleError('getting time entries', error);
+    }
   }
 
   async getTimeEntriesByActivity(activityId: string): Promise<TimeEntry[]> {
-    if (!this.db) throw new Error('Database not initialized');
-    const index = this.db.transaction('timeEntries').store.index('by-activity');
-    const dbEntries = await index.getAll(activityId);
-    return dbEntries;
+    await this.ensureInitialized();
+    try {
+      const index = this.db!.transaction('timeEntries').store.index('by-activity');
+      const dbEntries = await index.getAll(activityId);
+      return dbEntries;
+    } catch (error) {
+      this.handleError('getting time entries by activity', error);
+    }
   }
 
   async getTotalDurationByActivity(activityId: string): Promise<number> {
-    if (!this.db) throw new Error('Database not initialized');
-    const entries = await this.getTimeEntriesByActivity(activityId);
-    return entries.reduce((total, entry) => {
-      if (entry.duration) {
-        return total + entry.duration;
-      }
-      return total;
-    }, 0);
+    await this.ensureInitialized();
+    try {
+      const entries = await this.getTimeEntriesByActivity(activityId);
+      return entries.reduce((total, entry) => {
+        if (entry.duration) {
+          return total + entry.duration;
+        }
+        return total;
+      }, 0);
+    } catch (error) {
+      this.handleError('getting total duration', error);
+    }
   }
 
   // Category methods - now return UI models
