@@ -5,7 +5,6 @@ import { TimeTracker, ActivityManager, HelpCenter, Analytics } from './pages'
 import { Layout, ErrorBoundary, OfflineIndicator, AutoStopTracking } from './components'
 import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
-import { useAutoStopTracking } from './hooks/useAutoStopTracking'
 import {
   Box,
   ThemeProvider,

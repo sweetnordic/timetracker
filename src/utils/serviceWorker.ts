@@ -218,8 +218,16 @@ class ServiceWorkerManager {
     }
 
     // Schedule cache maintenance for optimization
-    if ('sync' in this.registration) {
-      (this.registration as any).sync.register('cache-maintenance').then(() => {
+    // Type assertion for Background Sync API (not in all browsers)
+    interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+      sync?: {
+        register: (tag: string) => Promise<void>;
+      };
+    }
+    const registrationWithSync = this.registration as ServiceWorkerRegistrationWithSync;
+
+    if (registrationWithSync.sync) {
+      registrationWithSync.sync.register('cache-maintenance').then(() => {
         console.log('[SW Manager] Cache maintenance scheduled');
       }).catch((error: Error) => {
         console.error('[SW Manager] Failed to schedule cache maintenance:', error);
@@ -297,7 +305,28 @@ export const scheduleCacheMaintenance = () =>
 
 export const isOnline = () => navigator.onLine;
 
-export const getNetworkStatus = () => ({
-  online: navigator.onLine,
-  connection: (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection,
-});
+interface NetworkInformation {
+  connection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  mozConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  webkitConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+}
+
+export const getNetworkStatus = () => {
+  const nav = navigator as Navigator & NetworkInformation;
+  return {
+    online: navigator.onLine,
+    connection: nav.connection || nav.mozConnection || nav.webkitConnection || undefined,
+  };
+};
