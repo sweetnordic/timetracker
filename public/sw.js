@@ -2,24 +2,51 @@ const CACHE_NAME = 'timetracker-v2.0.0';
 const STATIC_CACHE_NAME = 'timetracker-static-v2.0.0';
 const DYNAMIC_CACHE_NAME = 'timetracker-dynamic-v1';
 
+// Determine base path from service worker location
+// e.g., if SW is at /timetracker/sw.js, base path is /timetracker/
+// if SW is at /sw.js, base path is /
+function getBasePath() {
+  const swPath = self.location.pathname;
+  // Remove /sw.js from the path to get base path
+  const basePath = swPath.replace(/\/sw\.js$/, '');
+  // Normalize to ensure it ends with / (or is just /)
+  return basePath === '' ? '/' : (basePath.endsWith('/') ? basePath : basePath + '/');
+}
+
+const BASE_PATH = getBasePath();
+
+// Helper function to resolve paths with base path
+function resolvePath(path) {
+  // If path is already absolute and starts with base path, return as is
+  if (path.startsWith(BASE_PATH)) {
+    return path;
+  }
+  // If path starts with /, remove it and prepend base path
+  if (path.startsWith('/')) {
+    return BASE_PATH + path.substring(1);
+  }
+  // Relative path, prepend base path
+  return BASE_PATH + path;
+}
+
 // Assets to cache immediately
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/favicon.ico',
-  '/favicon.svg',
-  '/web-app-manifest-192x192.png',
-  '/web-app-manifest-512x512.png',
+  resolvePath('/'),
+  resolvePath('/index.html'),
+  resolvePath('/favicon.ico'),
+  resolvePath('/favicon.svg'),
+  resolvePath('/web-app-manifest-192x192.png'),
+  resolvePath('/web-app-manifest-512x512.png'),
   // Core app files will be added dynamically
 ];
 
 // Routes that should work offline
 const OFFLINE_PAGES = [
-  '/',
-  '/#/tracker',
-  '/#/manager',
-  '/#/analytics',
-  '/#/help'
+  resolvePath('/'),
+  resolvePath('/#/tracker'),
+  resolvePath('/#/manager'),
+  resolvePath('/#/analytics'),
+  resolvePath('/#/help')
 ];
 
 // Install event - cache static assets
@@ -162,7 +189,7 @@ async function getOfflineFallback(request) {
   if (isAppRoute(request)) {
     // Return the main app for SPA routes
     const cache = await caches.open(STATIC_CACHE_NAME);
-    const fallback = await cache.match('/index.html');
+    const fallback = await cache.match(resolvePath('/index.html'));
     if (fallback) {
       return fallback;
     }
@@ -228,12 +255,37 @@ function isStaticAsset(request) {
 
 function isAppRoute(request) {
   const url = new URL(request.url);
+  const rootPath = resolvePath('/');
+  const indexPath = resolvePath('/index.html');
+  // Normalize base path without trailing slash for comparison
+  const basePathNoSlash = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
+
+  // Check if pathname is within base path
+  const isBasePath = url.pathname === rootPath ||
+                     url.pathname === indexPath ||
+                     url.pathname === basePathNoSlash ||
+                     url.pathname === basePathNoSlash + '/' ||
+                     url.pathname === basePathNoSlash + '/index.html';
+
+  if (!isBasePath) {
+    return false;
+  }
+
+  // If it's the base path, check if it matches any offline page
   return OFFLINE_PAGES.some(page => {
-    if (page === '/') {
-      return url.pathname === '/' || url.pathname === '/index.html';
+    // For root page
+    if (page === rootPath) {
+      return true;
     }
-    return url.hash.startsWith(page.replace('/#', '#'));
-  }) || url.pathname === '/' || url.pathname === '/index.html';
+    // For hash routes, extract the hash part and check
+    // page format is like "/timetracker/#/tracker" or "/#/tracker"
+    const hashIndex = page.indexOf('#');
+    if (hashIndex !== -1) {
+      const pageHash = page.substring(hashIndex);
+      return url.hash.startsWith(pageHash);
+    }
+    return false;
+  });
 }
 
 // Cache maintenance and optimization
