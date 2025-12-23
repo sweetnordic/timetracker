@@ -10,17 +10,33 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Timer, Timeline, BarChart, Settings, Storage, Notifications } from '@mui/icons-material';
+import {
+  Timer,
+  Timeline,
+  BarChart,
+  Settings,
+  Storage,
+  Notifications,
+} from '@mui/icons-material';
 
 export const HelpCenter: React.FC = () => {
   return (
-    <Box sx={{ mx: 'auto', py: 5 }}>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, textAlign: 'center' }}>
-        Time Tracker Help Center
-      </Typography>
+    <Box sx={{ mx: 'auto', py: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Help Center
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -28,19 +44,22 @@ export const HelpCenter: React.FC = () => {
                 <Typography variant="h6">Time Tracking</Typography>
               </Box>
               <Typography variant="body1" component="p">
-                Start tracking time for any activity with a single click. The timer will run until you stop it or close the application.
+                Start tracking time for any activity with a single click. The
+                timer will run until you stop it or close the application.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                • Automatic rounding to nearest 15 minutes<br />
-                • Configurable maximum tracking duration<br />
-                • Warning notifications for long sessions<br />
-                • Manual time entry addition and editing
+                • Automatic rounding to nearest 15 minutes
+                <br />
+                • Configurable maximum tracking duration
+                <br />
+                • Warning notifications for long sessions
+                <br />• Manual time entry addition and editing
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -48,7 +67,8 @@ export const HelpCenter: React.FC = () => {
                 <Typography variant="h6">Activity Management</Typography>
               </Box>
               <Typography variant="body1" paragraph>
-                Organize your activities into categories and track their progress over time.
+                Organize your activities into categories and track their
+                progress over time.
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 • Create and manage activity categories
@@ -56,14 +76,13 @@ export const HelpCenter: React.FC = () => {
                 • Add detailed notes to time entries
                 <br />
                 • Edit or delete existing entries
-                <br />
-                • Set and track time goals
+                <br />• Set and track time goals
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -79,14 +98,13 @@ export const HelpCenter: React.FC = () => {
                 • Activity-specific analytics
                 <br />
                 • Category-based breakdowns
-                <br />
-                • Goal progress tracking
+                <br />• Goal progress tracking
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -102,14 +120,13 @@ export const HelpCenter: React.FC = () => {
                 • Set notification preferences
                 <br />
                 • Choose first day of week
-                <br />
-                • Adjust goal notification thresholds
+                <br />• Adjust goal notification thresholds
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -125,14 +142,13 @@ export const HelpCenter: React.FC = () => {
                 • Export data to JSON file
                 <br />
                 • Import data from backup
-                <br />
-                • Merge or replace existing data
+                <br />• Merge or replace existing data
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid size={{xs:12, md: 6}}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -140,7 +156,8 @@ export const HelpCenter: React.FC = () => {
                 <Typography variant="h6">Goals & Notifications</Typography>
               </Box>
               <Typography variant="body1" paragraph>
-                Set time goals for your activities and receive progress notifications.
+                Set time goals for your activities and receive progress
+                notifications.
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 • Set daily, weekly, or monthly goals
@@ -148,8 +165,7 @@ export const HelpCenter: React.FC = () => {
                 • Track progress with visual indicators
                 <br />
                 • Receive goal completion notifications
-                <br />
-                • View goal statistics in analytics
+                <br />• View goal statistics in analytics
               </Typography>
             </CardContent>
           </Card>
@@ -167,7 +183,9 @@ export const HelpCenter: React.FC = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              Click the "Start Tracking" button next to any activity. The timer will begin immediately and continue until you stop it or close the application.
+              Click the "Start Tracking" button next to any activity. The timer
+              will begin immediately and continue until you stop it or close the
+              application.
             </Typography>
           </AccordionDetails>
         </Accordion>
@@ -178,12 +196,14 @@ export const HelpCenter: React.FC = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              When creating or editing an activity, you can set time goals by specifying:
+              When creating or editing an activity, you can set time goals by
+              specifying:
               <br />• Target hours
               <br />• Period (daily, weekly, or monthly)
               <br />• Notification threshold percentage
               <br />
-              The system will track your progress and notify you when you reach your goal threshold.
+              The system will track your progress and notify you when you reach
+              your goal threshold.
             </Typography>
           </AccordionDetails>
         </Accordion>
@@ -194,7 +214,10 @@ export const HelpCenter: React.FC = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              All data is stored locally in your browser using IndexedDB. You can export your data to a JSON file for backup or transfer to another device. The export includes all activities, time entries, categories, and goals.
+              All data is stored locally in your browser using IndexedDB. You
+              can export your data to a JSON file for backup or transfer to
+              another device. The export includes all activities, time entries,
+              categories, and goals.
             </Typography>
           </AccordionDetails>
         </Accordion>
@@ -220,7 +243,10 @@ export const HelpCenter: React.FC = () => {
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              Yes, you can import data from a JSON file exported from another device. The import process allows you to either merge with existing data or replace it entirely. All your activities, time entries, categories, and goals will be preserved.
+              Yes, you can import data from a JSON file exported from another
+              device. The import process allows you to either merge with
+              existing data or replace it entirely. All your activities, time
+              entries, categories, and goals will be preserved.
             </Typography>
           </AccordionDetails>
         </Accordion>
