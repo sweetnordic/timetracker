@@ -37,6 +37,8 @@ export interface TrackingSettings {
   firstDayOfWeek: FirstDayOfWeek;
   defaultGoalNotificationThreshold: number; // percentage (0-100)
   notificationsEnabled: boolean;
+  stopTrackingOnClose: boolean; // Stop tracking when app/tab closes
+  stopTrackingOnTabSwitch: boolean; // Stop tracking when tab becomes hidden
   darkMode?: boolean; // Optional for backwards compatibility
 }
 

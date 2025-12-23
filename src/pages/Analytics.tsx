@@ -10,8 +10,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  FormControl,
+  FormLabel,
+  RadioGroup,
   FormControlLabel,
-  Switch,
+  Radio,
   Stack,
   Grid,
   Paper,
@@ -20,8 +23,10 @@ import {
 import { useActivities, useTimeEntries, useGoals } from '../hooks';
 import type { WeeklyStats, TimeEntry, Activity } from '../models';
 
+type ViewPeriod = 'weekly' | 'monthly' | 'yearly';
+
 export const Analytics: React.FC = () => {
-  const [isMonthlyView, setIsMonthlyView] = useState<boolean>(false);
+  const [viewPeriod, setViewPeriod] = useState<ViewPeriod>('weekly');
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     totalTime: 0,
     byActivity: {},
@@ -56,7 +61,9 @@ export const Analytics: React.FC = () => {
     const now = new Date();
     let startDate: Date;
 
-    if (isMonthlyView) {
+    if (viewPeriod === 'yearly') {
+      startDate = new Date(now.getFullYear(), 0, 1); // First day of current year
+    } else if (viewPeriod === 'monthly') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
     } else {
       // Calculate start of week (assuming Monday as first day)
@@ -152,14 +159,36 @@ export const Analytics: React.FC = () => {
     }
 
     setWeeklyStats(stats);
-  }, [activities, timeEntries, goals, isMonthlyView]);
+  }, [activities, timeEntries, goals, viewPeriod]);
 
   useEffect(() => {
     calculateStats();
   }, [calculateStats]);
 
   const handleViewChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsMonthlyView(event.target.checked);
+    setViewPeriod(event.target.value as ViewPeriod);
+  };
+
+  const getViewLabel = () => {
+    switch (viewPeriod) {
+      case 'yearly':
+        return "This Year's Overview";
+      case 'monthly':
+        return "This Month's Overview";
+      default:
+        return "This Week's Overview";
+    }
+  };
+
+  const getViewTimeLabel = () => {
+    switch (viewPeriod) {
+      case 'yearly':
+        return 'this year';
+      case 'monthly':
+        return 'this month';
+      default:
+        return 'this week';
+    }
   };
 
   return (
@@ -168,29 +197,31 @@ export const Analytics: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Analytics
         </Typography>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isMonthlyView}
-              onChange={handleViewChange}
-              color="primary"
-            />
-          }
-          label={isMonthlyView ? 'Monthly View' : 'Weekly View'}
-        />
+        <FormControl>
+          <FormLabel>View Period</FormLabel>
+          <RadioGroup
+            row
+            value={viewPeriod}
+            onChange={handleViewChange}
+          >
+            <FormControlLabel value="weekly" control={<Radio />} label="Weekly" />
+            <FormControlLabel value="monthly" control={<Radio />} label="Monthly" />
+            <FormControlLabel value="yearly" control={<Radio />} label="Yearly" />
+          </RadioGroup>
+        </FormControl>
       </Box>
 
       <Stack spacing={3}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              {isMonthlyView ? "This Month's Overview" : "This Week's Overview"}
+              {getViewLabel()}
             </Typography>
             <Typography variant="h4" color="primary">
               {formatDuration(weeklyStats.totalTime)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Total time tracked {isMonthlyView ? 'this month' : 'this week'}
+              Total time tracked {getViewTimeLabel()}
             </Typography>
           </CardContent>
         </Card>
@@ -288,7 +319,7 @@ export const Analytics: React.FC = () => {
                       {Object.keys(weeklyStats.byExternalSystem).length === 0 && (
                         <TableRow>
                           <TableCell colSpan={2} align="center">
-                            No external systems tracked this {isMonthlyView ? 'month' : 'week'}
+                            No external systems tracked {getViewTimeLabel()}
                           </TableCell>
                         </TableRow>
                       )}
@@ -299,7 +330,7 @@ export const Analytics: React.FC = () => {
             </Card>
           </Grid>
 
-          {!isMonthlyView && (
+          {viewPeriod === 'weekly' && (
             <Grid size={{xs:12}}>
               <Card>
                 <CardContent>

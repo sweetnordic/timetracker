@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { TimeTracker, ActivityManager, HelpCenter, Analytics } from './pages'
-import { Layout, ErrorBoundary, OfflineIndicator } from './components'
+import { Layout, ErrorBoundary, OfflineIndicator, AutoStopTracking } from './components'
 import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
+import { useAutoStopTracking } from './hooks/useAutoStopTracking'
 import {
   Box,
   ThemeProvider,
@@ -115,6 +116,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ToastProvider maxToasts={5}>
+          <AutoStopTracking />
           <RouterProvider router={router} />
           <OfflineIndicator />
         </ToastProvider>

@@ -12,5 +12,6 @@ export { Toast } from './Toast';
 export { TrackingControls } from './TrackingControls';
 export { ErrorBoundary } from './ErrorBoundary';
 export { OfflineIndicator } from './OfflineIndicator';
+export { AutoStopTracking } from './AutoStopTracking';
 export type { ToastData } from './Toast';
 export type { NotificationItem } from './NotificationDialog';

@@ -11,6 +11,8 @@ const DEFAULT_SETTINGS: TrackingSettings = {
   firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
   defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
   notificationsEnabled: true,
+  stopTrackingOnClose: true, // Default: stop tracking when app closes
+  stopTrackingOnTabSwitch: false, // Default: stop tracking when tab switches disabled by default
   darkMode: false,
 };
 

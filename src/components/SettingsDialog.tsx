@@ -9,6 +9,7 @@ import {
   Stack,
   FormControl,
   FormLabel,
+  FormHelperText,
   RadioGroup,
   FormControlLabel,
   Radio,
@@ -156,6 +157,44 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               }
               label="Enable Goal Notifications"
             />
+          </FormControl>
+          <FormControl disabled={isLoading}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.stopTrackingOnClose ?? true}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      stopTrackingOnClose: e.target.checked,
+                    }))
+                  }
+                />
+              }
+              label="Stop Tracking on App Close"
+            />
+            <FormHelperText>
+              When enabled, time tracking will automatically stop when you close the app or tab
+            </FormHelperText>
+          </FormControl>
+          <FormControl disabled={isLoading}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.stopTrackingOnTabSwitch ?? true}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      stopTrackingOnTabSwitch: e.target.checked,
+                    }))
+                  }
+                />
+              }
+              label="Stop Tracking on Tab Switch"
+            />
+            <FormHelperText>
+              When enabled, time tracking will automatically stop when you switch to another tab or minimize the window
+            </FormHelperText>
           </FormControl>
           <Button
             variant="outlined"
