@@ -23,7 +23,8 @@ import {
   Settings,
   LightMode,
   DarkMode,
-  ImportExport
+  ImportExport,
+  GitHub
 } from '@mui/icons-material';
 import { useNotifications, useClearAllData } from '../hooks';
 import { useSettings } from '../hooks/useSettings';
@@ -253,6 +254,19 @@ export const Layout: React.FC = () => {
           <Tooltip title="Help">
             <IconButton color="inherit" onClick={() => navigate('/help')} sx={{ ml: 1 }}>
               <HelpIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="GitHub Repository">
+            <IconButton
+              color="inherit"
+              component="a"
+              href="https://github.com/sweetnordic/timetracker"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ ml: 1 }}
+            >
+              <GitHub />
             </IconButton>
           </Tooltip>
 
