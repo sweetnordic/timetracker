@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
-import { TimeTracker, ActivityManager, HelpCenter, Analytics } from './pages'
-import { Layout, ErrorBoundary, OfflineIndicator, AutoStopTracking } from './components'
+import { TimeTracker, ActivityManager, HelpCenter, Analytics, Settings } from './pages'
+import { Layout, ErrorBoundary, AutoStopTracking } from './components'
 import { ToastProvider } from './contexts/ToastContext'
 import { db } from './database/db'
 import {
@@ -59,6 +59,10 @@ const router = createHashRouter([
       {
         path: '/help',
         element: <HelpCenter />,
+      },
+      {
+        path: '/settings',
+        element: <Settings />,
       },
     ],
   },
@@ -117,7 +121,7 @@ function App() {
         <ToastProvider maxToasts={5}>
           <AutoStopTracking />
           <RouterProvider router={router} />
-          <OfflineIndicator />
+          {/* <OfflineIndicator /> */}
         </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>

@@ -5,7 +5,6 @@ export { EditCategoryDialog } from './EditCategoryDialog';
 export { ExtendTimeDialog } from './ExtendTimeDialog';
 export { Layout } from './Layout';
 export { NotificationDialog } from './NotificationDialog';
-export { SettingsDialog } from './SettingsDialog';
 export { TimeEntryDetailDialog } from './TimeEntryDetailDialog';
 export { TimeEntryFormDialog } from './TimeEntryFormDialog';
 export { Toast } from './Toast';

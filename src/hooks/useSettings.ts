@@ -80,8 +80,11 @@ export const useSettings = () => {
     key: K,
     value: TrackingSettings[K]
   ) => {
-    const updated = settingsStorage.update(key, value);
-    setSettings(updated);
+    setSettings((prev) => {
+      const updated = { ...prev, [key]: value };
+      settingsStorage.set(updated);
+      return updated;
+    });
   }, []);
 
   // Reset to defaults
