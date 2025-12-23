@@ -30,14 +30,24 @@ self.addEventListener('install', (event) => {
     caches.open(STATIC_CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_ASSETS).catch((error) => {
+          // Log individual cache failures but continue
+          console.warn('[SW] Some static assets failed to cache:', error);
+          // Return empty array to continue the chain
+          return [];
+        });
       })
       .then(() => {
         console.log('[SW] Static assets cached');
-        return self.skipWaiting(); // Force activation
+        // Skip waiting to activate immediately
+        // The client-side code will handle reload logic to prevent loops
+        return self.skipWaiting();
       })
       .catch((error) => {
         console.error('[SW] Failed to cache static assets:', error);
+        // Even if caching fails, skip waiting so the SW can activate
+        // This prevents the SW from being stuck in installing state
+        return self.skipWaiting();
       })
   );
 });
@@ -62,7 +72,17 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         console.log('[SW] Service Worker activated');
-        return self.clients.claim(); // Take control immediately
+        // Claim clients, but don't force it if it fails
+        return self.clients.claim().catch((error) => {
+          console.warn('[SW] Failed to claim clients:', error);
+          // Continue activation even if claim fails
+          return Promise.resolve();
+        });
+      })
+      .catch((error) => {
+        console.error('[SW] Activation failed:', error);
+        // Don't throw - allow activation to complete even if cache cleanup fails
+        return Promise.resolve();
       })
   );
 });
@@ -180,7 +200,7 @@ async function getOfflineFallback(request) {
             margin-top: 1rem;
             font-size: 1rem;
           }
-          button:hover { background: #1565c0; }
+          button:hover { background: #0b3565; }
         </style>
       </head>
       <body>

@@ -17,6 +17,10 @@ class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
   private updateAvailable = false;
   private callbacks: ServiceWorkerCallbacks = {};
+  private hasReloaded = false;
+  private reloadTimeout: number | null = null;
+  private readonly RELOAD_DEBOUNCE_MS = 200;
+  private readonly SESSION_STORAGE_KEY = 'sw-reload-pending';
 
   public async register(callbacks: ServiceWorkerCallbacks = {}): Promise<ServiceWorkerStatus> {
     this.callbacks = callbacks;
@@ -30,6 +34,15 @@ class ServiceWorkerManager {
         isUpdateAvailable: false,
         registration: null,
       };
+    }
+
+    // Check if we're recovering from a reload
+    const wasReloadPending = sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    if (wasReloadPending) {
+      // Clear the flag - we've successfully reloaded
+      sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+      this.hasReloaded = false; // Reset the flag for this session
+      console.log('[SW Manager] Recovered from reload, resetting reload state');
     }
 
     try {
@@ -101,9 +114,60 @@ class ServiceWorkerManager {
 
     // Listen for controller changes (new SW takes control)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[SW Manager] New service worker took control');
-      window.location.reload();
+      this.handleControllerChange();
     });
+  }
+
+  private handleControllerChange(): void {
+    // Prevent multiple reloads in the same session
+    if (this.hasReloaded) {
+      console.log('[SW Manager] Already reloaded in this session, skipping');
+      return;
+    }
+
+    // Check sessionStorage to prevent reload loops across page loads
+    const reloadPending = sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    if (reloadPending) {
+      console.log('[SW Manager] Reload already pending from previous page load, skipping');
+      return;
+    }
+
+    // Check if there's a registration
+    if (!this.registration) {
+      console.log('[SW Manager] No registration, skipping reload');
+      return;
+    }
+
+    // Check if we already have a controller (this means it's an update, not initial registration)
+    // On initial registration, navigator.serviceWorker.controller is null
+    const hasController = navigator.serviceWorker.controller !== null;
+
+    // Only reload if:
+    // 1. We have a controller (meaning this is an update, not initial registration)
+    // 2. OR there's a waiting/installing worker (update scenario)
+    const hasWaitingWorker = this.registration.waiting !== null;
+    const hasInstallingWorker = this.registration.installing !== null;
+
+    if (!hasController && !hasWaitingWorker && !hasInstallingWorker) {
+      // This is likely initial registration - don't reload
+      console.log('[SW Manager] Initial registration detected, no reload needed');
+      return;
+    }
+
+    // Clear any existing timeout
+    if (this.reloadTimeout !== null) {
+      clearTimeout(this.reloadTimeout);
+    }
+
+    // Set flag and sessionStorage before reload to prevent loops
+    this.hasReloaded = true;
+    sessionStorage.setItem(this.SESSION_STORAGE_KEY, 'true');
+
+    // Debounce reload to prevent rapid-fire reloads and ensure state is stable
+    this.reloadTimeout = window.setTimeout(() => {
+      console.log('[SW Manager] New service worker took control, reloading...');
+      window.location.reload();
+    }, this.RELOAD_DEBOUNCE_MS);
   }
 
   private handleServiceWorkerMessage(event: MessageEvent): void {
@@ -194,6 +258,15 @@ class ServiceWorkerManager {
     }
 
     try {
+      // Clear reload flag and sessionStorage
+      this.hasReloaded = false;
+      sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+
+      if (this.reloadTimeout !== null) {
+        clearTimeout(this.reloadTimeout);
+        this.reloadTimeout = null;
+      }
+
       const result = await this.registration.unregister();
       console.log('[SW Manager] Service Worker unregistered:', result);
       this.registration = null;

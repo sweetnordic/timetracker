@@ -50,7 +50,9 @@ export const Layout: React.FC = () => {
     palette: {
       mode: isDarkMode ? 'dark' : 'light',
       primary: {
-        main: '#1976d2',
+        main: isDarkMode ? '#104d93' : '#1976d2', // Darker blue for dark mode
+        light: isDarkMode ? '#1976d2' : '#42a5f5',
+        dark: isDarkMode ? '#0d47a1' : '#104d93',
       },
       background: {
         default: isDarkMode ? '#121212' : '#f5f5f5',
@@ -61,7 +63,7 @@ export const Layout: React.FC = () => {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: '#1976d2',
+            backgroundColor: isDarkMode ? '#0b3565' : '#1976d2', // Darker blue for dark mode
             color: '#ffffff',
           },
         },
