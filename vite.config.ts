@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     // Bundle analyzer - generates stats.html to analyze bundle size
     visualizer({
-      filename: 'dist/stats.html',
+      filename: 'output/stats.html',
       open: false,
       gzipSize: true,
       brotliSize: true,
