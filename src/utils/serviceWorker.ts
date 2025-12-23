@@ -46,9 +46,18 @@ class ServiceWorkerManager {
     }
 
     try {
-      // Register the service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
+      // Get base URL from Vite (e.g., '/' or '/timetracker/')
+      const baseUrl = import.meta.env.BASE_URL || '/';
+
+      // Normalize base URL: ensure it ends with '/' for scope, remove trailing slash for path
+      const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+      const swPath = baseUrl.endsWith('/')
+        ? `${baseUrl}sw.js`
+        : `${baseUrl}/sw.js`;
+
+      // Register the service worker with base path
+      this.registration = await navigator.serviceWorker.register(swPath, {
+        scope: normalizedBaseUrl,
       });
 
       console.log('[SW Manager] Service Worker registered:', this.registration.scope);
