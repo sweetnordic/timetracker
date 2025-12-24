@@ -8,7 +8,7 @@ import {
   FormControl,
   FormControlLabel,
   Switch,
-  FormHelperText
+  FormHelperText,
 } from '@mui/material';
 import type { TrackingSettings as TrackingSettingsType } from '../../models';
 
@@ -21,7 +21,7 @@ interface NotificationSettingsProps {
 export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   settings,
   onUpdate,
-  isLoading = false
+  isLoading = false,
 }) => {
   return (
     <Card>

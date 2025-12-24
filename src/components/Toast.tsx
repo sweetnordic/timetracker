@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  Alert,
-  IconButton,
-} from '@mui/material';
+import { Alert, IconButton } from '@mui/material';
 import type { AlertColor } from '@mui/material';
 import { Close } from '@mui/icons-material';
 

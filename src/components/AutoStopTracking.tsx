@@ -8,4 +8,3 @@ export const AutoStopTracking: React.FC = () => {
   useAutoStopTracking();
   return null;
 };
-

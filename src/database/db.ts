@@ -8,12 +8,12 @@ export interface TimeTrackerDB extends DBSchema {
   categories: {
     key: string;
     value: Category;
-    indexes: { 'by-order': number; };
+    indexes: { 'by-order': number };
   };
   activities: {
     key: string;
     value: Activity;
-    indexes: { 'by-category': string; 'by-order': number; };
+    indexes: { 'by-category': string; 'by-order': number };
   };
   timeEntries: {
     key: string;
@@ -139,7 +139,7 @@ class DatabaseService {
     try {
       const updatedActivity = {
         ...activity,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
       await this.db!.put('activities', updatedActivity);
     } catch (error) {
@@ -151,14 +151,18 @@ class DatabaseService {
     await this.ensureInitialized();
     try {
       const dbActivities = await this.db!.getAll('activities');
-      return dbActivities
-        .sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
+      return dbActivities.sort(
+        (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER),
+      );
     } catch (error) {
       this.handleError('getting activities', error);
     }
   }
 
-  async updateActivityOrder(activityId: string, newOrder: number): Promise<void> {
+  async updateActivityOrder(
+    activityId: string,
+    newOrder: number,
+  ): Promise<void> {
     await this.ensureInitialized();
     const tx = this.db!.transaction('activities', 'readwrite');
     try {
@@ -186,7 +190,7 @@ class DatabaseService {
         id: uuidv4(),
         ...entry,
         createdAt: entry.createdAt || new Date(),
-        updatedAt: entry.updatedAt || new Date()
+        updatedAt: entry.updatedAt || new Date(),
       };
       await this.db!.add('timeEntries', dbEntry);
       return dbEntry.id;
@@ -200,7 +204,7 @@ class DatabaseService {
     try {
       const dbEntry = {
         ...entry,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
       await this.db!.put('timeEntries', dbEntry);
     } catch (error) {
@@ -230,7 +234,8 @@ class DatabaseService {
   async getTimeEntriesByActivity(activityId: string): Promise<TimeEntry[]> {
     await this.ensureInitialized();
     try {
-      const index = this.db!.transaction('timeEntries').store.index('by-activity');
+      const index =
+        this.db!.transaction('timeEntries').store.index('by-activity');
       const dbEntries = await index.getAll(activityId);
       return dbEntries;
     } catch (error) {
@@ -271,7 +276,10 @@ class DatabaseService {
     return dbCategories;
   }
 
-  async updateCategoryOrder(categoryId: string, newOrder: number): Promise<void> {
+  async updateCategoryOrder(
+    categoryId: string,
+    newOrder: number,
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
     const tx = this.db.transaction('categories', 'readwrite');
     const store = tx.objectStore('categories');
@@ -292,7 +300,7 @@ class DatabaseService {
     try {
       const updatedCategory = {
         ...category,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
       await this.db.put('categories', updatedCategory);
     } catch (error) {
@@ -316,8 +324,11 @@ class DatabaseService {
     try {
       const allDbEntries = await this.db.getAll('timeEntries');
       return allDbEntries
-        .filter(entry => entry.endTime === null)
-        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        .filter((entry) => entry.endTime === null)
+        .sort(
+          (a, b) =>
+            new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+        );
     } catch (error) {
       console.error('Error getting open time entries:', error);
       throw error;
@@ -356,7 +367,7 @@ class DatabaseService {
     if (!goal.id) throw new Error('Goal ID is required for update');
     const updatedGoal = {
       ...goal,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     await this.db.put('goals', updatedGoal);
   }
@@ -404,14 +415,16 @@ class DatabaseService {
     }
 
     const entries = await this.getTimeEntriesByActivity(dbGoal.activityId);
-    const relevantEntries = entries.filter(entry =>
-      entry.endTime &&
-      new Date(entry.startTime) >= startDate &&
-      new Date(entry.startTime) <= now
+    const relevantEntries = entries.filter(
+      (entry) =>
+        entry.endTime &&
+        new Date(entry.startTime) >= startDate &&
+        new Date(entry.startTime) <= now,
     );
 
-    const totalSeconds = relevantEntries.reduce((total, entry) =>
-      total + (entry.duration || 0), 0
+    const totalSeconds = relevantEntries.reduce(
+      (total, entry) => total + (entry.duration || 0),
+      0,
     );
 
     return totalSeconds / 3600; // Convert to hours

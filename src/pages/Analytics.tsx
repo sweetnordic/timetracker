@@ -76,7 +76,7 @@ export const Analytics: React.FC = () => {
 
     const filteredEntries = timeEntries.filter(
       (entry: TimeEntry) =>
-        new Date(entry.startTime) >= startDate && entry.endTime !== null
+        new Date(entry.startTime) >= startDate && entry.endTime !== null,
     );
 
     const stats: WeeklyStats = {
@@ -104,7 +104,7 @@ export const Analytics: React.FC = () => {
         stats.totalTime += entry.duration;
 
         const activity = activities.find(
-          (a: Activity) => a.id === entry.activityId
+          (a: Activity) => a.id === entry.activityId,
         );
         if (activity) {
           // Update activity totals
@@ -147,16 +147,16 @@ export const Analytics: React.FC = () => {
     for (const goal of goals) {
       // Calculate progress for this goal
       const goalEntries = filteredEntries.filter(
-        (entry: TimeEntry) => entry.activityId === goal.activityId
+        (entry: TimeEntry) => entry.activityId === goal.activityId,
       );
       const progress =
         goalEntries.reduce(
           (sum: number, entry: TimeEntry) => sum + (entry.duration || 0),
-          0
+          0,
         ) / 3600; // Convert to hours
       const progressPercentage = (progress / goal.targetHours) * 100;
       const activity = activities.find(
-        (a: Activity) => a.id === goal.activityId
+        (a: Activity) => a.id === goal.activityId,
       );
 
       if (activity) {
@@ -421,7 +421,7 @@ export const Analytics: React.FC = () => {
                                     ? formatDuration(
                                         weeklyStats.dailyBreakdown[activity][
                                           day
-                                        ]
+                                        ],
                                       )
                                     : '-'}
                                 </TableCell>
@@ -517,7 +517,7 @@ export const Analytics: React.FC = () => {
                         />
                       </Paper>
                     </Grid>
-                  )
+                  ),
                 )}
               </Grid>
             </Box>

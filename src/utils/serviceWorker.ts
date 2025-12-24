@@ -22,7 +22,9 @@ class ServiceWorkerManager {
   private readonly RELOAD_DEBOUNCE_MS = 200;
   private readonly SESSION_STORAGE_KEY = 'sw-reload-pending';
 
-  public async register(callbacks: ServiceWorkerCallbacks = {}): Promise<ServiceWorkerStatus> {
+  public async register(
+    callbacks: ServiceWorkerCallbacks = {},
+  ): Promise<ServiceWorkerStatus> {
     this.callbacks = callbacks;
 
     // Check if service workers are supported
@@ -37,7 +39,8 @@ class ServiceWorkerManager {
     }
 
     // Check if we're recovering from a reload
-    const wasReloadPending = sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    const wasReloadPending =
+      sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
     if (wasReloadPending) {
       // Clear the flag - we've successfully reloaded
       sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
@@ -60,7 +63,10 @@ class ServiceWorkerManager {
         scope: normalizedBaseUrl,
       });
 
-      console.log('[SW Manager] Service Worker registered:', this.registration.scope);
+      console.log(
+        '[SW Manager] Service Worker registered:',
+        this.registration.scope,
+      );
 
       // Set up event listeners
       this.setupEventListeners();
@@ -135,9 +141,12 @@ class ServiceWorkerManager {
     }
 
     // Check sessionStorage to prevent reload loops across page loads
-    const reloadPending = sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    const reloadPending =
+      sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
     if (reloadPending) {
-      console.log('[SW Manager] Reload already pending from previous page load, skipping');
+      console.log(
+        '[SW Manager] Reload already pending from previous page load, skipping',
+      );
       return;
     }
 
@@ -159,7 +168,9 @@ class ServiceWorkerManager {
 
     if (!hasController && !hasWaitingWorker && !hasInstallingWorker) {
       // This is likely initial registration - don't reload
-      console.log('[SW Manager] Initial registration detected, no reload needed');
+      console.log(
+        '[SW Manager] Initial registration detected, no reload needed',
+      );
       return;
     }
 
@@ -186,12 +197,16 @@ class ServiceWorkerManager {
       case 'SYNC_COMPLETE':
         console.log('[SW Manager] Background sync completed:', data);
         // Dispatch custom event for app to listen to
-        window.dispatchEvent(new CustomEvent('sw-sync-complete', { detail: data }));
+        window.dispatchEvent(
+          new CustomEvent('sw-sync-complete', { detail: data }),
+        );
         break;
 
       case 'CACHE_UPDATE':
         console.log('[SW Manager] Cache updated:', data);
-        window.dispatchEvent(new CustomEvent('sw-cache-update', { detail: data }));
+        window.dispatchEvent(
+          new CustomEvent('sw-cache-update', { detail: data }),
+        );
         break;
 
       default:
@@ -233,14 +248,21 @@ class ServiceWorkerManager {
         register: (tag: string) => Promise<void>;
       };
     }
-    const registrationWithSync = this.registration as ServiceWorkerRegistrationWithSync;
+    const registrationWithSync = this
+      .registration as ServiceWorkerRegistrationWithSync;
 
     if (registrationWithSync.sync) {
-      registrationWithSync.sync.register('cache-maintenance').then(() => {
-        console.log('[SW Manager] Cache maintenance scheduled');
-      }).catch((error: Error) => {
-        console.error('[SW Manager] Failed to schedule cache maintenance:', error);
-      });
+      registrationWithSync.sync
+        .register('cache-maintenance')
+        .then(() => {
+          console.log('[SW Manager] Cache maintenance scheduled');
+        })
+        .catch((error: Error) => {
+          console.error(
+            '[SW Manager] Failed to schedule cache maintenance:',
+            error,
+          );
+        });
     }
   }
 
@@ -256,7 +278,7 @@ class ServiceWorkerManager {
   public cacheUrls(urls: string[]): void {
     this.sendMessage({
       type: 'CACHE_URLS',
-      data: { urls }
+      data: { urls },
     });
   }
 
@@ -303,11 +325,9 @@ export const serviceWorkerManager = new ServiceWorkerManager();
 export const registerServiceWorker = (callbacks?: ServiceWorkerCallbacks) =>
   serviceWorkerManager.register(callbacks);
 
-export const checkForSWUpdates = () =>
-  serviceWorkerManager.checkForUpdates();
+export const checkForSWUpdates = () => serviceWorkerManager.checkForUpdates();
 
-export const activateSWUpdate = () =>
-  serviceWorkerManager.activateUpdate();
+export const activateSWUpdate = () => serviceWorkerManager.activateUpdate();
 
 export const scheduleCacheMaintenance = () =>
   serviceWorkerManager.scheduleCacheMaintenance();
@@ -336,6 +356,7 @@ export const getNetworkStatus = () => {
   const nav = navigator as Navigator & NetworkInformation;
   return {
     online: navigator.onLine,
-    connection: nav.connection || nav.mozConnection || nav.webkitConnection || undefined,
+    connection:
+      nav.connection || nav.mozConnection || nav.webkitConnection || undefined,
   };
 };

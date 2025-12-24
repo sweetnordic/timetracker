@@ -42,8 +42,13 @@ export const useUpdateActivityOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ activityId, newOrder }: { activityId: string; newOrder: number }) =>
-      db.updateActivityOrder(activityId, newOrder),
+    mutationFn: ({
+      activityId,
+      newOrder,
+    }: {
+      activityId: string;
+      newOrder: number;
+    }) => db.updateActivityOrder(activityId, newOrder),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ACTIVITIES_QUERY_KEY] });
     },

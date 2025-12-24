@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { visualizer } from 'rollup-plugin-visualizer'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -28,30 +28,23 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
 
           // Material-UI core
-          'ui': [
-            '@mui/material',
-            '@emotion/react',
-            '@emotion/styled'
-          ],
+          ui: ['@mui/material', '@emotion/react', '@emotion/styled'],
 
           // Material-UI icons and date pickers (large dependencies)
-          'ui-extended': [
-            '@mui/icons-material',
-            '@mui/x-date-pickers'
-          ],
+          'ui-extended': ['@mui/icons-material', '@mui/x-date-pickers'],
 
           // React Query
-          'query': ['@tanstack/react-query'],
+          query: ['@tanstack/react-query'],
 
           // Router
-          'router': ['react-router', 'react-router-dom'],
+          router: ['react-router', 'react-router-dom'],
 
           // Database and utilities
-          'database': ['idb'],
-          'utils': ['uuid', 'date-fns', 'zod'],
+          database: ['idb'],
+          utils: ['uuid', 'date-fns', 'zod'],
 
           // Form handling
-          'forms': ['react-hook-form', '@hookform/resolvers'],
+          forms: ['react-hook-form', '@hookform/resolvers'],
         },
 
         // Dynamic chunk naming for better caching
@@ -78,4 +71,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

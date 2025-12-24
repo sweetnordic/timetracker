@@ -238,7 +238,7 @@ export const Layout: React.FC = () => {
             <Tooltip
               title={isOnline ? 'Online - PWA Ready' : 'Offline - PWA Ready'}
             >
-              <IconButton color="inherit" sx={{ ml: 1 }} >
+              <IconButton color="inherit" sx={{ ml: 1 }}>
                 {isOnline ? <Cloud /> : <CloudOff />}
               </IconButton>
             </Tooltip>

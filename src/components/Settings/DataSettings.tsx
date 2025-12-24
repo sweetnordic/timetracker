@@ -7,7 +7,7 @@ import {
   Stack,
   Typography,
   Alert,
-  Box
+  Box,
 } from '@mui/material';
 import { DeleteForever, Download, Upload } from '@mui/icons-material';
 import { DeleteConfirmationDialog } from '../DeleteConfirmationDialog';
@@ -20,7 +20,7 @@ interface DataSettingsProps {
 
 export const DataSettings: React.FC<DataSettingsProps> = ({
   onResetDatabase,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDataDialog, setShowDataDialog] = useState(false);
@@ -49,7 +49,8 @@ export const DataSettings: React.FC<DataSettingsProps> = ({
                 Export Data
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                Export all your activities, time entries, categories, and goals to a JSON file.
+                Export all your activities, time entries, categories, and goals
+                to a JSON file.
               </Typography>
               <Button
                 variant="outlined"
@@ -85,7 +86,8 @@ export const DataSettings: React.FC<DataSettingsProps> = ({
                 Danger Zone
               </Typography>
               <Alert severity="warning" sx={{ mb: 2 }}>
-                This will permanently delete all your data. This action cannot be undone.
+                This will permanently delete all your data. This action cannot
+                be undone.
               </Alert>
               <Button
                 variant="outlined"

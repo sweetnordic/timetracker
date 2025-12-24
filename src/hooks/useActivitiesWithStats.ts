@@ -7,8 +7,13 @@ import type { ActivityWithStats, Activity, TimeEntry, Goal } from '../models';
  * Memoized to prevent unnecessary recalculations
  */
 export const useActivitiesWithStats = () => {
-  const { data: dbActivities = [], isLoading: activitiesLoading, error: activitiesError } = useActivities();
-  const { data: allTimeEntries = [], isLoading: entriesLoading } = useTimeEntries();
+  const {
+    data: dbActivities = [],
+    isLoading: activitiesLoading,
+    error: activitiesError,
+  } = useActivities();
+  const { data: allTimeEntries = [], isLoading: entriesLoading } =
+    useTimeEntries();
   const { data: allGoals = [], isLoading: goalsLoading } = useGoals();
 
   // Memoize activity statistics calculation
@@ -17,12 +22,14 @@ export const useActivitiesWithStats = () => {
 
     return dbActivities.map((activity: Activity) => {
       // Calculate total duration for this activity
-      const activityTimeEntries = allTimeEntries.filter((entry: TimeEntry) =>
-        entry.activityId === activity.id && entry.duration !== null
+      const activityTimeEntries = allTimeEntries.filter(
+        (entry: TimeEntry) =>
+          entry.activityId === activity.id && entry.duration !== null,
       );
 
-      const totalDuration = activityTimeEntries.reduce((total: number, entry: TimeEntry) =>
-        total + (entry.duration || 0), 0
+      const totalDuration = activityTimeEntries.reduce(
+        (total: number, entry: TimeEntry) => total + (entry.duration || 0),
+        0,
       );
 
       return {
@@ -34,13 +41,16 @@ export const useActivitiesWithStats = () => {
 
   // Memoize activities grouped by category
   const activitiesByCategory = useMemo(() => {
-    return activitiesWithStats.reduce((acc, activity) => {
-      if (!acc[activity.category]) {
-        acc[activity.category] = [];
-      }
-      acc[activity.category].push(activity);
-      return acc;
-    }, {} as Record<string, ActivityWithStats[]>);
+    return activitiesWithStats.reduce(
+      (acc, activity) => {
+        if (!acc[activity.category]) {
+          acc[activity.category] = [];
+        }
+        acc[activity.category].push(activity);
+        return acc;
+      },
+      {} as Record<string, ActivityWithStats[]>,
+    );
   }, [activitiesWithStats]);
 
   // Memoize goal progress calculations
@@ -48,12 +58,15 @@ export const useActivitiesWithStats = () => {
     const progressMap = new Map<string, number>();
 
     allGoals.forEach((goal: Goal) => {
-      const activityEntries = allTimeEntries.filter((entry: TimeEntry) =>
-        entry.activityId === goal.activityId && entry.duration !== null
+      const activityEntries = allTimeEntries.filter(
+        (entry: TimeEntry) =>
+          entry.activityId === goal.activityId && entry.duration !== null,
       );
 
-      const totalHours = activityEntries.reduce((total: number, entry: TimeEntry) =>
-        total + ((entry.duration || 0) / 3600), 0
+      const totalHours = activityEntries.reduce(
+        (total: number, entry: TimeEntry) =>
+          total + (entry.duration || 0) / 3600,
+        0,
       );
 
       const progressPercentage = (totalHours / goal.targetHours) * 100;

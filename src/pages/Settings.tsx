@@ -6,7 +6,7 @@ import {
   Stack,
   Button,
   Paper,
-  Divider
+  Divider,
 } from '@mui/material';
 import { Save, RestartAlt } from '@mui/icons-material';
 import { useSettings } from '../hooks/useSettings';
@@ -16,11 +16,12 @@ import {
   TrackingSettings,
   NotificationSettings,
   AppearanceSettings,
-  DataSettings
+  DataSettings,
 } from '../components/Settings';
 
 export const Settings: React.FC = () => {
-  const { settings, updateSettings, updateSetting, resetSettings } = useSettings();
+  const { settings, updateSettings, updateSetting, resetSettings } =
+    useSettings();
   const { showSuccess, showError } = useToast();
   const clearAllData = useClearAllData();
   const [localSettings, setLocalSettings] = useState(settings);
@@ -94,10 +95,7 @@ export const Settings: React.FC = () => {
         </Box>
 
         <Stack spacing={4}>
-          <TrackingSettings
-            settings={localSettings}
-            onUpdate={handleUpdate}
-          />
+          <TrackingSettings settings={localSettings} onUpdate={handleUpdate} />
 
           <NotificationSettings
             settings={localSettings}

@@ -11,7 +11,10 @@ export * from './useActivitiesWithStats';
 
 // Time Entries
 export * from './useTimeEntries';
-export { TIME_ENTRIES_QUERY_KEY, OPEN_TIME_ENTRIES_QUERY_KEY } from './useTimeEntries';
+export {
+  TIME_ENTRIES_QUERY_KEY,
+  OPEN_TIME_ENTRIES_QUERY_KEY,
+} from './useTimeEntries';
 
 // Settings (now LocalStorage-based)
 export * from './useSettings';

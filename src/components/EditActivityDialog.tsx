@@ -17,12 +17,12 @@ import {
   Tooltip,
   FormControl,
   InputLabel,
-  Select
+  Select,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
-  TrendingUp as GoalIcon
+  TrendingUp as GoalIcon,
 } from '@mui/icons-material';
 import type { Activity, Period } from '../models';
 import { useGoalsByActivity, useAddGoal, useDeleteGoal } from '../hooks';
@@ -43,19 +43,19 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   categories,
   onClose,
   onSave,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     description: '',
-    externalSystem: ''
+    externalSystem: '',
   });
 
   const [newGoal, setNewGoal] = useState({
     targetHours: 8,
     period: 'weekly' as Period,
-    notificationThreshold: 80
+    notificationThreshold: 80,
   });
 
   const { showSuccess, showError } = useToast();
@@ -71,14 +71,14 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
         name: activity.name || '',
         category: activity.category || '',
         description: activity.description || '',
-        externalSystem: activity.externalSystem || ''
+        externalSystem: activity.externalSystem || '',
       });
     } else {
       setFormData({
         name: '',
         category: '',
         description: '',
-        externalSystem: ''
+        externalSystem: '',
       });
     }
   }, [activity]);
@@ -92,7 +92,7 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
       category: formData.category,
       description: formData.description,
       externalSystem: formData.externalSystem,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     try {
@@ -108,12 +108,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
       name: '',
       category: '',
       description: '',
-      externalSystem: ''
+      externalSystem: '',
     });
     setNewGoal({
       targetHours: 8,
       period: 'weekly',
-      notificationThreshold: 80
+      notificationThreshold: 80,
     });
     onClose();
   };
@@ -128,12 +128,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
         period: newGoal.period,
         notificationThreshold: newGoal.notificationThreshold,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
       setNewGoal({
         targetHours: 8,
         period: 'weekly',
-        notificationThreshold: 80
+        notificationThreshold: 80,
       });
       showSuccess('Goal added successfully');
     } catch (error) {
@@ -153,18 +153,28 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !isLoading && formData.name.trim() && formData.category.trim()) {
+    if (
+      event.key === 'Enter' &&
+      !isLoading &&
+      formData.name.trim() &&
+      formData.category.trim()
+    ) {
       handleSave();
     }
   };
 
   const formatPeriod = (period: Period) => {
     switch (period) {
-      case 'daily': return 'Daily';
-      case 'weekly': return 'Weekly';
-      case 'monthly': return 'Monthly';
-      case 'yearly': return 'Yearly';
-      default: return period;
+      case 'daily':
+        return 'Daily';
+      case 'weekly':
+        return 'Weekly';
+      case 'monthly':
+        return 'Monthly';
+      case 'yearly':
+        return 'Yearly';
+      default:
+        return period;
     }
   };
 
@@ -179,21 +189,33 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
             label="Activity Name"
             fullWidth
             value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, name: e.target.value }))
+            }
             onKeyPress={handleKeyPress}
             disabled={isLoading}
             error={!formData.name.trim() && formData.name.length > 0}
-            helperText={!formData.name.trim() && formData.name.length > 0 ? 'Activity name is required' : ''}
+            helperText={
+              !formData.name.trim() && formData.name.length > 0
+                ? 'Activity name is required'
+                : ''
+            }
           />
           <TextField
             select
             label="Category"
             fullWidth
             value={formData.category}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, category: e.target.value }))
+            }
             disabled={isLoading}
             error={!formData.category.trim() && formData.category.length > 0}
-            helperText={!formData.category.trim() && formData.category.length > 0 ? 'Category is required' : ''}
+            helperText={
+              !formData.category.trim() && formData.category.length > 0
+                ? 'Category is required'
+                : ''
+            }
           >
             <MenuItem value="">
               <em>Select a category</em>
@@ -210,7 +232,9 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
             multiline
             rows={3}
             value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, description: e.target.value }))
+            }
             disabled={isLoading}
             helperText="Optional description for this activity"
           />
@@ -218,7 +242,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
             label="External System"
             fullWidth
             value={formData.externalSystem}
-            onChange={(e) => setFormData(prev => ({ ...prev, externalSystem: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                externalSystem: e.target.value,
+              }))
+            }
             disabled={isLoading}
             helperText="Optional reference to external system or project"
           />
@@ -227,7 +256,11 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
 
           {/* Goal Settings */}
           <Box>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+            >
               <GoalIcon />
               Goal Settings
             </Typography>
@@ -238,10 +271,17 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
                 {goals.map((goal) => (
                   <Card key={goal.id} variant="outlined">
                     <CardContent sx={{ py: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
                         <Box>
                           <Typography variant="subtitle2">
-                            {goal.targetHours}h per {formatPeriod(goal.period).toLowerCase()}
+                            {goal.targetHours}h per{' '}
+                            {formatPeriod(goal.period).toLowerCase()}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             Notification at {goal.notificationThreshold}%
@@ -274,7 +314,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
                     size="small"
                     fullWidth
                     value={newGoal.targetHours}
-                    onChange={(e) => setNewGoal(prev => ({ ...prev, targetHours: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setNewGoal((prev) => ({
+                        ...prev,
+                        targetHours: Number(e.target.value),
+                      }))
+                    }
                     inputProps={{ min: 0.5, max: 24, step: 0.5 }}
                   />
                   <FormControl size="small" fullWidth>
@@ -282,7 +327,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
                     <Select
                       value={newGoal.period}
                       label="Period"
-                      onChange={(e) => setNewGoal(prev => ({ ...prev, period: e.target.value as Period }))}
+                      onChange={(e) =>
+                        setNewGoal((prev) => ({
+                          ...prev,
+                          period: e.target.value as Period,
+                        }))
+                      }
                     >
                       <MenuItem value="daily">Daily</MenuItem>
                       <MenuItem value="weekly">Weekly</MenuItem>
@@ -296,7 +346,12 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
                     size="small"
                     fullWidth
                     value={newGoal.notificationThreshold}
-                    onChange={(e) => setNewGoal(prev => ({ ...prev, notificationThreshold: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setNewGoal((prev) => ({
+                        ...prev,
+                        notificationThreshold: Number(e.target.value),
+                      }))
+                    }
                     inputProps={{ min: 10, max: 100, step: 5 }}
                   />
                   <Button
@@ -322,7 +377,9 @@ export const EditActivityDialog: React.FC<EditActivityDialogProps> = ({
         <Button
           onClick={handleSave}
           variant="contained"
-          disabled={isLoading || !formData.name.trim() || !formData.category.trim()}
+          disabled={
+            isLoading || !formData.name.trim() || !formData.category.trim()
+          }
         >
           {isLoading ? 'Saving...' : 'Save'}
         </Button>

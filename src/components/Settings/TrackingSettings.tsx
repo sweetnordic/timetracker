@@ -11,7 +11,7 @@ import {
   FormControlLabel,
   Radio,
   FormHelperText,
-  Switch
+  Switch,
 } from '@mui/material';
 import type { TrackingSettings as TrackingSettingsType } from '../../models';
 
@@ -24,7 +24,7 @@ interface TrackingSettingsProps {
 export const TrackingSettings: React.FC<TrackingSettingsProps> = ({
   settings,
   onUpdate,
-  isLoading = false
+  isLoading = false,
 }) => {
   return (
     <Card>
@@ -99,7 +99,8 @@ export const TrackingSettings: React.FC<TrackingSettingsProps> = ({
               label="Stop Tracking on App Close"
             />
             <FormHelperText>
-              When enabled, time tracking will automatically stop when you close the app or tab
+              When enabled, time tracking will automatically stop when you close
+              the app or tab
             </FormHelperText>
           </FormControl>
           <FormControl disabled={isLoading}>
@@ -117,7 +118,8 @@ export const TrackingSettings: React.FC<TrackingSettingsProps> = ({
               label="Stop Tracking on Tab Switch"
             />
             <FormHelperText>
-              When enabled, time tracking will automatically stop when you switch to another tab or minimize the window
+              When enabled, time tracking will automatically stop when you
+              switch to another tab or minimize the window
             </FormHelperText>
           </FormControl>
         </Stack>

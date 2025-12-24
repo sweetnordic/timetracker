@@ -81,11 +81,11 @@ export const TimeTracker: React.FC = () => {
       // Calculate total duration for this activity
       const activityTimeEntries = allTimeEntries.filter(
         (entry: TimeEntry) =>
-          entry.activityId === dbActivity.id && entry.duration !== null
+          entry.activityId === dbActivity.id && entry.duration !== null,
       );
       const totalDuration = activityTimeEntries.reduce(
         (total: number, entry: TimeEntry) => total + (entry.duration || 0),
-        0
+        0,
       );
 
       return {
@@ -114,18 +114,21 @@ export const TimeTracker: React.FC = () => {
 
   // Query for time entries when detail dialog is open
   const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(
-    selectedActivity?.id || ''
+    selectedActivity?.id || '',
   );
 
   // Group activities by category for better organization
   const activitiesByCategory = useMemo(() => {
-    const grouped = activities.reduce((acc, activity) => {
-      if (!acc[activity.category]) {
-        acc[activity.category] = [];
-      }
-      acc[activity.category].push(activity);
-      return acc;
-    }, {} as Record<string, ActivityWithStats[]>);
+    const grouped = activities.reduce(
+      (acc, activity) => {
+        if (!acc[activity.category]) {
+          acc[activity.category] = [];
+        }
+        acc[activity.category].push(activity);
+        return acc;
+      },
+      {} as Record<string, ActivityWithStats[]>,
+    );
     return grouped;
   }, [activities]);
 
@@ -136,7 +139,7 @@ export const TimeTracker: React.FC = () => {
 
     if (inProgressEntry) {
       const activity = activities.find(
-        (a) => a.id === inProgressEntry.activityId
+        (a) => a.id === inProgressEntry.activityId,
       );
       if (activity) {
         setCurrentActivity(activity);
@@ -145,7 +148,7 @@ export const TimeTracker: React.FC = () => {
         const elapsed = Math.floor(
           (new Date().getTime() -
             new Date(inProgressEntry.startTime).getTime()) /
-            1000
+            1000,
         );
         setElapsedTime(elapsed);
       }
@@ -173,7 +176,7 @@ export const TimeTracker: React.FC = () => {
       // Find the most recent open entry for this activity
       const openEntry = dbOpenEntries.find(
         (entry) =>
-          entry.activityId === currentActivity.id && entry.endTime === null
+          entry.activityId === currentActivity.id && entry.endTime === null,
       );
 
       if (openEntry) {
@@ -233,7 +236,7 @@ export const TimeTracker: React.FC = () => {
       interval = window.setInterval(() => {
         const now = new Date();
         const elapsed = Math.floor(
-          (now.getTime() - startTime.getTime()) / 1000
+          (now.getTime() - startTime.getTime()) / 1000,
         );
         setElapsedTime(elapsed);
 
@@ -344,7 +347,7 @@ export const TimeTracker: React.FC = () => {
   // Calculate goal progress for an activity
   const getGoalProgress = (activity: ActivityWithStats) => {
     const activityGoals = allGoals.filter(
-      (goal) => goal.activityId === activity.id
+      (goal) => goal.activityId === activity.id,
     );
     if (activityGoals.length === 0) return null;
 
@@ -381,17 +384,17 @@ export const TimeTracker: React.FC = () => {
         entry.activityId === activity.id &&
         entry.endTime &&
         new Date(entry.startTime) >= startDate &&
-        new Date(entry.startTime) <= now
+        new Date(entry.startTime) <= now,
     );
 
     const progressSeconds = relevantEntries.reduce(
       (total: number, entry: TimeEntry) => total + (entry.duration || 0),
-      0
+      0,
     );
     const progressHours = progressSeconds / 3600;
     const progressPercentage = Math.min(
       (progressHours / goal.targetHours) * 100,
-      100
+      100,
     );
 
     return {
@@ -843,7 +846,7 @@ export const TimeTracker: React.FC = () => {
                     ))}
                   </Box>
                 </Box>
-              )
+              ),
             )
           )}
         </Box>
@@ -892,7 +895,7 @@ export const TimeTracker: React.FC = () => {
       <ExtendTimeDialog
         open={showExtendDialog}
         remainingMinutes={Math.ceil(
-          (trackingSettings.maxDuration - elapsedTime) / 60
+          (trackingSettings.maxDuration - elapsedTime) / 60,
         )}
         onExtend={handleExtendTime}
         onStop={handleStopFromDialog}

@@ -77,7 +77,7 @@ export const ActivityManager: React.FC = () => {
   const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
-    null
+    null,
   );
 
   // Use ref to track if order fixing has been performed to prevent infinite loops
@@ -85,10 +85,10 @@ export const ActivityManager: React.FC = () => {
 
   // Sort categories and activities by order
   const sortedCategories = [...categories].sort(
-    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)
+    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER),
   );
   const sortedActivities = [...activities].sort(
-    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER)
+    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER),
   );
 
   // Fix activities with duplicate order values (only once)
@@ -106,7 +106,7 @@ export const ActivityManager: React.FC = () => {
 
       // If there are duplicate orders, fix them
       const hasDuplicates = Array.from(orderCounts.values()).some(
-        (count) => count > 1
+        (count) => count > 1,
       );
       if (hasDuplicates) {
         console.log('Fixing duplicate activity orders...');
@@ -115,7 +115,7 @@ export const ActivityManager: React.FC = () => {
         const duplicateActivities = activities.filter(
           (activity) =>
             activity.order === DEFAULT_ORDER ||
-            activities.filter((a) => a.order === activity.order).length > 1
+            activities.filter((a) => a.order === activity.order).length > 1,
         );
 
         duplicateActivities.forEach((activity, index) => {
@@ -234,7 +234,7 @@ export const ActivityManager: React.FC = () => {
 
   const handleMoveCategory = async (
     categoryId: string,
-    direction: 'up' | 'down'
+    direction: 'up' | 'down',
   ) => {
     const currentIndex = sortedCategories.findIndex((c) => c.id === categoryId);
     if (currentIndex === -1) return;
@@ -299,7 +299,7 @@ export const ActivityManager: React.FC = () => {
 
   const handleMoveActivity = async (
     activityId: string,
-    direction: 'up' | 'down'
+    direction: 'up' | 'down',
   ) => {
     const currentIndex = sortedActivities.findIndex((a) => a.id === activityId);
     if (currentIndex === -1) return;

@@ -7,7 +7,7 @@ import {
   FormControl,
   FormControlLabel,
   Switch,
-  FormHelperText
+  FormHelperText,
 } from '@mui/material';
 import { LightMode, DarkMode } from '@mui/icons-material';
 import type { TrackingSettings as TrackingSettingsType } from '../../models';
@@ -21,7 +21,7 @@ interface AppearanceSettingsProps {
 export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
   settings,
   onUpdate,
-  isLoading = false
+  isLoading = false,
 }) => {
   return (
     <Card>
@@ -44,9 +44,7 @@ export const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
               }
               label={settings.darkMode ? 'Dark Mode' : 'Light Mode'}
             />
-            <FormHelperText>
-              Toggle between light and dark theme
-            </FormHelperText>
+            <FormHelperText>Toggle between light and dark theme</FormHelperText>
           </FormControl>
         </Stack>
       </CardContent>

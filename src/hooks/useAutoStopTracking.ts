@@ -21,7 +21,9 @@ export const useAutoStopTracking = () => {
         if (entry.endTime === null) {
           const now = new Date();
           const startTime = new Date(entry.startTime);
-          const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+          const duration = Math.floor(
+            (now.getTime() - startTime.getTime()) / 1000,
+          );
 
           // Round up to nearest 15 minutes (900 seconds)
           const roundedDuration = Math.ceil(duration / 900) * 900;
@@ -89,6 +91,10 @@ export const useAutoStopTracking = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [openEntries, updateTimeEntry, settings.stopTrackingOnClose, settings.stopTrackingOnTabSwitch]);
+  }, [
+    openEntries,
+    updateTimeEntry,
+    settings.stopTrackingOnClose,
+    settings.stopTrackingOnTabSwitch,
+  ]);
 };
-

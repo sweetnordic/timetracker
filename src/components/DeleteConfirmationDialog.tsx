@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography
+  Typography,
 } from '@mui/material';
 
 interface DeleteConfirmationDialogProps {
@@ -18,14 +18,16 @@ interface DeleteConfirmationDialogProps {
   confirmButtonText?: string;
 }
 
-export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
+export const DeleteConfirmationDialog: React.FC<
+  DeleteConfirmationDialogProps
+> = ({
   open,
   title,
   message,
   onClose,
   onConfirm,
   isLoading = false,
-  confirmButtonText = 'Delete'
+  confirmButtonText = 'Delete',
 }) => {
   return (
     <Dialog open={open} onClose={onClose}>

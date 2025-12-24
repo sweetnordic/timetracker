@@ -10,7 +10,11 @@ function getBasePath() {
   // Remove /sw.js from the path to get base path
   const basePath = swPath.replace(/\/sw\.js$/, '');
   // Normalize to ensure it ends with / (or is just /)
-  return basePath === '' ? '/' : (basePath.endsWith('/') ? basePath : basePath + '/');
+  return basePath === ''
+    ? '/'
+    : basePath.endsWith('/')
+      ? basePath
+      : basePath + '/';
 }
 
 const BASE_PATH = getBasePath();
@@ -46,7 +50,7 @@ const OFFLINE_PAGES = [
   resolvePath('/#/tracker'),
   resolvePath('/#/manager'),
   resolvePath('/#/analytics'),
-  resolvePath('/#/help')
+  resolvePath('/#/help'),
 ];
 
 // Install event - cache static assets
@@ -54,7 +58,8 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
 
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
+    caches
+      .open(STATIC_CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS).catch((error) => {
@@ -75,7 +80,7 @@ self.addEventListener('install', (event) => {
         // Even if caching fails, skip waiting so the SW can activate
         // This prevents the SW from being stuck in installing state
         return self.skipWaiting();
-      })
+      }),
   );
 });
 
@@ -84,17 +89,20 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
 
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE_NAME &&
-                cacheName !== DYNAMIC_CACHE_NAME &&
-                cacheName !== CACHE_NAME) {
+            if (
+              cacheName !== STATIC_CACHE_NAME &&
+              cacheName !== DYNAMIC_CACHE_NAME &&
+              cacheName !== CACHE_NAME
+            ) {
               console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
-          })
+          }),
         );
       })
       .then(() => {
@@ -110,7 +118,7 @@ self.addEventListener('activate', (event) => {
         console.error('[SW] Activation failed:', error);
         // Don't throw - allow activation to complete even if cache cleanup fails
         return Promise.resolve();
-      })
+      }),
   );
 });
 
@@ -241,9 +249,9 @@ async function getOfflineFallback(request) {
     {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'no-cache'
-      }
-    }
+        'Cache-Control': 'no-cache',
+      },
+    },
   );
 }
 
@@ -261,18 +269,19 @@ function isAppRoute(request) {
   const basePathNoSlash = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
 
   // Check if pathname is within base path
-  const isBasePath = url.pathname === rootPath ||
-                     url.pathname === indexPath ||
-                     url.pathname === basePathNoSlash ||
-                     url.pathname === basePathNoSlash + '/' ||
-                     url.pathname === basePathNoSlash + '/index.html';
+  const isBasePath =
+    url.pathname === rootPath ||
+    url.pathname === indexPath ||
+    url.pathname === basePathNoSlash ||
+    url.pathname === basePathNoSlash + '/' ||
+    url.pathname === basePathNoSlash + '/index.html';
 
   if (!isBasePath) {
     return false;
   }
 
   // If it's the base path, check if it matches any offline page
-  return OFFLINE_PAGES.some(page => {
+  return OFFLINE_PAGES.some((page) => {
     // For root page
     if (page === rootPath) {
       return true;
@@ -303,9 +312,10 @@ async function performCacheMaintenance() {
 
     // Clean up old cache entries
     const caches = await self.caches.keys();
-    const oldCaches = caches.filter(cache =>
-      !cache.includes(STATIC_CACHE_NAME) &&
-      !cache.includes(DYNAMIC_CACHE_NAME)
+    const oldCaches = caches.filter(
+      (cache) =>
+        !cache.includes(STATIC_CACHE_NAME) &&
+        !cache.includes(DYNAMIC_CACHE_NAME),
     );
 
     for (const oldCache of oldCaches) {
@@ -315,13 +325,12 @@ async function performCacheMaintenance() {
 
     // Notify the main app about cache cleanup
     const clients = await self.clients.matchAll();
-    clients.forEach(client => {
+    clients.forEach((client) => {
       client.postMessage({
         type: 'CACHE_CLEANED',
-        data: { cleanedCaches: oldCaches.length }
+        data: { cleanedCaches: oldCaches.length },
       });
     });
-
   } catch (error) {
     console.error('[SW] Cache maintenance failed:', error);
   }
@@ -343,7 +352,10 @@ self.addEventListener('message', (event) => {
       break;
 
     case 'SCHEDULE_SYNC':
-      if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      if (
+        'serviceWorker' in navigator &&
+        'sync' in window.ServiceWorkerRegistration.prototype
+      ) {
         self.registration.sync.register('time-tracking-sync');
       }
       break;

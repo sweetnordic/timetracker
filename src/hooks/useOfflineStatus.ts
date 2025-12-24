@@ -6,7 +6,7 @@ import {
   scheduleCacheMaintenance,
   isOnline,
   getNetworkStatus,
-  type ServiceWorkerStatus
+  type ServiceWorkerStatus,
 } from '../utils/serviceWorker';
 
 interface OfflineStatusReturn {
@@ -38,7 +38,7 @@ export const useOfflineStatus = (): OfflineStatusReturn => {
     registerServiceWorker({
       onRegistered: (registration) => {
         console.log('[Offline Hook] Service Worker registered');
-        setSwStatus(prev => ({ ...prev, isRegistered: true, registration }));
+        setSwStatus((prev) => ({ ...prev, isRegistered: true, registration }));
         showSuccess('App is ready for offline use', 3000);
       },
 
@@ -61,15 +61,15 @@ export const useOfflineStatus = (): OfflineStatusReturn => {
       onError: (error) => {
         console.error('[Offline Hook] Service Worker error:', error);
         showError('Failed to enable offline features');
-      }
-    }).then(status => {
+      },
+    }).then((status) => {
       setSwStatus(status);
     });
   }, [showSuccess, showInfo, showWarning, showError]);
 
   // Listen for online/offline events
   useEffect(() => {
-        const handleOnline = () => {
+    const handleOnline = () => {
       console.log('[Offline Hook] Back online');
       setIsOnlineState(true);
       showSuccess('Connection restored', 2000);
@@ -104,11 +104,17 @@ export const useOfflineStatus = (): OfflineStatusReturn => {
     };
 
     window.addEventListener('sw-cache-update', handleCacheUpdate);
-    window.addEventListener('sw-cache-cleaned', handleCacheCleaned as EventListener);
+    window.addEventListener(
+      'sw-cache-cleaned',
+      handleCacheCleaned as EventListener,
+    );
 
     return () => {
       window.removeEventListener('sw-cache-update', handleCacheUpdate);
-      window.removeEventListener('sw-cache-cleaned', handleCacheCleaned as EventListener);
+      window.removeEventListener(
+        'sw-cache-cleaned',
+        handleCacheCleaned as EventListener,
+      );
     };
   }, [showSuccess, showInfo]);
 
@@ -139,4 +145,3 @@ export const useOfflineStatus = (): OfflineStatusReturn => {
     networkInfo: getNetworkStatus(),
   };
 };
-
