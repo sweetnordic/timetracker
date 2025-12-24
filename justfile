@@ -37,3 +37,8 @@ lint:
 [group("code")]
 format:
     npm run format
+
+# Restore the dependencies
+[group("code")]
+restore:
+    npm install

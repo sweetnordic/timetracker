@@ -6,7 +6,7 @@ A personal time tracking application built with React and IndexedDB, designed fo
 
 Time Tracker is a web application that helps you track time spent on various activities. It provides a simple interface for starting/stopping time tracking, managing activities, and viewing analytics.
 
-## Core Features (v1.0)
+## Core Features
 
 ### Time Tracking
 
