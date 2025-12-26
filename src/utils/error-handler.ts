@@ -10,11 +10,14 @@ export class TimeTrackerError extends Error {
   public readonly details?: unknown;
   public readonly severity: AppError['severity'];
 
-  constructor(message: string, options?: {
-    code?: string;
-    details?: unknown;
-    severity?: AppError['severity'];
-  }) {
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      details?: unknown;
+      severity?: AppError['severity'];
+    },
+  ) {
     super(message);
     this.name = 'TimeTrackerError';
     this.code = options?.code;
@@ -29,26 +32,23 @@ export const createError = (
     code?: string;
     details?: unknown;
     severity?: AppError['severity'];
-  }
+  },
 ): TimeTrackerError => {
   return new TimeTrackerError(message, options);
 };
 
 export const handleAsyncError = async <T>(
   operation: () => Promise<T>,
-  context: string
+  context: string,
 ): Promise<T> => {
   try {
     return await operation();
   } catch (error) {
-    const timeTrackerError = createError(
-      `Failed to ${context}`,
-      {
-        code: 'ASYNC_OPERATION_FAILED',
-        details: error,
-        severity: 'high',
-      }
-    );
+    const timeTrackerError = createError(`Failed to ${context}`, {
+      code: 'ASYNC_OPERATION_FAILED',
+      details: error,
+      severity: 'high',
+    });
     console.error(`Error in ${context}:`, timeTrackerError);
     throw timeTrackerError;
   }

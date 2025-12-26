@@ -7,7 +7,7 @@ import {
   Button,
   Typography,
   Alert,
-  Box
+  Box,
 } from '@mui/material';
 
 interface ExtendTimeDialogProps {
@@ -25,7 +25,7 @@ export const ExtendTimeDialog: React.FC<ExtendTimeDialogProps> = ({
   onExtend,
   onStop,
   onClose,
-  activityName
+  activityName,
 }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -33,7 +33,8 @@ export const ExtendTimeDialog: React.FC<ExtendTimeDialogProps> = ({
       <DialogContent>
         <Alert severity="warning" sx={{ mb: 2 }}>
           <Typography variant="body1" gutterBottom>
-            Time tracking will automatically stop in <strong>{remainingMinutes} minutes</strong>.
+            Time tracking will automatically stop in{' '}
+            <strong>{remainingMinutes} minutes</strong>.
           </Typography>
           {activityName && (
             <Typography variant="body2" color="text.secondary">
@@ -54,9 +55,7 @@ export const ExtendTimeDialog: React.FC<ExtendTimeDialogProps> = ({
         <Button onClick={onExtend} variant="contained" color="primary">
           Extend Time
         </Button>
-        <Button onClick={onClose}>
-          Continue
-        </Button>
+        <Button onClick={onClose}>Continue</Button>
       </DialogActions>
     </Dialog>
   );

@@ -2,24 +2,55 @@ const CACHE_NAME = 'timetracker-v2.0.0';
 const STATIC_CACHE_NAME = 'timetracker-static-v2.0.0';
 const DYNAMIC_CACHE_NAME = 'timetracker-dynamic-v1';
 
+// Determine base path from service worker location
+// e.g., if SW is at /timetracker/sw.js, base path is /timetracker/
+// if SW is at /sw.js, base path is /
+function getBasePath() {
+  const swPath = self.location.pathname;
+  // Remove /sw.js from the path to get base path
+  const basePath = swPath.replace(/\/sw\.js$/, '');
+  // Normalize to ensure it ends with / (or is just /)
+  return basePath === ''
+    ? '/'
+    : basePath.endsWith('/')
+      ? basePath
+      : basePath + '/';
+}
+
+const BASE_PATH = getBasePath();
+
+// Helper function to resolve paths with base path
+function resolvePath(path) {
+  // If path is already absolute and starts with base path, return as is
+  if (path.startsWith(BASE_PATH)) {
+    return path;
+  }
+  // If path starts with /, remove it and prepend base path
+  if (path.startsWith('/')) {
+    return BASE_PATH + path.substring(1);
+  }
+  // Relative path, prepend base path
+  return BASE_PATH + path;
+}
+
 // Assets to cache immediately
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/favicon.ico',
-  '/favicon.svg',
-  '/web-app-manifest-192x192.png',
-  '/web-app-manifest-512x512.png',
+  resolvePath('/'),
+  resolvePath('/index.html'),
+  resolvePath('/favicon.ico'),
+  resolvePath('/favicon.svg'),
+  resolvePath('/web-app-manifest-192x192.png'),
+  resolvePath('/web-app-manifest-512x512.png'),
   // Core app files will be added dynamically
 ];
 
 // Routes that should work offline
 const OFFLINE_PAGES = [
-  '/',
-  '/#/tracker',
-  '/#/manager',
-  '/#/analytics',
-  '/#/help'
+  resolvePath('/'),
+  resolvePath('/#/tracker'),
+  resolvePath('/#/manager'),
+  resolvePath('/#/analytics'),
+  resolvePath('/#/help'),
 ];
 
 // Install event - cache static assets
@@ -27,18 +58,29 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
 
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
+    caches
+      .open(STATIC_CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_ASSETS).catch((error) => {
+          // Log individual cache failures but continue
+          console.warn('[SW] Some static assets failed to cache:', error);
+          // Return empty array to continue the chain
+          return [];
+        });
       })
       .then(() => {
         console.log('[SW] Static assets cached');
-        return self.skipWaiting(); // Force activation
+        // Skip waiting to activate immediately
+        // The client-side code will handle reload logic to prevent loops
+        return self.skipWaiting();
       })
       .catch((error) => {
         console.error('[SW] Failed to cache static assets:', error);
-      })
+        // Even if caching fails, skip waiting so the SW can activate
+        // This prevents the SW from being stuck in installing state
+        return self.skipWaiting();
+      }),
   );
 });
 
@@ -47,23 +89,36 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
 
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE_NAME &&
-                cacheName !== DYNAMIC_CACHE_NAME &&
-                cacheName !== CACHE_NAME) {
+            if (
+              cacheName !== STATIC_CACHE_NAME &&
+              cacheName !== DYNAMIC_CACHE_NAME &&
+              cacheName !== CACHE_NAME
+            ) {
               console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
-          })
+          }),
         );
       })
       .then(() => {
         console.log('[SW] Service Worker activated');
-        return self.clients.claim(); // Take control immediately
+        // Claim clients, but don't force it if it fails
+        return self.clients.claim().catch((error) => {
+          console.warn('[SW] Failed to claim clients:', error);
+          // Continue activation even if claim fails
+          return Promise.resolve();
+        });
       })
+      .catch((error) => {
+        console.error('[SW] Activation failed:', error);
+        // Don't throw - allow activation to complete even if cache cleanup fails
+        return Promise.resolve();
+      }),
   );
 });
 
@@ -142,7 +197,7 @@ async function getOfflineFallback(request) {
   if (isAppRoute(request)) {
     // Return the main app for SPA routes
     const cache = await caches.open(STATIC_CACHE_NAME);
-    const fallback = await cache.match('/index.html');
+    const fallback = await cache.match(resolvePath('/index.html'));
     if (fallback) {
       return fallback;
     }
@@ -180,7 +235,7 @@ async function getOfflineFallback(request) {
             margin-top: 1rem;
             font-size: 1rem;
           }
-          button:hover { background: #1565c0; }
+          button:hover { background: #0b3565; }
         </style>
       </head>
       <body>
@@ -194,9 +249,9 @@ async function getOfflineFallback(request) {
     {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'no-cache'
-      }
-    }
+        'Cache-Control': 'no-cache',
+      },
+    },
   );
 }
 
@@ -208,12 +263,38 @@ function isStaticAsset(request) {
 
 function isAppRoute(request) {
   const url = new URL(request.url);
-  return OFFLINE_PAGES.some(page => {
-    if (page === '/') {
-      return url.pathname === '/' || url.pathname === '/index.html';
+  const rootPath = resolvePath('/');
+  const indexPath = resolvePath('/index.html');
+  // Normalize base path without trailing slash for comparison
+  const basePathNoSlash = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
+
+  // Check if pathname is within base path
+  const isBasePath =
+    url.pathname === rootPath ||
+    url.pathname === indexPath ||
+    url.pathname === basePathNoSlash ||
+    url.pathname === basePathNoSlash + '/' ||
+    url.pathname === basePathNoSlash + '/index.html';
+
+  if (!isBasePath) {
+    return false;
+  }
+
+  // If it's the base path, check if it matches any offline page
+  return OFFLINE_PAGES.some((page) => {
+    // For root page
+    if (page === rootPath) {
+      return true;
     }
-    return url.hash.startsWith(page.replace('/#', '#'));
-  }) || url.pathname === '/' || url.pathname === '/index.html';
+    // For hash routes, extract the hash part and check
+    // page format is like "/timetracker/#/tracker" or "/#/tracker"
+    const hashIndex = page.indexOf('#');
+    if (hashIndex !== -1) {
+      const pageHash = page.substring(hashIndex);
+      return url.hash.startsWith(pageHash);
+    }
+    return false;
+  });
 }
 
 // Cache maintenance and optimization
@@ -231,9 +312,10 @@ async function performCacheMaintenance() {
 
     // Clean up old cache entries
     const caches = await self.caches.keys();
-    const oldCaches = caches.filter(cache =>
-      !cache.includes(STATIC_CACHE_NAME) &&
-      !cache.includes(DYNAMIC_CACHE_NAME)
+    const oldCaches = caches.filter(
+      (cache) =>
+        !cache.includes(STATIC_CACHE_NAME) &&
+        !cache.includes(DYNAMIC_CACHE_NAME),
     );
 
     for (const oldCache of oldCaches) {
@@ -243,13 +325,12 @@ async function performCacheMaintenance() {
 
     // Notify the main app about cache cleanup
     const clients = await self.clients.matchAll();
-    clients.forEach(client => {
+    clients.forEach((client) => {
       client.postMessage({
         type: 'CACHE_CLEANED',
-        data: { cleanedCaches: oldCaches.length }
+        data: { cleanedCaches: oldCaches.length },
       });
     });
-
   } catch (error) {
     console.error('[SW] Cache maintenance failed:', error);
   }
@@ -271,7 +352,10 @@ self.addEventListener('message', (event) => {
       break;
 
     case 'SCHEDULE_SYNC':
-      if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      if (
+        'serviceWorker' in navigator &&
+        'sync' in window.ServiceWorkerRegistration.prototype
+      ) {
         self.registration.sync.register('time-tracking-sync');
       }
       break;

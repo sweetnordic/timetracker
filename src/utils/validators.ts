@@ -1,7 +1,4 @@
-import type {
-  ValidationResult,
-  FormFieldError
-} from '../types/ui';
+import type { ValidationResult, FormFieldError } from '../types/ui';
 import { z } from 'zod';
 import type { Activity, TimeEntry, Category, Goal } from '../models';
 // Types are imported through ui types
@@ -9,7 +6,7 @@ import type { Activity, TimeEntry, Category, Goal } from '../models';
 
 // Generic validation helper
 export const createValidationResult = (
-  errors: FormFieldError[] = []
+  errors: FormFieldError[] = [],
 ): ValidationResult => ({
   isValid: errors.length === 0,
   errors,
@@ -19,7 +16,7 @@ export const createValidationResult = (
 export const validateRequired = (
   field: string,
   value: unknown,
-  fieldName: string
+  fieldName: string,
 ): FormFieldError | null => {
   if (value === null || value === undefined || value === '') {
     return {
@@ -35,7 +32,7 @@ export const validateMinLength = (
   field: string,
   value: string,
   minLength: number,
-  fieldName: string
+  fieldName: string,
 ): FormFieldError | null => {
   if (value.length < minLength) {
     return {
@@ -51,7 +48,7 @@ export const validateMaxLength = (
   field: string,
   value: string,
   maxLength: number,
-  fieldName: string
+  fieldName: string,
 ): FormFieldError | null => {
   if (value.length > maxLength) {
     return {
@@ -66,7 +63,7 @@ export const validateMaxLength = (
 export const validatePositiveNumber = (
   field: string,
   value: number,
-  fieldName: string
+  fieldName: string,
 ): FormFieldError | null => {
   if (value <= 0) {
     return {
@@ -81,7 +78,7 @@ export const validatePositiveNumber = (
 export const validateDateRange = (
   endField: string,
   startDate: Date,
-  endDate: Date | null
+  endDate: Date | null,
 ): FormFieldError[] => {
   const errors: FormFieldError[] = [];
 
@@ -130,25 +127,36 @@ export const validateTimeEntryUpdate = (data: unknown) => {
     updatedAt: z.date().default(() => new Date()),
   });
 
-  return BaseTimeEntrySchema.partial().extend({ id: z.string().uuid() }).parse(data);
+  return BaseTimeEntrySchema.partial()
+    .extend({ id: z.string().uuid() })
+    .parse(data);
 };
 
 // Business logic validations
-export const validateTrackingDuration = (startTime: Date, endTime?: Date | null): boolean => {
+export const validateTrackingDuration = (
+  startTime: Date,
+  endTime?: Date | null,
+): boolean => {
   if (!endTime) return true;
   const duration = endTime.getTime() - startTime.getTime();
   const maxDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   return duration > 0 && duration <= maxDuration;
 };
 
-export const validateGoalProgress = (targetHours: number, currentHours: number): boolean => {
+export const validateGoalProgress = (
+  targetHours: number,
+  currentHours: number,
+): boolean => {
   return currentHours >= 0 && currentHours <= targetHours * 2; // Allow 200% over-achievement
 };
 
 // Base schemas
 export const ActivitySchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, 'Activity name is required').max(100, 'Activity name too long'),
+  name: z
+    .string()
+    .min(1, 'Activity name is required')
+    .max(100, 'Activity name too long'),
   category: z.string().min(1, 'Category is required'),
   description: z.string().max(500, 'Description too long').default(''),
   externalSystem: z.string().default(''),
@@ -157,23 +165,28 @@ export const ActivitySchema = z.object({
   updatedAt: z.date().default(() => new Date()),
 });
 
-export const TimeEntrySchema = z.object({
-  id: z.string().uuid().optional(),
-  activityId: z.string().uuid('Invalid activity ID'),
-  startTime: z.date(),
-  endTime: z.date().nullable(),
-  duration: z.number().min(0, 'Duration must be positive').nullable(),
-  notes: z.string().max(1000, 'Notes too long').default(''),
-  createdAt: z.date().default(() => new Date()),
-  updatedAt: z.date().default(() => new Date()),
-}).refine(
-  (data) => !data.endTime || data.endTime >= data.startTime,
-  { message: 'End time must be after start time', path: ['endTime'] }
-);
+export const TimeEntrySchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    activityId: z.string().uuid('Invalid activity ID'),
+    startTime: z.date(),
+    endTime: z.date().nullable(),
+    duration: z.number().min(0, 'Duration must be positive').nullable(),
+    notes: z.string().max(1000, 'Notes too long').default(''),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date()),
+  })
+  .refine((data) => !data.endTime || data.endTime >= data.startTime, {
+    message: 'End time must be after start time',
+    path: ['endTime'],
+  });
 
 export const CategorySchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, 'Category name is required').max(50, 'Category name too long'),
+  name: z
+    .string()
+    .min(1, 'Category name is required')
+    .max(50, 'Category name too long'),
   order: z.number().int().min(0).default(0),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
@@ -182,9 +195,15 @@ export const CategorySchema = z.object({
 export const GoalSchema = z.object({
   id: z.string().uuid().optional(),
   activityId: z.string().uuid('Invalid activity ID'),
-  targetHours: z.number().min(0.1, 'Target hours must be at least 0.1').max(1000, 'Target hours too high'),
+  targetHours: z
+    .number()
+    .min(0.1, 'Target hours must be at least 0.1')
+    .max(1000, 'Target hours too high'),
   period: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
-  notificationThreshold: z.number().min(0).max(100, 'Notification threshold must be between 0-100'),
+  notificationThreshold: z
+    .number()
+    .min(0)
+    .max(100, 'Notification threshold must be between 0-100'),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });

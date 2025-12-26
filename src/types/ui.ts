@@ -120,6 +120,7 @@ export interface TimeSeriesData {
 
 // Export utility types
 export type RequiredKeys<T, K extends keyof T> = T & Required<Pick<T, K>>;
-export type OptionalKeys<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export type OptionalKeys<T, K extends keyof T> = Omit<T, K> &
+  Partial<Pick<T, K>>;
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;

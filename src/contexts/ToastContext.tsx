@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 import type { ReactNode } from 'react';
 import { Portal, Box } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +14,12 @@ import type { AlertColor } from '@mui/material';
 
 // Move types to separate file to fix react-refresh warning
 export interface ToastContextType {
-  showToast: (message: string, severity?: AlertColor, duration?: number, action?: ReactNode) => void;
+  showToast: (
+    message: string,
+    severity?: AlertColor,
+    duration?: number,
+    action?: ReactNode,
+  ) => void;
   showSuccess: (message: string, duration?: number) => void;
   showError: (message: string, duration?: number) => void;
   showWarning: (message: string, duration?: number) => void;
@@ -18,6 +29,7 @@ export interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
@@ -33,41 +45,44 @@ interface ToastProviderProps {
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({
   children,
-  maxToasts = 5
+  maxToasts = 5,
 }) => {
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((
-    message: string,
-    severity: AlertColor = 'info',
-    duration?: number,
-    action?: ReactNode
-  ) => {
-    const id = uuidv4();
-    const newToast: ToastData = {
-      id,
-      message,
-      severity,
-      duration,
-      action,
-    };
+  const showToast = useCallback(
+    (
+      message: string,
+      severity: AlertColor = 'info',
+      duration?: number,
+      action?: ReactNode,
+    ) => {
+      const id = uuidv4();
+      const newToast: ToastData = {
+        id,
+        message,
+        severity,
+        duration,
+        action,
+      };
 
-    setToasts(prev => {
-      const updatedToasts = [newToast, ...prev];
-      // Limit the number of toasts displayed
-      return updatedToasts.slice(0, maxToasts);
-    });
-  }, [maxToasts]);
+      setToasts((prev) => {
+        const updatedToasts = [newToast, ...prev];
+        // Limit the number of toasts displayed
+        return updatedToasts.slice(0, maxToasts);
+      });
+    },
+    [maxToasts],
+  );
 
   // Auto-dismiss toasts
   useEffect(() => {
     const timers: { [key: string]: NodeJS.Timeout } = {};
 
-    toasts.forEach(toast => {
+    toasts.forEach((toast) => {
       if (toast.duration !== 0 && !timers[toast.id]) {
         timers[toast.id] = setTimeout(() => {
           removeToast(toast.id);
@@ -76,25 +91,37 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
     });
 
     return () => {
-      Object.values(timers).forEach(timer => clearTimeout(timer));
+      Object.values(timers).forEach((timer) => clearTimeout(timer));
     };
   }, [toasts, removeToast]);
 
-  const showSuccess = useCallback((message: string, duration?: number) => {
-    showToast(message, 'success', duration);
-  }, [showToast]);
+  const showSuccess = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'success', duration);
+    },
+    [showToast],
+  );
 
-  const showError = useCallback((message: string, duration?: number) => {
-    showToast(message, 'error', duration);
-  }, [showToast]);
+  const showError = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'error', duration);
+    },
+    [showToast],
+  );
 
-  const showWarning = useCallback((message: string, duration?: number) => {
-    showToast(message, 'warning', duration);
-  }, [showToast]);
+  const showWarning = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'warning', duration);
+    },
+    [showToast],
+  );
 
-  const showInfo = useCallback((message: string, duration?: number) => {
-    showToast(message, 'info', duration);
-  }, [showToast]);
+  const showInfo = useCallback(
+    (message: string, duration?: number) => {
+      showToast(message, 'info', duration);
+    },
+    [showToast],
+  );
 
   const contextValue: ToastContextType = {
     showToast,

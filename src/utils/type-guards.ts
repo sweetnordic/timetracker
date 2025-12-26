@@ -112,12 +112,12 @@ export const isNonNegativeNumber = (value: unknown): value is number => {
 // Generic type guard for objects with required keys
 export const hasRequiredKeys = <T extends Record<string, unknown>>(
   obj: unknown,
-  keys: (keyof T)[]
+  keys: (keyof T)[],
 ): obj is T => {
   if (typeof obj !== 'object' || obj === null) return false;
 
   const record = obj as Record<string, unknown>;
-  return keys.every(key => key in record);
+  return keys.every((key) => key in record);
 };
 
 // Type assertion helpers with validation

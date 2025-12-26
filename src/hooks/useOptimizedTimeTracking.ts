@@ -1,5 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import { useAddTimeEntry, useUpdateTimeEntry, useOpenTimeEntries } from './useTimeEntries';
+import {
+  useAddTimeEntry,
+  useUpdateTimeEntry,
+  useOpenTimeEntries,
+} from './useTimeEntries';
 import { useSettings } from './useSettings';
 import { useNotifications } from './useNotifications';
 import { useToast } from '../contexts';
@@ -30,10 +34,7 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
   const addTimeEntry = useAddTimeEntry();
   const updateTimeEntry = useUpdateTimeEntry();
   const { showSuccess, showError, showInfo } = useToast();
-  const {
-    addInfoNotification,
-    addErrorNotification,
-  } = useNotifications();
+  const { addInfoNotification, addErrorNotification } = useNotifications();
 
   // Memoized utility functions
   const formatTime = useCallback((seconds: number): string => {
@@ -58,8 +59,9 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
     const roundedDuration = Math.ceil(duration / 900) * 900; // Round up to nearest 15 minutes
 
     try {
-      const openEntry = dbOpenEntries.find((entry: TimeEntry) =>
-        entry.activityId === currentActivity.id && entry.endTime === null
+      const openEntry = dbOpenEntries.find(
+        (entry: TimeEntry) =>
+          entry.activityId === currentActivity.id && entry.endTime === null,
       );
 
       if (openEntry) {
@@ -87,7 +89,7 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
         intervalRef.current = null;
       }
 
-      const title = "Time Tracking Completed";
+      const title = 'Time Tracking Completed';
       const message = `Stopped tracking: ${currentActivity.name} (${formatDuration(roundedDuration)})`;
 
       if (trackingSettings.notificationsEnabled) {
@@ -97,8 +99,8 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
     } catch (error) {
       console.error('Error stopping time tracking:', error);
 
-      const title = "Time Tracking Error";
-      const message = "Failed to stop time tracking";
+      const title = 'Time Tracking Error';
+      const message = 'Failed to stop time tracking';
 
       if (trackingSettings.notificationsEnabled) {
         addErrorNotification(title, message, currentActivity?.id);
@@ -120,57 +122,60 @@ export const useOptimizedTimeTracking = (): UseTimeTrackingReturn => {
   ]);
 
   // Start tracking function
-  const startTracking = useCallback(async (activity: Activity) => {
-    if (isTracking) return;
+  const startTracking = useCallback(
+    async (activity: Activity) => {
+      if (isTracking) return;
 
-    setCurrentActivity(activity);
-    setIsTracking(true);
-    const now = new Date();
-    setStartTime(now);
+      setCurrentActivity(activity);
+      setIsTracking(true);
+      const now = new Date();
+      setStartTime(now);
 
-    try {
-      await addTimeEntry.mutateAsync({
-        activityId: activity.id!,
-        startTime: now,
-        endTime: null,
-        duration: null,
-        notes: '',
-        createdAt: now,
-        updatedAt: now,
-      });
+      try {
+        await addTimeEntry.mutateAsync({
+          activityId: activity.id!,
+          startTime: now,
+          endTime: null,
+          duration: null,
+          notes: '',
+          createdAt: now,
+          updatedAt: now,
+        });
 
-      const title = "Time Tracking Started";
-      const message = `Started tracking: ${activity.name}`;
+        const title = 'Time Tracking Started';
+        const message = `Started tracking: ${activity.name}`;
 
-      if (trackingSettings.notificationsEnabled) {
-        addInfoNotification(title, message, activity.id);
+        if (trackingSettings.notificationsEnabled) {
+          addInfoNotification(title, message, activity.id);
+        }
+        showInfo(message, 3000);
+      } catch (error) {
+        console.error('Error starting time tracking:', error);
+
+        const title = 'Time Tracking Error';
+        const message = 'Failed to start time tracking';
+
+        if (trackingSettings.notificationsEnabled) {
+          addErrorNotification(title, message, activity.id);
+        }
+        showError(message);
+
+        // Reset state on error
+        setIsTracking(false);
+        setCurrentActivity(null);
+        setStartTime(null);
       }
-      showInfo(message, 3000);
-    } catch (error) {
-      console.error('Error starting time tracking:', error);
-
-      const title = "Time Tracking Error";
-      const message = "Failed to start time tracking";
-
-      if (trackingSettings.notificationsEnabled) {
-        addErrorNotification(title, message, activity.id);
-      }
-      showError(message);
-
-      // Reset state on error
-      setIsTracking(false);
-      setCurrentActivity(null);
-      setStartTime(null);
-    }
-  }, [
-    isTracking,
-    addTimeEntry,
-    trackingSettings,
-    addInfoNotification,
-    addErrorNotification,
-    showInfo,
-    showError,
-  ]);
+    },
+    [
+      isTracking,
+      addTimeEntry,
+      trackingSettings,
+      addInfoNotification,
+      addErrorNotification,
+      showInfo,
+      showError,
+    ],
+  );
 
   // Extend tracking function
   const extendTracking = useCallback(() => {

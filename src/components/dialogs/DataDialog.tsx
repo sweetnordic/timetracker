@@ -16,9 +16,9 @@ import {
   Radio,
 } from '@mui/material';
 import { Download, Upload } from '@mui/icons-material';
-import type { Activity, TimeEntry, Category, Goal } from '../models';
-import { db } from '../database/db';
-import { useToast } from '../contexts';
+import type { Activity, TimeEntry, Category, Goal } from '../../models';
+import { db } from '../../database/db';
+import { useToast } from '../../contexts';
 
 interface ImportData {
   activities: Activity[];

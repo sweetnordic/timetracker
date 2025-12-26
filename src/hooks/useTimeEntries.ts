@@ -52,7 +52,9 @@ export const useAddTimeEntry = () => {
     mutationFn: (entry: Omit<TimeEntry, 'id'>) => db.addTimeEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY],
+      });
     },
   });
 };
@@ -65,7 +67,9 @@ export const useUpdateTimeEntry = () => {
     mutationFn: (entry: TimeEntry) => db.updateTimeEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY],
+      });
     },
   });
 };
@@ -78,7 +82,9 @@ export const useDeleteTimeEntry = () => {
     mutationFn: (entryId: string) => db.deleteTimeEntry(entryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [TIME_ENTRIES_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [OPEN_TIME_ENTRIES_QUERY_KEY],
+      });
     },
   });
 };

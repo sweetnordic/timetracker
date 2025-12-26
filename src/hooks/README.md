@@ -5,6 +5,7 @@ This directory contains React Query hooks for all database entities in the Time 
 ## Installation Requirements
 
 Make sure you have React Query installed:
+
 ```bash
 npm install @tanstack/react-query
 ```
@@ -37,7 +38,7 @@ import {
   useAddCategory,
   useUpdateCategory,
   useDeleteCategory,
-  useUpdateCategoryOrder
+  useUpdateCategoryOrder,
 } from './hooks';
 
 function CategoriesComponent() {
@@ -52,14 +53,14 @@ function CategoriesComponent() {
       name: 'New Category',
       order: 1,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   };
 
   const handleUpdateCategory = (category) => {
     updateCategory.mutate({
       ...category,
-      name: 'Updated Name'
+      name: 'Updated Name',
     });
   };
 
@@ -76,11 +77,13 @@ function CategoriesComponent() {
 
   return (
     <div>
-      {categories?.map(category => (
+      {categories?.map((category) => (
         <div key={category.id}>
           {category.name}
           <button onClick={() => handleUpdateCategory(category)}>Update</button>
-          <button onClick={() => handleDeleteCategory(category.id)}>Delete</button>
+          <button onClick={() => handleDeleteCategory(category.id)}>
+            Delete
+          </button>
         </div>
       ))}
       <button onClick={handleAddCategory}>Add Category</button>
@@ -96,7 +99,7 @@ import {
   useActivities,
   useAddActivity,
   useUpdateActivity,
-  useUpdateActivityOrder
+  useUpdateActivityOrder,
 } from './hooks';
 
 function ActivitiesComponent() {
@@ -113,13 +116,13 @@ function ActivitiesComponent() {
       external_system: '',
       order: 1,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   };
 
   return (
     <div>
-      {activities?.map(activity => (
+      {activities?.map((activity) => (
         <div key={activity.id}>{activity.name}</div>
       ))}
     </div>
@@ -137,7 +140,7 @@ import {
   useTotalDurationByActivity,
   useAddTimeEntry,
   useUpdateTimeEntry,
-  useDeleteTimeEntry
+  useDeleteTimeEntry,
 } from './hooks';
 
 function TimeTrackingComponent({ activityId }) {
@@ -158,13 +161,15 @@ function TimeTrackingComponent({ activityId }) {
       duration: null,
       notes: '',
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   };
 
   const stopTracking = (entryId, startTime) => {
     const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const duration = Math.floor(
+      (endTime.getTime() - startTime.getTime()) / 1000,
+    );
 
     updateTimeEntry.mutate({
       id: entryId,
@@ -174,7 +179,7 @@ function TimeTrackingComponent({ activityId }) {
       duration: duration,
       notes: '',
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   };
 
@@ -203,7 +208,7 @@ function SettingsComponent() {
       warning_threshold: 3600, // 1 hour
       first_day_of_week: 'monday',
       default_goal_notification_threshold: 80,
-      notifications_enabled: true
+      notifications_enabled: true,
     });
   };
 
@@ -214,7 +219,10 @@ function SettingsComponent() {
       <p>Max Duration: {settings?.max_duration} seconds</p>
       <p>Warning Threshold: {settings?.warning_threshold} seconds</p>
       <p>First Day of Week: {settings?.first_day_of_week}</p>
-      <p>Notifications: {settings?.notifications_enabled ? 'Enabled' : 'Disabled'}</p>
+      <p>
+        Notifications:{' '}
+        {settings?.notifications_enabled ? 'Enabled' : 'Disabled'}
+      </p>
       <button onClick={handleSaveSettings}>Save Settings</button>
     </div>
   );
@@ -230,7 +238,7 @@ import {
   useGoalProgress,
   useAddGoal,
   useUpdateGoal,
-  useDeleteGoal
+  useDeleteGoal,
 } from './hooks';
 
 function GoalsComponent({ activityId }) {
@@ -247,14 +255,14 @@ function GoalsComponent({ activityId }) {
       period: 'daily',
       notification_threshold: 80,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     });
   };
 
   return (
     <div>
       <h3>Goals for Activity</h3>
-      {activityGoals?.map(goal => (
+      {activityGoals?.map((goal) => (
         <GoalItem key={goal.id} goal={goal} />
       ))}
       <button onClick={handleAddGoal}>Add Goal</button>
@@ -267,18 +275,24 @@ function GoalItem({ goal }) {
 
   return (
     <div>
-      <p>{goal.target_hours} hours ({goal.period})</p>
+      <p>
+        {goal.target_hours} hours ({goal.period})
+      </p>
       <p>Progress: {progress} hours</p>
-      <div style={{
-        width: '100%',
-        height: '20px',
-        backgroundColor: '#f0f0f0'
-      }}>
-        <div style={{
-          width: `${Math.min((progress / goal.target_hours) * 100, 100)}%`,
-          height: '100%',
-          backgroundColor: '#4CAF50'
-        }} />
+      <div
+        style={{
+          width: '100%',
+          height: '20px',
+          backgroundColor: '#f0f0f0',
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min((progress / goal.target_hours) * 100, 100)}%`,
+            height: '100%',
+            backgroundColor: '#4CAF50',
+          }}
+        />
       </div>
     </div>
   );

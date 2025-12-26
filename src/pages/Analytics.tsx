@@ -10,8 +10,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  FormControl,
+  FormLabel,
+  RadioGroup,
   FormControlLabel,
-  Switch,
+  Radio,
   Stack,
   Grid,
   Paper,
@@ -20,8 +23,10 @@ import {
 import { useActivities, useTimeEntries, useGoals } from '../hooks';
 import type { WeeklyStats, TimeEntry, Activity } from '../models';
 
+type ViewPeriod = 'weekly' | 'monthly' | 'yearly';
+
 export const Analytics: React.FC = () => {
-  const [isMonthlyView, setIsMonthlyView] = useState<boolean>(false);
+  const [viewPeriod, setViewPeriod] = useState<ViewPeriod>('weekly');
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
     totalTime: 0,
     byActivity: {},
@@ -36,10 +41,10 @@ export const Analytics: React.FC = () => {
         daily: { total: 0, completed: 0 },
         weekly: { total: 0, completed: 0 },
         monthly: { total: 0, completed: 0 },
-        yearly: { total: 0, completed: 0 }
+        yearly: { total: 0, completed: 0 },
       },
-      byActivity: {}
-    }
+      byActivity: {},
+    },
   });
 
   const { data: activities = [] } = useActivities();
@@ -56,7 +61,9 @@ export const Analytics: React.FC = () => {
     const now = new Date();
     let startDate: Date;
 
-    if (isMonthlyView) {
+    if (viewPeriod === 'yearly') {
+      startDate = new Date(now.getFullYear(), 0, 1); // First day of current year
+    } else if (viewPeriod === 'monthly') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
     } else {
       // Calculate start of week (assuming Monday as first day)
@@ -67,9 +74,9 @@ export const Analytics: React.FC = () => {
       startDate.setHours(0, 0, 0, 0);
     }
 
-    const filteredEntries = timeEntries.filter((entry: TimeEntry) =>
-      new Date(entry.startTime) >= startDate &&
-      entry.endTime !== null
+    const filteredEntries = timeEntries.filter(
+      (entry: TimeEntry) =>
+        new Date(entry.startTime) >= startDate && entry.endTime !== null,
     );
 
     const stats: WeeklyStats = {
@@ -86,34 +93,50 @@ export const Analytics: React.FC = () => {
           daily: { total: 0, completed: 0 },
           weekly: { total: 0, completed: 0 },
           monthly: { total: 0, completed: 0 },
-          yearly: { total: 0, completed: 0 }
+          yearly: { total: 0, completed: 0 },
         },
-        byActivity: {}
-      }
+        byActivity: {},
+      },
     };
 
     for (const entry of filteredEntries) {
       if (entry.duration) {
         stats.totalTime += entry.duration;
 
-        const activity = activities.find((a: Activity) => a.id === entry.activityId);
+        const activity = activities.find(
+          (a: Activity) => a.id === entry.activityId,
+        );
         if (activity) {
           // Update activity totals
-          stats.byActivity[activity.name] = (stats.byActivity[activity.name] || 0) + entry.duration;
-          stats.byCategory[activity.category] = (stats.byCategory[activity.category] || 0) + entry.duration;
+          stats.byActivity[activity.name] =
+            (stats.byActivity[activity.name] || 0) + entry.duration;
+          stats.byCategory[activity.category] =
+            (stats.byCategory[activity.category] || 0) + entry.duration;
           if (activity.externalSystem) {
-            stats.byExternalSystem[activity.externalSystem] = (stats.byExternalSystem[activity.externalSystem] || 0) + entry.duration;
+            stats.byExternalSystem[activity.externalSystem] =
+              (stats.byExternalSystem[activity.externalSystem] || 0) +
+              entry.duration;
           }
 
           // Update daily breakdown
           const entryDate = new Date(entry.startTime);
-          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayNames = [
+            'Sunday',
+            'Monday',
+            'Tuesday',
+            'Wednesday',
+            'Thursday',
+            'Friday',
+            'Saturday',
+          ];
           const dayOfWeek = dayNames[entryDate.getDay()];
 
           if (!stats.dailyBreakdown[activity.name]) {
             stats.dailyBreakdown[activity.name] = {};
           }
-          stats.dailyBreakdown[activity.name][dayOfWeek] = (stats.dailyBreakdown[activity.name][dayOfWeek] || 0) + entry.duration;
+          stats.dailyBreakdown[activity.name][dayOfWeek] =
+            (stats.dailyBreakdown[activity.name][dayOfWeek] || 0) +
+            entry.duration;
         }
       }
     }
@@ -123,10 +146,18 @@ export const Analytics: React.FC = () => {
 
     for (const goal of goals) {
       // Calculate progress for this goal
-      const goalEntries = filteredEntries.filter((entry: TimeEntry) => entry.activityId === goal.activityId);
-      const progress = goalEntries.reduce((sum: number, entry: TimeEntry) => sum + (entry.duration || 0), 0) / 3600; // Convert to hours
+      const goalEntries = filteredEntries.filter(
+        (entry: TimeEntry) => entry.activityId === goal.activityId,
+      );
+      const progress =
+        goalEntries.reduce(
+          (sum: number, entry: TimeEntry) => sum + (entry.duration || 0),
+          0,
+        ) / 3600; // Convert to hours
       const progressPercentage = (progress / goal.targetHours) * 100;
-      const activity = activities.find((a: Activity) => a.id === goal.activityId);
+      const activity = activities.find(
+        (a: Activity) => a.id === goal.activityId,
+      );
 
       if (activity) {
         stats.goalStats.byActivity[goal.id!] = {
@@ -134,11 +165,14 @@ export const Analytics: React.FC = () => {
           target: goal.targetHours,
           progress,
           percentage: progressPercentage,
-          period: goal.period
+          period: goal.period,
         };
 
         // Update period stats - with proper type safety
-        const periodStats = stats.goalStats.byPeriod[goal.period as keyof typeof stats.goalStats.byPeriod];
+        const periodStats =
+          stats.goalStats.byPeriod[
+            goal.period as keyof typeof stats.goalStats.byPeriod
+          ];
         if (periodStats) {
           periodStats.total++;
           if (progressPercentage >= 100) {
@@ -152,51 +186,90 @@ export const Analytics: React.FC = () => {
     }
 
     setWeeklyStats(stats);
-  }, [activities, timeEntries, goals, isMonthlyView]);
+  }, [activities, timeEntries, goals, viewPeriod]);
 
   useEffect(() => {
     calculateStats();
   }, [calculateStats]);
 
   const handleViewChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsMonthlyView(event.target.checked);
+    setViewPeriod(event.target.value as ViewPeriod);
+  };
+
+  const getViewLabel = () => {
+    switch (viewPeriod) {
+      case 'yearly':
+        return "This Year's Overview";
+      case 'monthly':
+        return "This Month's Overview";
+      default:
+        return "This Week's Overview";
+    }
+  };
+
+  const getViewTimeLabel = () => {
+    switch (viewPeriod) {
+      case 'yearly':
+        return 'this year';
+      case 'monthly':
+        return 'this month';
+      default:
+        return 'this week';
+    }
   };
 
   return (
     <Box sx={{ mx: 'auto', py: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
+      >
         <Typography variant="h4" gutterBottom>
           Analytics
         </Typography>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isMonthlyView}
-              onChange={handleViewChange}
-              color="primary"
+        <FormControl>
+          <FormLabel>View Period</FormLabel>
+          <RadioGroup row value={viewPeriod} onChange={handleViewChange}>
+            <FormControlLabel
+              value="weekly"
+              control={<Radio />}
+              label="Weekly"
             />
-          }
-          label={isMonthlyView ? 'Monthly View' : 'Weekly View'}
-        />
+            <FormControlLabel
+              value="monthly"
+              control={<Radio />}
+              label="Monthly"
+            />
+            <FormControlLabel
+              value="yearly"
+              control={<Radio />}
+              label="Yearly"
+            />
+          </RadioGroup>
+        </FormControl>
       </Box>
 
       <Stack spacing={3}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              {isMonthlyView ? "This Month's Overview" : "This Week's Overview"}
+              {getViewLabel()}
             </Typography>
             <Typography variant="h4" color="primary">
               {formatDuration(weeklyStats.totalTime)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Total time tracked {isMonthlyView ? 'this month' : 'this week'}
+              Total time tracked {getViewTimeLabel()}
             </Typography>
           </CardContent>
         </Card>
 
         <Grid container spacing={2}>
-          <Grid size={{xs:12, md:6}}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -228,7 +301,7 @@ export const Analytics: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid size={{xs:12, md:6}}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -260,7 +333,7 @@ export const Analytics: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid size={{xs:12}}>
+          <Grid size={{ xs: 12 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -285,10 +358,11 @@ export const Analytics: React.FC = () => {
                             </TableCell>
                           </TableRow>
                         ))}
-                      {Object.keys(weeklyStats.byExternalSystem).length === 0 && (
+                      {Object.keys(weeklyStats.byExternalSystem).length ===
+                        0 && (
                         <TableRow>
                           <TableCell colSpan={2} align="center">
-                            No external systems tracked this {isMonthlyView ? 'month' : 'week'}
+                            No external systems tracked {getViewTimeLabel()}
                           </TableCell>
                         </TableRow>
                       )}
@@ -299,8 +373,8 @@ export const Analytics: React.FC = () => {
             </Card>
           </Grid>
 
-          {!isMonthlyView && (
-            <Grid size={{xs:12}}>
+          {viewPeriod === 'weekly' && (
+            <Grid size={{ xs: 12 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -311,7 +385,15 @@ export const Analytics: React.FC = () => {
                       <TableHead>
                         <TableRow>
                           <TableCell>Activity</TableCell>
-                          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
+                          {[
+                            'Sunday',
+                            'Monday',
+                            'Tuesday',
+                            'Wednesday',
+                            'Thursday',
+                            'Friday',
+                            'Saturday',
+                          ].map((day) => (
                             <TableCell key={day} align="right">
                               {day}
                             </TableCell>
@@ -325,10 +407,22 @@ export const Analytics: React.FC = () => {
                           .map(([activity, totalDuration]) => (
                             <TableRow key={activity}>
                               <TableCell>{activity}</TableCell>
-                              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
+                              {[
+                                'Sunday',
+                                'Monday',
+                                'Tuesday',
+                                'Wednesday',
+                                'Thursday',
+                                'Friday',
+                                'Saturday',
+                              ].map((day) => (
                                 <TableCell key={day} align="right">
                                   {weeklyStats.dailyBreakdown[activity]?.[day]
-                                    ? formatDuration(weeklyStats.dailyBreakdown[activity][day])
+                                    ? formatDuration(
+                                        weeklyStats.dailyBreakdown[activity][
+                                          day
+                                        ],
+                                      )
                                     : '-'}
                                 </TableCell>
                               ))}
@@ -353,7 +447,7 @@ export const Analytics: React.FC = () => {
               Goal Statistics
             </Typography>
             <Grid container spacing={2}>
-              <Grid size={{xs:12, md:4}}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h4" color="primary">
                     {weeklyStats.goalStats.completedGoals}
@@ -363,7 +457,7 @@ export const Analytics: React.FC = () => {
                   </Typography>
                 </Paper>
               </Grid>
-              <Grid size={{xs:12, md:4}}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h4" color="primary">
                     {weeklyStats.goalStats.inProgressGoals}
@@ -373,7 +467,7 @@ export const Analytics: React.FC = () => {
                   </Typography>
                 </Paper>
               </Grid>
-              <Grid size={{xs:12, md:4}}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h4" color="primary">
                     {weeklyStats.goalStats.totalGoals}
@@ -390,28 +484,41 @@ export const Analytics: React.FC = () => {
                 Goals by Period
               </Typography>
               <Grid container spacing={2}>
-                {Object.entries(weeklyStats.goalStats.byPeriod).map(([period, stats]) => (
-                  <Grid size={{xs:12, md:4}} key={period}>
-                    <Paper sx={{ p: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        {period.charAt(0).toUpperCase() + period.slice(1)} Goals
-                      </Typography>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2">
-                          Completed: {stats.completed}
+                {Object.entries(weeklyStats.goalStats.byPeriod).map(
+                  ([period, stats]) => (
+                    <Grid size={{ xs: 12, md: 4 }} key={period}>
+                      <Paper sx={{ p: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          {period.charAt(0).toUpperCase() + period.slice(1)}{' '}
+                          Goals
                         </Typography>
-                        <Typography variant="body2">
-                          Total: {stats.total}
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}
-                        sx={{ height: 8, borderRadius: 4 }}
-                      />
-                    </Paper>
-                  </Grid>
-                ))}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            mb: 1,
+                          }}
+                        >
+                          <Typography variant="body2">
+                            Completed: {stats.completed}
+                          </Typography>
+                          <Typography variant="body2">
+                            Total: {stats.total}
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={
+                            stats.total > 0
+                              ? (stats.completed / stats.total) * 100
+                              : 0
+                          }
+                          sx={{ height: 8, borderRadius: 4 }}
+                        />
+                      </Paper>
+                    </Grid>
+                  ),
+                )}
               </Grid>
             </Box>
 
@@ -437,11 +544,18 @@ export const Analytics: React.FC = () => {
                         <TableRow key={id}>
                           <TableCell>{goal.name}</TableCell>
                           <TableCell>
-                            {goal.period.charAt(0).toUpperCase() + goal.period.slice(1)}
+                            {goal.period.charAt(0).toUpperCase() +
+                              goal.period.slice(1)}
                           </TableCell>
                           <TableCell>{goal.target}h</TableCell>
                           <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                              }}
+                            >
                               <Box sx={{ width: '100%', mr: 1 }}>
                                 <LinearProgress
                                   variant="determinate"

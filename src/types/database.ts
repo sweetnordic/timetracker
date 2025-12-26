@@ -36,13 +36,22 @@ export interface GoalFilters {
 }
 
 // Database operation types
-export type CreateActivityPayload = Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateActivityPayload = Omit<
+  Activity,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 export type UpdateActivityPayload = Partial<Activity> & { id: string };
 
-export type CreateTimeEntryPayload = Omit<TimeEntry, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateTimeEntryPayload = Omit<
+  TimeEntry,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 export type UpdateTimeEntryPayload = Partial<TimeEntry> & { id: string };
 
-export type CreateCategoryPayload = Omit<Category, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateCategoryPayload = Omit<
+  Category,
+  'id' | 'createdAt' | 'updatedAt'
+>;
 export type UpdateCategoryPayload = Partial<Category> & { id: string };
 
 export type CreateGoalPayload = Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>;

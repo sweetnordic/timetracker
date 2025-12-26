@@ -55,7 +55,11 @@ export class ErrorBoundary extends Component<Props, State> {
     // Log to external service in production
     if (process.env.NODE_ENV === 'production') {
       // TODO: Integrate with error tracking service (Sentry, LogRocket, etc.)
-      console.error('Production error caught by ErrorBoundary:', error, errorInfo);
+      console.error(
+        'Production error caught by ErrorBoundary:',
+        error,
+        errorInfo,
+      );
     }
   }
 
@@ -97,7 +101,8 @@ export class ErrorBoundary extends Component<Props, State> {
                   Oops! Something went wrong
                 </Typography>
                 <Typography variant="body2">
-                  An unexpected error occurred. We've logged this issue and are working to fix it.
+                  An unexpected error occurred. We've logged this issue and are
+                  working to fix it.
                 </Typography>
               </Alert>
 
@@ -122,7 +127,9 @@ export class ErrorBoundary extends Component<Props, State> {
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMore />}>
-                    <Typography variant="subtitle2">Error Details (Development Only)</Typography>
+                    <Typography variant="subtitle2">
+                      Error Details (Development Only)
+                    </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Box sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>

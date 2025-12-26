@@ -18,7 +18,7 @@ import {
   FormControlLabel,
   Alert,
   Badge,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
 import {
   Notifications,
@@ -28,7 +28,7 @@ import {
   Error,
   Clear,
   Settings,
-  NotificationsOff
+  NotificationsOff,
 } from '@mui/icons-material';
 import { useToast } from '../contexts';
 import type { AlertColor } from '@mui/material';
@@ -109,14 +109,14 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
   onClearAll,
   onDeleteNotification,
   notificationsEnabled,
-  onToggleNotifications
+  onToggleNotifications,
 }) => {
   const { showSuccess, showInfo } = useToast();
   const [showSettings, setShowSettings] = useState(false);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const sortedNotifications = [...notifications].sort(
-    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
   );
 
   const handleMarkAsRead = (notification: NotificationItem) => {
@@ -156,11 +156,17 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: { minHeight: '60vh', maxHeight: '80vh' }
+        sx: { minHeight: '60vh', maxHeight: '80vh' },
       }}
     >
       <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Badge badgeContent={unreadCount} color="error">
               <Notifications />
@@ -204,13 +210,21 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
                 control={
                   <Switch
                     checked={notificationsEnabled}
-                    onChange={(e) => handleToggleNotifications(e.target.checked)}
+                    onChange={(e) =>
+                      handleToggleNotifications(e.target.checked)
+                    }
                   />
                 }
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {notificationsEnabled ? <Notifications /> : <NotificationsOff />}
-                    {notificationsEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+                    {notificationsEnabled ? (
+                      <Notifications />
+                    ) : (
+                      <NotificationsOff />
+                    )}
+                    {notificationsEnabled
+                      ? 'Notifications Enabled'
+                      : 'Notifications Disabled'}
                   </Box>
                 }
               />
@@ -221,12 +235,15 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
         {notifications.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <NotificationsOff sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+            <NotificationsOff
+              sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }}
+            />
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No notifications
             </Typography>
             <Typography variant="body2" color="text.disabled">
-              You're all caught up! Notifications will appear here when you have goal achievements, warnings, or important updates.
+              You're all caught up! Notifications will appear here when you have
+              goal achievements, warnings, or important updates.
             </Typography>
           </Box>
         ) : (
@@ -239,7 +256,9 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
                     borderRadius: 1,
                     mb: 1,
                     border: notification.read ? 'none' : '1px solid',
-                    borderColor: notification.read ? 'transparent' : 'primary.light',
+                    borderColor: notification.read
+                      ? 'transparent'
+                      : 'primary.light',
                   }}
                   secondaryAction={
                     <IconButton
@@ -256,10 +275,19 @@ export const NotificationDialog: React.FC<NotificationDialogProps> = ({
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 0.5,
+                        }}
+                      >
                         <Typography
                           variant="subtitle2"
-                          sx={{ fontWeight: notification.read ? 'normal' : 'bold' }}
+                          sx={{
+                            fontWeight: notification.read ? 'normal' : 'bold',
+                          }}
                         >
                           {notification.title}
                         </Typography>

@@ -17,8 +17,14 @@ class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
   private updateAvailable = false;
   private callbacks: ServiceWorkerCallbacks = {};
+  private hasReloaded = false;
+  private reloadTimeout: number | null = null;
+  private readonly RELOAD_DEBOUNCE_MS = 200;
+  private readonly SESSION_STORAGE_KEY = 'sw-reload-pending';
 
-  public async register(callbacks: ServiceWorkerCallbacks = {}): Promise<ServiceWorkerStatus> {
+  public async register(
+    callbacks: ServiceWorkerCallbacks = {},
+  ): Promise<ServiceWorkerStatus> {
     this.callbacks = callbacks;
 
     // Check if service workers are supported
@@ -32,13 +38,35 @@ class ServiceWorkerManager {
       };
     }
 
+    // Check if we're recovering from a reload
+    const wasReloadPending =
+      sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    if (wasReloadPending) {
+      // Clear the flag - we've successfully reloaded
+      sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+      this.hasReloaded = false; // Reset the flag for this session
+      console.log('[SW Manager] Recovered from reload, resetting reload state');
+    }
+
     try {
-      // Register the service worker
-      this.registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
+      // Get base URL from Vite (e.g., '/' or '/timetracker/')
+      const baseUrl = import.meta.env.BASE_URL || '/';
+
+      // Normalize base URL: ensure it ends with '/' for scope, remove trailing slash for path
+      const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+      const swPath = baseUrl.endsWith('/')
+        ? `${baseUrl}sw.js`
+        : `${baseUrl}/sw.js`;
+
+      // Register the service worker with base path
+      this.registration = await navigator.serviceWorker.register(swPath, {
+        scope: normalizedBaseUrl,
       });
 
-      console.log('[SW Manager] Service Worker registered:', this.registration.scope);
+      console.log(
+        '[SW Manager] Service Worker registered:',
+        this.registration.scope,
+      );
 
       // Set up event listeners
       this.setupEventListeners();
@@ -101,9 +129,65 @@ class ServiceWorkerManager {
 
     // Listen for controller changes (new SW takes control)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[SW Manager] New service worker took control');
-      window.location.reload();
+      this.handleControllerChange();
     });
+  }
+
+  private handleControllerChange(): void {
+    // Prevent multiple reloads in the same session
+    if (this.hasReloaded) {
+      console.log('[SW Manager] Already reloaded in this session, skipping');
+      return;
+    }
+
+    // Check sessionStorage to prevent reload loops across page loads
+    const reloadPending =
+      sessionStorage.getItem(this.SESSION_STORAGE_KEY) === 'true';
+    if (reloadPending) {
+      console.log(
+        '[SW Manager] Reload already pending from previous page load, skipping',
+      );
+      return;
+    }
+
+    // Check if there's a registration
+    if (!this.registration) {
+      console.log('[SW Manager] No registration, skipping reload');
+      return;
+    }
+
+    // Check if we already have a controller (this means it's an update, not initial registration)
+    // On initial registration, navigator.serviceWorker.controller is null
+    const hasController = navigator.serviceWorker.controller !== null;
+
+    // Only reload if:
+    // 1. We have a controller (meaning this is an update, not initial registration)
+    // 2. OR there's a waiting/installing worker (update scenario)
+    const hasWaitingWorker = this.registration.waiting !== null;
+    const hasInstallingWorker = this.registration.installing !== null;
+
+    if (!hasController && !hasWaitingWorker && !hasInstallingWorker) {
+      // This is likely initial registration - don't reload
+      console.log(
+        '[SW Manager] Initial registration detected, no reload needed',
+      );
+      return;
+    }
+
+    // Clear any existing timeout
+    if (this.reloadTimeout !== null) {
+      clearTimeout(this.reloadTimeout);
+    }
+
+    // Set flag and sessionStorage before reload to prevent loops
+    this.hasReloaded = true;
+    sessionStorage.setItem(this.SESSION_STORAGE_KEY, 'true');
+
+    // Debounce reload to prevent rapid-fire reloads and ensure state is stable
+    this.reloadTimeout = window.setTimeout(() => {
+      console.log('[SW Manager] New service worker took control, reloading...');
+      window.location.reload();
+    }, this.RELOAD_DEBOUNCE_MS);
   }
 
   private handleServiceWorkerMessage(event: MessageEvent): void {
@@ -113,12 +197,16 @@ class ServiceWorkerManager {
       case 'SYNC_COMPLETE':
         console.log('[SW Manager] Background sync completed:', data);
         // Dispatch custom event for app to listen to
-        window.dispatchEvent(new CustomEvent('sw-sync-complete', { detail: data }));
+        window.dispatchEvent(
+          new CustomEvent('sw-sync-complete', { detail: data }),
+        );
         break;
 
       case 'CACHE_UPDATE':
         console.log('[SW Manager] Cache updated:', data);
-        window.dispatchEvent(new CustomEvent('sw-cache-update', { detail: data }));
+        window.dispatchEvent(
+          new CustomEvent('sw-cache-update', { detail: data }),
+        );
         break;
 
       default:
@@ -154,12 +242,27 @@ class ServiceWorkerManager {
     }
 
     // Schedule cache maintenance for optimization
-    if ('sync' in this.registration) {
-      (this.registration as any).sync.register('cache-maintenance').then(() => {
-        console.log('[SW Manager] Cache maintenance scheduled');
-      }).catch((error: Error) => {
-        console.error('[SW Manager] Failed to schedule cache maintenance:', error);
-      });
+    // Type assertion for Background Sync API (not in all browsers)
+    interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+      sync?: {
+        register: (tag: string) => Promise<void>;
+      };
+    }
+    const registrationWithSync = this
+      .registration as ServiceWorkerRegistrationWithSync;
+
+    if (registrationWithSync.sync) {
+      registrationWithSync.sync
+        .register('cache-maintenance')
+        .then(() => {
+          console.log('[SW Manager] Cache maintenance scheduled');
+        })
+        .catch((error: Error) => {
+          console.error(
+            '[SW Manager] Failed to schedule cache maintenance:',
+            error,
+          );
+        });
     }
   }
 
@@ -175,7 +278,7 @@ class ServiceWorkerManager {
   public cacheUrls(urls: string[]): void {
     this.sendMessage({
       type: 'CACHE_URLS',
-      data: { urls }
+      data: { urls },
     });
   }
 
@@ -194,6 +297,15 @@ class ServiceWorkerManager {
     }
 
     try {
+      // Clear reload flag and sessionStorage
+      this.hasReloaded = false;
+      sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+
+      if (this.reloadTimeout !== null) {
+        clearTimeout(this.reloadTimeout);
+        this.reloadTimeout = null;
+      }
+
       const result = await this.registration.unregister();
       console.log('[SW Manager] Service Worker unregistered:', result);
       this.registration = null;
@@ -213,18 +325,38 @@ export const serviceWorkerManager = new ServiceWorkerManager();
 export const registerServiceWorker = (callbacks?: ServiceWorkerCallbacks) =>
   serviceWorkerManager.register(callbacks);
 
-export const checkForSWUpdates = () =>
-  serviceWorkerManager.checkForUpdates();
+export const checkForSWUpdates = () => serviceWorkerManager.checkForUpdates();
 
-export const activateSWUpdate = () =>
-  serviceWorkerManager.activateUpdate();
+export const activateSWUpdate = () => serviceWorkerManager.activateUpdate();
 
 export const scheduleCacheMaintenance = () =>
   serviceWorkerManager.scheduleCacheMaintenance();
 
 export const isOnline = () => navigator.onLine;
 
-export const getNetworkStatus = () => ({
-  online: navigator.onLine,
-  connection: (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection,
-});
+interface NetworkInformation {
+  connection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  mozConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+  webkitConnection?: {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+  };
+}
+
+export const getNetworkStatus = () => {
+  const nav = navigator as Navigator & NetworkInformation;
+  return {
+    online: navigator.onLine,
+    connection:
+      nav.connection || nav.mozConnection || nav.webkitConnection || undefined,
+  };
+};

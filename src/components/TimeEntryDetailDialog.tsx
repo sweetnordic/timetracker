@@ -13,7 +13,7 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Typography
+  Typography,
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import type { TimeEntry, ActivityWithStats } from '../models';
@@ -37,23 +37,14 @@ export const TimeEntryDetailDialog: React.FC<TimeEntryDetailDialogProps> = ({
   onAddEntry,
   onEditEntry,
   onDeleteEntry,
-  formatDuration
+  formatDuration,
 }) => {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Time Entries for {activity?.name}</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={onAddEntry}
-          >
+          <Button variant="contained" startIcon={<Add />} onClick={onAddEntry}>
             Add Entry
           </Button>
         </Box>
@@ -82,9 +73,7 @@ export const TimeEntryDetailDialog: React.FC<TimeEntryDetailDialogProps> = ({
                   }}
                 >
                   <TableCell>
-                    <Box
-                      sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                    >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       {!entry.endTime && (
                         <Box
                           sx={{
@@ -114,10 +103,7 @@ export const TimeEntryDetailDialog: React.FC<TimeEntryDetailDialogProps> = ({
                     {entry.endTime ? (
                       new Date(entry.endTime).toLocaleString()
                     ) : (
-                      <Typography
-                        color="primary"
-                        sx={{ fontWeight: 'medium' }}
-                      >
+                      <Typography color="primary" sx={{ fontWeight: 'medium' }}>
                         In Progress
                       </Typography>
                     )}
