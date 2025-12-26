@@ -1,6 +1,6 @@
 export const DEFAULT_ORDER = 1000;
 
-export type Period = 'daily' | 'weekly' | 'monthly';
+export type Period = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type FirstDayOfWeek = 'monday' | 'sunday';
 
 export const DEFAULT_NOTIFICATION_THRESHOLD: number = 90;

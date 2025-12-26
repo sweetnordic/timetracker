@@ -13,14 +13,14 @@ import {
   Divider,
   IconButton,
   CircularProgress,
-  Alert
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
 import {
   useActivities,
@@ -31,9 +31,13 @@ import {
   useAddCategory,
   useUpdateCategory,
   useDeleteCategory,
-  useUpdateCategoryOrder
+  useUpdateCategoryOrder,
 } from '../hooks';
-import { EditCategoryDialog, EditActivityDialog, DeleteConfirmationDialog } from '../components';
+import {
+  EditCategoryDialog,
+  EditActivityDialog,
+  DeleteConfirmationDialog,
+} from '../components';
 import { useToast } from '../contexts';
 import type { Activity, Category } from '../models';
 import { DEFAULT_ORDER } from '../utils/constants';
@@ -43,8 +47,16 @@ export const ActivityManager: React.FC = () => {
   const { showSuccess, showError, showInfo } = useToast();
 
   // Queries
-  const { data: activities = [], isLoading: activitiesLoading, error: activitiesError } = useActivities();
-  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  const {
+    data: activities = [],
+    isLoading: activitiesLoading,
+    error: activitiesError,
+  } = useActivities();
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
 
   // Mutations
   const addActivity = useAddActivity();
@@ -64,42 +76,57 @@ export const ActivityManager: React.FC = () => {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [activityEditDialogOpen, setActivityEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
 
   // Use ref to track if order fixing has been performed to prevent infinite loops
   const orderFixingPerformed = useRef(false);
 
   // Sort categories and activities by order
-  const sortedCategories = [...categories].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
-  const sortedActivities = [...activities].sort((a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER));
+  const sortedCategories = [...categories].sort(
+    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER),
+  );
+  const sortedActivities = [...activities].sort(
+    (a, b) => (a.order || DEFAULT_ORDER) - (b.order || DEFAULT_ORDER),
+  );
 
   // Fix activities with duplicate order values (only once)
   useEffect(() => {
-    if (activities.length > 0 && !orderFixingPerformed.current && !updateActivityOrder.isPending) {
+    if (
+      activities.length > 0 &&
+      !orderFixingPerformed.current &&
+      !updateActivityOrder.isPending
+    ) {
       const orderCounts = new Map<number, number>();
-      activities.forEach(activity => {
+      activities.forEach((activity) => {
         const order = activity.order || DEFAULT_ORDER;
         orderCounts.set(order, (orderCounts.get(order) || 0) + 1);
       });
 
       // If there are duplicate orders, fix them
-      const hasDuplicates = Array.from(orderCounts.values()).some(count => count > 1);
+      const hasDuplicates = Array.from(orderCounts.values()).some(
+        (count) => count > 1,
+      );
       if (hasDuplicates) {
         console.log('Fixing duplicate activity orders...');
         orderFixingPerformed.current = true;
 
-        const duplicateActivities = activities.filter(activity =>
-          activity.order === DEFAULT_ORDER ||
-          activities.filter(a => a.order === activity.order).length > 1
+        const duplicateActivities = activities.filter(
+          (activity) =>
+            activity.order === DEFAULT_ORDER ||
+            activities.filter((a) => a.order === activity.order).length > 1,
         );
 
         duplicateActivities.forEach((activity, index) => {
-          updateActivityOrder.mutateAsync({
-            activityId: activity.id!,
-            newOrder: DEFAULT_ORDER + index
-          }).catch(error => {
-            console.error('Error fixing activity order:', error);
-          });
+          updateActivityOrder
+            .mutateAsync({
+              activityId: activity.id!,
+              newOrder: DEFAULT_ORDER + index,
+            })
+            .catch((error) => {
+              console.error('Error fixing activity order:', error);
+            });
         });
       }
     }
@@ -115,7 +142,10 @@ export const ActivityManager: React.FC = () => {
       category: selectedCategory,
       description: '',
       externalSystem: '',
-      order: activities.length > 0 ? Math.max(...activities.map(a => a.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
+      order:
+        activities.length > 0
+          ? Math.max(...activities.map((a) => a.order || DEFAULT_ORDER)) + 1
+          : DEFAULT_ORDER,
       createdAt: now,
       updatedAt: now,
     };
@@ -137,7 +167,10 @@ export const ActivityManager: React.FC = () => {
     const now = new Date();
     const newCategory: Omit<Category, 'id'> = {
       name: newCategoryName,
-      order: categories.length > 0 ? Math.max(...categories.map(c => c.order || DEFAULT_ORDER)) + 1 : DEFAULT_ORDER,
+      order:
+        categories.length > 0
+          ? Math.max(...categories.map((c) => c.order || DEFAULT_ORDER)) + 1
+          : DEFAULT_ORDER,
       createdAt: now,
       updatedAt: now,
     };
@@ -158,7 +191,7 @@ export const ActivityManager: React.FC = () => {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    const categoryToDelete = categories.find(c => c.id === categoryId);
+    const categoryToDelete = categories.find((c) => c.id === categoryId);
     if (!categoryToDelete) return;
 
     setCategoryToDelete(categoryToDelete);
@@ -199,11 +232,15 @@ export const ActivityManager: React.FC = () => {
     setEditingCategory(null);
   };
 
-  const handleMoveCategory = async (categoryId: string, direction: 'up' | 'down') => {
-    const currentIndex = sortedCategories.findIndex(c => c.id === categoryId);
+  const handleMoveCategory = async (
+    categoryId: string,
+    direction: 'up' | 'down',
+  ) => {
+    const currentIndex = sortedCategories.findIndex((c) => c.id === categoryId);
     if (currentIndex === -1) return;
 
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex =
+      direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= sortedCategories.length) return;
 
     const currentCategory = sortedCategories[currentIndex];
@@ -214,12 +251,12 @@ export const ActivityManager: React.FC = () => {
       await Promise.all([
         updateCategoryOrder.mutateAsync({
           categoryId: currentCategory.id!,
-          newOrder: targetCategory.order || DEFAULT_ORDER
+          newOrder: targetCategory.order || DEFAULT_ORDER,
         }),
         updateCategoryOrder.mutateAsync({
           categoryId: targetCategory.id!,
-          newOrder: currentCategory.order || DEFAULT_ORDER
-        })
+          newOrder: currentCategory.order || DEFAULT_ORDER,
+        }),
       ]);
       showInfo(`Category "${currentCategory.name}" moved ${direction}`);
     } catch (error) {
@@ -260,11 +297,15 @@ export const ActivityManager: React.FC = () => {
     }
   };
 
-  const handleMoveActivity = async (activityId: string, direction: 'up' | 'down') => {
-    const currentIndex = sortedActivities.findIndex(a => a.id === activityId);
+  const handleMoveActivity = async (
+    activityId: string,
+    direction: 'up' | 'down',
+  ) => {
+    const currentIndex = sortedActivities.findIndex((a) => a.id === activityId);
     if (currentIndex === -1) return;
 
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const targetIndex =
+      direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= sortedActivities.length) return;
 
     const currentActivity = sortedActivities[currentIndex];
@@ -275,12 +316,12 @@ export const ActivityManager: React.FC = () => {
       await Promise.all([
         updateActivityOrder.mutateAsync({
           activityId: currentActivity.id!,
-          newOrder: targetActivity.order || DEFAULT_ORDER
+          newOrder: targetActivity.order || DEFAULT_ORDER,
         }),
         updateActivityOrder.mutateAsync({
           activityId: targetActivity.id!,
-          newOrder: currentActivity.order || DEFAULT_ORDER
-        })
+          newOrder: currentActivity.order || DEFAULT_ORDER,
+        }),
       ]);
       showInfo(`Activity "${currentActivity.name}" moved ${direction}`);
     } catch (error) {
@@ -301,17 +342,27 @@ export const ActivityManager: React.FC = () => {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error">
-          Error loading data: {activitiesError?.message || categoriesError?.message}
+          Error loading data:{' '}
+          {activitiesError?.message || categoriesError?.message}
         </Alert>
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Activity Manager
-      </Typography>
+    <Box sx={{ mx: 'auto', py: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Activity Manager
+        </Typography>
+      </Box>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
         <Paper elevation={3} sx={{ p: 3, flex: 1 }}>
@@ -357,7 +408,10 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="move down"
                       onClick={() => handleMoveCategory(category.id!, 'down')}
-                      disabled={index === sortedCategories.length - 1 || updateCategoryOrder.isPending}
+                      disabled={
+                        index === sortedCategories.length - 1 ||
+                        updateCategoryOrder.isPending
+                      }
                     >
                       <ArrowDownwardIcon />
                     </IconButton>
@@ -424,7 +478,9 @@ export const ActivityManager: React.FC = () => {
                 type="submit"
                 variant="contained"
                 startIcon={<AddIcon />}
-                disabled={!newActivityName || !selectedCategory || addActivity.isPending}
+                disabled={
+                  !newActivityName || !selectedCategory || addActivity.isPending
+                }
                 fullWidth
               >
                 {addActivity.isPending ? 'Adding...' : 'Add Activity'}
@@ -450,7 +506,10 @@ export const ActivityManager: React.FC = () => {
                       edge="end"
                       aria-label="move down"
                       onClick={() => handleMoveActivity(activity.id!, 'down')}
-                      disabled={index === sortedActivities.length - 1 || updateActivityOrder.isPending}
+                      disabled={
+                        index === sortedActivities.length - 1 ||
+                        updateActivityOrder.isPending
+                      }
                     >
                       <ArrowDownwardIcon />
                     </IconButton>
@@ -467,7 +526,9 @@ export const ActivityManager: React.FC = () => {
               >
                 <ListItemText
                   primary={activity.name}
-                  secondary={`Category: ${activity.category}${activity.description ? ` • ${activity.description}` : ''}`}
+                  secondary={`Category: ${activity.category}${
+                    activity.description ? ` • ${activity.description}` : ''
+                  }`}
                 />
               </ListItem>
             ))}
@@ -486,7 +547,7 @@ export const ActivityManager: React.FC = () => {
       <EditActivityDialog
         open={activityEditDialogOpen}
         activity={editingActivity}
-        categories={sortedCategories.map(c => c.name)}
+        categories={sortedCategories.map((c) => c.name)}
         onClose={handleCloseActivityEditDialog}
         onSave={handleSaveActivityEdit}
         isLoading={updateActivity.isPending}

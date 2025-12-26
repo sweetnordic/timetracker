@@ -54,10 +54,12 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
         categories: await db.getCategories(),
         goals: await db.getGoals(),
         exportDate: new Date().toISOString(),
-        databaseVersion: 1
+        databaseVersion: 1,
       };
 
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -80,10 +82,13 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
     if (!data || typeof data !== 'object') return false;
     const typedData = data as Record<string, unknown>;
 
-    if (!Array.isArray(typedData.activities) ||
-        !Array.isArray(typedData.timeEntries) ||
-        !Array.isArray(typedData.categories) ||
-        !Array.isArray(typedData.goals)) return false;
+    if (
+      !Array.isArray(typedData.activities) ||
+      !Array.isArray(typedData.timeEntries) ||
+      !Array.isArray(typedData.categories) ||
+      !Array.isArray(typedData.goals)
+    )
+      return false;
 
     if (typeof typedData.exportDate !== 'string') return false;
 
@@ -112,7 +117,8 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
     for (const goal of typedData.goals) {
       if (!goal || typeof goal !== 'object') return false;
       const g = goal as Record<string, unknown>;
-      if (!g.activityId || typeof g.targetHours !== 'number' || !g.period) return false;
+      if (!g.activityId || typeof g.targetHours !== 'number' || !g.period)
+        return false;
     }
 
     return true;
@@ -152,7 +158,10 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       // Import categories
       for (const category of data.categories) {
         // Skip if category already exists (when merging)
-        if (importMode === 'merge' && existingCategories.some(c => c.name === category.name)) {
+        if (
+          importMode === 'merge' &&
+          existingCategories.some((c) => c.name === category.name)
+        ) {
           continue;
         }
         await db.addCategory({
@@ -167,9 +176,12 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       const activityIdMap = new Map<string, string>();
       for (const activity of data.activities) {
         // Skip if activity already exists (when merging)
-        if (importMode === 'merge' && existingActivities.some(a =>
-          a.name === activity.name && a.category === activity.category
-        )) {
+        if (
+          importMode === 'merge' &&
+          existingActivities.some(
+            (a) => a.name === activity.name && a.category === activity.category,
+          )
+        ) {
           continue;
         }
         const newId = await db.addActivity({
@@ -187,10 +199,15 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       // Import time entries
       for (const entry of data.timeEntries) {
         // Skip if time entry already exists (when merging)
-        if (importMode === 'merge' && existingTimeEntries.some(e =>
-          e.activityId === entry.activityId &&
-          new Date(e.startTime).getTime() === new Date(entry.startTime).getTime()
-        )) {
+        if (
+          importMode === 'merge' &&
+          existingTimeEntries.some(
+            (e) =>
+              e.activityId === entry.activityId &&
+              new Date(e.startTime).getTime() ===
+                new Date(entry.startTime).getTime(),
+          )
+        ) {
           continue;
         }
         // Map the old activity_id to the new one
@@ -203,7 +220,7 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
             duration: entry.duration,
             notes: entry.notes || '',
             createdAt: new Date(entry.createdAt),
-            updatedAt: new Date(entry.updatedAt)
+            updatedAt: new Date(entry.updatedAt),
           });
         }
       }
@@ -211,11 +228,15 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
       // Import goals
       for (const goal of data.goals) {
         // Skip if goal already exists (when merging)
-        if (importMode === 'merge' && existingGoals.some(g =>
-          g.activityId === goal.activityId &&
-          g.period === goal.period &&
-          g.targetHours === goal.targetHours
-        )) {
+        if (
+          importMode === 'merge' &&
+          existingGoals.some(
+            (g) =>
+              g.activityId === goal.activityId &&
+              g.period === goal.period &&
+              g.targetHours === goal.targetHours,
+          )
+        ) {
           continue;
         }
         // Map the old activity_id to the new one
@@ -227,7 +248,7 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
             period: goal.period,
             notificationThreshold: goal.notificationThreshold,
             createdAt: new Date(goal.createdAt),
-            updatedAt: new Date(goal.updatedAt)
+            updatedAt: new Date(goal.updatedAt),
           });
         }
       }
@@ -264,7 +285,8 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
               Export Data
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Export all your activities, time entries, categories, and goals to a JSON file.
+              Export all your activities, time entries, categories, and goals to
+              a JSON file.
             </Typography>
             <Button
               variant="outlined"
@@ -288,12 +310,16 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
 
             {importFile ? (
               <>
-                <Typography gutterBottom>Selected file: {importFile.name}</Typography>
+                <Typography gutterBottom>
+                  Selected file: {importFile.name}
+                </Typography>
                 <FormControl sx={{ mb: 2 }}>
                   <FormLabel>Import Mode</FormLabel>
                   <RadioGroup
                     value={importMode}
-                    onChange={(e) => setImportMode(e.target.value as 'clear' | 'merge')}
+                    onChange={(e) =>
+                      setImportMode(e.target.value as 'clear' | 'merge')
+                    }
                   >
                     <FormControlLabel
                       value="clear"
@@ -341,7 +367,11 @@ export const DataDialog: React.FC<DataDialogProps> = ({ open, onClose }) => {
             )}
 
             {importError && (
-              <Alert severity="error" onClose={() => setImportError(null)} sx={{ mt: 2 }}>
+              <Alert
+                severity="error"
+                onClose={() => setImportError(null)}
+                sx={{ mt: 2 }}
+              >
                 {importError}
               </Alert>
             )}

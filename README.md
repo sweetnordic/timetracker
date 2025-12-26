@@ -6,7 +6,7 @@ A personal time tracking application built with React and IndexedDB, designed fo
 
 Time Tracker is a web application that helps you track time spent on various activities. It provides a simple interface for starting/stopping time tracking, managing activities, and viewing analytics.
 
-## Core Features (v1.0)
+## Core Features
 
 ### Time Tracking
 
@@ -16,10 +16,12 @@ Time Tracker is a web application that helps you track time spent on various act
 - Automatic rounding to nearest 15 minutes
 - Configurable in-app reminders for long-running activities
 - Automated tracking end:
-  - Automatic stop when application is closed
+  - Configurable automatic stop when application is closed (default: enabled)
+  - Configurable automatic stop when tab is switched or minimized (default: enabled)
   - Configurable maximum tracking duration (default: 12 hours)
   - Warning notification before auto-stopping
   - Option to extend tracking time if needed
+  - Background tracking support (can continue tracking even when app is closed)
 
 ### Activity Management
 
@@ -157,10 +159,17 @@ Goals define time targets for activities over specific periods (daily, weekly, o
 
 ### Settings
 
-Settings store application-wide configuration values. This includes user preferences, notification settings, and other customizable options that affect the application's behavior.
+Settings store application-wide configuration values. This includes user preferences, notification settings, and other customizable options that affect the application's behavior. Settings are stored in browser localStorage.
 
-- id (PRIMARY KEY)
-- key
-- value
-- created_at
-- updated_at
+**Available Settings:**
+
+- Maximum tracking duration (default: 12 hours)
+- Warning threshold before auto-stop (default: 1 hour)
+- First day of week (Monday or Sunday)
+- Default goal notification threshold (percentage)
+- Enable/disable goal notifications
+- Stop tracking on app close (default: enabled)
+- Stop tracking on tab switch (default: enabled)
+- Dark mode (optional)
+
+**Note:** The database schema shows a Settings table, but the current implementation uses localStorage for settings storage for better performance and simplicity.

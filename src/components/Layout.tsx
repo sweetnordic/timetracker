@@ -3,7 +3,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
-  Typography,
   Container,
   Box,
   Tabs,
@@ -13,7 +12,7 @@ import {
   CssBaseline,
   IconButton,
   Tooltip,
-  Badge
+  Badge,
 } from '@mui/material';
 import {
   Timer,
@@ -23,11 +22,17 @@ import {
   Settings,
   LightMode,
   DarkMode,
-  ImportExport
+  ImportExport,
+  GitHub,
+  Sync,
+  Cloud,
+  CloudOff,
+  Update,
 } from '@mui/icons-material';
 import { useNotifications, useClearAllData } from '../hooks';
 import { useSettings } from '../hooks/useSettings';
-import { NotificationDialog, SettingsDialog, DeleteConfirmationDialog, DataDialog } from './';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import { NotificationDialog, DeleteConfirmationDialog, DataDialog } from './';
 import { useToast } from '../contexts';
 
 export const Layout: React.FC = () => {
@@ -36,21 +41,16 @@ export const Layout: React.FC = () => {
   const { showError, showSuccess } = useToast();
 
   // Use new LocalStorage-based settings
-  const {
-    settings,
-    updateSettings,
-    updateSetting,
-    resetSettings,
-    isDarkMode,
-    notificationsEnabled
-  } = useSettings();
+  const { updateSetting, isDarkMode, notificationsEnabled } = useSettings();
 
   // Create theme based on settings
   const theme = createTheme({
     palette: {
       mode: isDarkMode ? 'dark' : 'light',
       primary: {
-        main: '#1976d2',
+        main: isDarkMode ? '#104d93' : '#1976d2', // Darker blue for dark mode
+        light: isDarkMode ? '#1976d2' : '#42a5f5',
+        dark: isDarkMode ? '#0d47a1' : '#104d93',
       },
       background: {
         default: isDarkMode ? '#121212' : '#f5f5f5',
@@ -61,7 +61,7 @@ export const Layout: React.FC = () => {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: '#1976d2',
+            backgroundColor: isDarkMode ? '#0b3565' : '#1976d2', // Darker blue for dark mode
             color: '#ffffff',
           },
         },
@@ -98,31 +98,42 @@ export const Layout: React.FC = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    clearAll: clearAllNotifications
+    clearAll: clearAllNotifications,
   } = useNotifications();
 
   // Database operations
   const clearAllData = useClearAllData();
 
-  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  // PWA/Offline status
+  const {
+    isOnline,
+    serviceWorker,
+    hasUpdateAvailable,
+    installUpdate,
+    optimizeCache,
+  } = useOfflineStatus();
+
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] =
+    useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showDataDialog, setShowDataDialog] = useState(false);
 
   const getCurrentTab = () => {
-    switch (location.pathname) {
-      case '/':
-      case '/tracker':
-        return 'tracker';
-      case '/manager':
-        return 'manager';
-      case '/analytics':
-        return 'analytics';
-      case '/help':
-        return 'help';
-      default:
-        return 'tracker';
+    const path = location.pathname;
+    if (path === '/' || path === '/tracker') {
+      return 'tracker';
     }
+    if (path === '/manager') {
+      return 'manager';
+    }
+    if (path === '/analytics') {
+      return 'analytics';
+    }
+    // Don't highlight any tab for settings/help pages
+    if (path === '/settings' || path === '/help') {
+      return false;
+    }
+    return 'tracker';
   };
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
@@ -159,32 +170,7 @@ export const Layout: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    setShowSettingsDialog(true);
-  };
-
-  const handleCloseSettings = () => {
-    setShowSettingsDialog(false);
-  };
-
-  const handleSaveSettings = async (newSettings: typeof settings) => {
-    try {
-      updateSettings(newSettings);
-      setShowSettingsDialog(false);
-      showSuccess('Settings saved successfully');
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      showError('Failed to save settings');
-    }
-  };
-
-  const handleResetSettings = async () => {
-    try {
-      resetSettings();
-      showSuccess('Settings reset to defaults');
-    } catch (error) {
-      console.error('Error resetting settings:', error);
-      showError('Failed to reset settings');
-    }
+    navigate('/settings');
   };
 
   const handleResetDatabase = async () => {
@@ -199,14 +185,11 @@ export const Layout: React.FC = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme} key={isDarkMode ? 'dark' : 'light'}>
       <CssBaseline />
       <AppBar position="static" elevation={2}>
         <Toolbar sx={{ minHeight: 64 }}>
           <Timer sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ mr: 4 }}>
-            Time Tracker
-          </Typography>
 
           <Tabs
             value={getCurrentTab()}
@@ -238,7 +221,9 @@ export const Layout: React.FC = () => {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          <Tooltip
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
             <IconButton
               color="inherit"
               onClick={handleThemeToggle}
@@ -248,12 +233,52 @@ export const Layout: React.FC = () => {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Help">
-            <IconButton color="inherit" onClick={() => navigate('/help')} sx={{ ml: 1 }}>
-              <HelpIcon />
-            </IconButton>
-          </Tooltip>
+          {/* PWA Status Indicator */}
+          {serviceWorker.isRegistered && (
+            <Tooltip
+              title={isOnline ? 'Online - PWA Ready' : 'Offline - PWA Ready'}
+            >
+              <IconButton color="inherit" sx={{ ml: 1 }}>
+                {isOnline ? <Cloud /> : <CloudOff />}
+              </IconButton>
+            </Tooltip>
+          )}
 
+          {/* Optimize Cache Button */}
+          {serviceWorker.isRegistered && (
+            <Tooltip title="Optimize App Cache">
+              <IconButton
+                color="inherit"
+                onClick={optimizeCache}
+                sx={{ ml: 1 }}
+              >
+                <Sync />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Update Available Button */}
+          {hasUpdateAvailable && (
+            <Tooltip title="Install App Update">
+              <IconButton
+                color="inherit"
+                onClick={installUpdate}
+                sx={{
+                  ml: 1,
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%': { transform: 'scale(1)' },
+                    '50%': { transform: 'scale(1.05)' },
+                    '100%': { transform: 'scale(1)' },
+                  },
+                }}
+              >
+                <Update />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Notifications Button */}
           <Tooltip title="Notifications">
             <IconButton
               color="inherit"
@@ -269,6 +294,31 @@ export const Layout: React.FC = () => {
               </Badge>
             </IconButton>
           </Tooltip>
+
+          {/* GitHub Repository Button */}
+          <Tooltip title="GitHub Repository">
+            <IconButton
+              color="inherit"
+              component="a"
+              href="https://github.com/sweetnordic/timetracker"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ ml: 1 }}
+            >
+              <GitHub />
+            </IconButton>
+          </Tooltip>
+
+          {/* Help Button */}
+          <Tooltip title="Help">
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/help')}
+              sx={{ ml: 1 }}
+            >
+              <HelpIcon />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -277,17 +327,6 @@ export const Layout: React.FC = () => {
           <Outlet />
         </Box>
       </Container>
-
-      {/* Global Settings Dialog */}
-      <SettingsDialog
-        open={showSettingsDialog}
-        settings={settings}
-        onClose={handleCloseSettings}
-        onSave={handleSaveSettings}
-        onReset={handleResetSettings}
-        onResetDatabase={() => setShowResetConfirm(true)}
-        isLoading={false}
-      />
 
       {/* Database Reset Confirmation */}
       <DeleteConfirmationDialog

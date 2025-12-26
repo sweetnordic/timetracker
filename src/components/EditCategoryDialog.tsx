@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button
+  Button,
 } from '@mui/material';
 import type { Category } from '../models';
 
@@ -22,7 +22,7 @@ export const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
   category,
   onClose,
   onSave,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [categoryName, setCategoryName] = useState('');
 
@@ -40,7 +40,7 @@ export const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
     const updatedCategory: Category = {
       ...category,
       name: categoryName.trim(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     try {
@@ -76,7 +76,11 @@ export const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
           onKeyPress={handleKeyPress}
           disabled={isLoading}
           error={!categoryName.trim() && categoryName.length > 0}
-          helperText={!categoryName.trim() && categoryName.length > 0 ? 'Category name is required' : ''}
+          helperText={
+            !categoryName.trim() && categoryName.length > 0
+              ? 'Category name is required'
+              : ''
+          }
         />
       </DialogContent>
       <DialogActions>

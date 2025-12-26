@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { TrackingSettings } from '../models';
-import { DEFAULT_NOTIFICATION_THRESHOLD, DEFAULT_FIRST_DAY_OF_WEEK } from '../utils/constants';
+import {
+  DEFAULT_NOTIFICATION_THRESHOLD,
+  DEFAULT_FIRST_DAY_OF_WEEK,
+} from '../utils/constants';
 
 const SETTINGS_KEY = 'timetracker-settings';
 
@@ -11,6 +14,8 @@ const DEFAULT_SETTINGS: TrackingSettings = {
   firstDayOfWeek: DEFAULT_FIRST_DAY_OF_WEEK,
   defaultGoalNotificationThreshold: DEFAULT_NOTIFICATION_THRESHOLD,
   notificationsEnabled: true,
+  stopTrackingOnClose: true, // Default: stop tracking when app closes
+  stopTrackingOnTabSwitch: false, // Default: stop tracking when tab switches disabled by default
   darkMode: false,
 };
 
@@ -53,7 +58,7 @@ export const settingsStorage = {
   // Update individual setting
   update: <K extends keyof TrackingSettings>(
     key: K,
-    value: TrackingSettings[K]
+    value: TrackingSettings[K],
   ): TrackingSettings => {
     const current = settingsStorage.get();
     const updated = { ...current, [key]: value };
@@ -64,23 +69,31 @@ export const settingsStorage = {
 
 // Custom hook for settings management
 export const useSettings = () => {
-  const [settings, setSettings] = useState<TrackingSettings>(() => settingsStorage.get());
+  const [settings, setSettings] = useState<TrackingSettings>(() =>
+    settingsStorage.get(),
+  );
 
   // Update settings and persist to localStorage
-  const updateSettings = useCallback((newSettings: Partial<TrackingSettings>) => {
-    const updated = { ...settings, ...newSettings };
-    setSettings(updated);
-    settingsStorage.set(updated);
-  }, [settings]);
+  const updateSettings = useCallback(
+    (newSettings: Partial<TrackingSettings>) => {
+      const updated = { ...settings, ...newSettings };
+      setSettings(updated);
+      settingsStorage.set(updated);
+    },
+    [settings],
+  );
 
   // Update a single setting
-  const updateSetting = useCallback(<K extends keyof TrackingSettings>(
-    key: K,
-    value: TrackingSettings[K]
-  ) => {
-    const updated = settingsStorage.update(key, value);
-    setSettings(updated);
-  }, []);
+  const updateSetting = useCallback(
+    <K extends keyof TrackingSettings>(key: K, value: TrackingSettings[K]) => {
+      setSettings((prev) => {
+        const updated = { ...prev, [key]: value };
+        settingsStorage.set(updated);
+        return updated;
+      });
+    },
+    [],
+  );
 
   // Reset to defaults
   const resetSettings = useCallback(() => {

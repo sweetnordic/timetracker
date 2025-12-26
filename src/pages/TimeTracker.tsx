@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -15,10 +15,12 @@ import {
   Stack,
   useTheme,
   useMediaQuery,
+  LinearProgress,
 } from '@mui/material';
 import { PlayArrow, Stop, History, Timer, Category } from '@mui/icons-material';
 import {
   useActivities,
+  useTimeEntries,
   useTimeEntriesByActivity,
   useOpenTimeEntries,
   useAddTimeEntry,
@@ -26,13 +28,14 @@ import {
   useDeleteTimeEntry,
   useSettings,
   useClearAllData,
-  useNotifications
+  useNotifications,
+  useGoals,
 } from '../hooks';
 import {
   TimeEntryDetailDialog,
   TimeEntryFormDialog,
   DeleteConfirmationDialog,
-  ExtendTimeDialog
+  ExtendTimeDialog,
 } from '../components';
 import { useToast } from '../contexts';
 import type { Activity, ActivityWithStats, TimeEntry } from '../models';
@@ -53,18 +56,18 @@ export const TimeTracker: React.FC = () => {
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
   // Notification management (for adding notifications from TimeTracker actions)
-  const {
-    addWarningNotification,
-    addInfoNotification,
-    addErrorNotification,
-  } = useNotifications();
+  const { addWarningNotification, addInfoNotification, addErrorNotification } =
+    useNotifications();
 
   // Use LocalStorage-based settings
   const { settings: trackingSettings } = useSettings();
 
   // Queries
-  const { data: dbActivities = [], isLoading: activitiesLoading } = useActivities();
+  const { data: dbActivities = [], isLoading: activitiesLoading } =
+    useActivities();
   const { data: dbOpenEntries = [] } = useOpenTimeEntries();
+  const { data: allTimeEntries = [] } = useTimeEntries();
+  const { data: allGoals = [] } = useGoals();
 
   // Mutations
   const addTimeEntry = useAddTimeEntry();
@@ -73,20 +76,32 @@ export const TimeTracker: React.FC = () => {
   const clearAllData = useClearAllData();
 
   // Convert database models to UI models with useMemo to prevent infinite loops
-  const activities: ActivityWithStats[] = useMemo(() =>
-    dbActivities.map(dbActivity => ({
-      ...dbActivity,
-      totalDuration: 0, // Will be updated separately
-    })),
-    [dbActivities]
-  );
+  const activities: ActivityWithStats[] = useMemo(() => {
+    return dbActivities.map((dbActivity) => {
+      // Calculate total duration for this activity
+      const activityTimeEntries = allTimeEntries.filter(
+        (entry: TimeEntry) =>
+          entry.activityId === dbActivity.id && entry.duration !== null,
+      );
+      const totalDuration = activityTimeEntries.reduce(
+        (total: number, entry: TimeEntry) => total + (entry.duration || 0),
+        0,
+      );
+
+      return {
+        ...dbActivity,
+        totalDuration,
+      };
+    });
+  }, [dbActivities, allTimeEntries]);
 
   // State management
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityWithStats | null>(null);
+  const [selectedActivity, setSelectedActivity] =
+    useState<ActivityWithStats | null>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
@@ -98,17 +113,22 @@ export const TimeTracker: React.FC = () => {
   const [warningShown, setWarningShown] = useState(false);
 
   // Query for time entries when detail dialog is open
-  const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(selectedActivity?.id || '');
+  const { data: dbActivityTimeEntries = [] } = useTimeEntriesByActivity(
+    selectedActivity?.id || '',
+  );
 
   // Group activities by category for better organization
   const activitiesByCategory = useMemo(() => {
-    const grouped = activities.reduce((acc, activity) => {
-      if (!acc[activity.category]) {
-        acc[activity.category] = [];
-      }
-      acc[activity.category].push(activity);
-      return acc;
-    }, {} as Record<string, ActivityWithStats[]>);
+    const grouped = activities.reduce(
+      (acc, activity) => {
+        if (!acc[activity.category]) {
+          acc[activity.category] = [];
+        }
+        acc[activity.category].push(activity);
+        return acc;
+      },
+      {} as Record<string, ActivityWithStats[]>,
+    );
     return grouped;
   }, [activities]);
 
@@ -118,12 +138,18 @@ export const TimeTracker: React.FC = () => {
     const inProgressEntry = dbOpenEntries[0]; // Get the most recent open entry
 
     if (inProgressEntry) {
-      const activity = activities.find(a => a.id === inProgressEntry.activityId);
+      const activity = activities.find(
+        (a) => a.id === inProgressEntry.activityId,
+      );
       if (activity) {
         setCurrentActivity(activity);
         setIsTracking(true);
         setStartTime(new Date(inProgressEntry.startTime));
-        const elapsed = Math.floor((new Date().getTime() - new Date(inProgressEntry.startTime).getTime()) / 1000);
+        const elapsed = Math.floor(
+          (new Date().getTime() -
+            new Date(inProgressEntry.startTime).getTime()) /
+            1000,
+        );
         setElapsedTime(elapsed);
       }
     }
@@ -136,22 +162,95 @@ export const TimeTracker: React.FC = () => {
     }
   }, [selectedActivity, dbActivityTimeEntries]);
 
+  // Fix: Wrap stopTracking in useCallback to include it in dependencies
+  const stopTrackingCallback = useCallback(async () => {
+    if (!isTracking || !currentActivity || !startTime) return;
+
+    const now = new Date();
+    const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+
+    // Round up to nearest 15 minutes (900 seconds) - always round up, never down
+    const roundedDuration = Math.ceil(duration / 900) * 900;
+
+    try {
+      // Find the most recent open entry for this activity
+      const openEntry = dbOpenEntries.find(
+        (entry) =>
+          entry.activityId === currentActivity.id && entry.endTime === null,
+      );
+
+      if (openEntry) {
+        await updateTimeEntry.mutateAsync({
+          id: openEntry.id,
+          activityId: currentActivity.id!,
+          startTime: startTime,
+          endTime: now,
+          duration: roundedDuration,
+          notes: '',
+          createdAt: startTime,
+          updatedAt: now,
+        });
+      }
+
+      setIsTracking(false);
+      setCurrentActivity(null);
+      setStartTime(null);
+      setElapsedTime(0);
+
+      const title = 'Time Tracking Completed';
+      const message = `Stopped tracking: ${
+        currentActivity.name
+      } (${formatDuration(roundedDuration)})`;
+
+      if (trackingSettings.notificationsEnabled) {
+        addInfoNotification(title, message, currentActivity.id);
+      }
+      showSuccess(message, 4000);
+    } catch (error) {
+      console.error('Error stopping time tracking:', error);
+
+      const title = 'Time Tracking Error';
+      const message = 'Failed to stop time tracking';
+
+      if (trackingSettings.notificationsEnabled) {
+        addErrorNotification(title, message, currentActivity?.id);
+      }
+      showError(message);
+    }
+  }, [
+    isTracking,
+    currentActivity,
+    startTime,
+    dbOpenEntries,
+    updateTimeEntry,
+    trackingSettings,
+    addInfoNotification,
+    addErrorNotification,
+    showSuccess,
+    showError,
+  ]);
+
   useEffect(() => {
     let interval: number;
     if (isTracking && startTime) {
       interval = window.setInterval(() => {
         const now = new Date();
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const elapsed = Math.floor(
+          (now.getTime() - startTime.getTime()) / 1000,
+        );
         setElapsedTime(elapsed);
 
         // Check for warning threshold - show dialog only once
         const remainingTime = trackingSettings.maxDuration - elapsed;
-        if (remainingTime <= trackingSettings.warningThreshold && !warningShown) {
+        if (
+          remainingTime <= trackingSettings.warningThreshold &&
+          !warningShown
+        ) {
           setShowExtendDialog(true);
           setWarningShown(true);
 
           const remainingMinutes = Math.ceil(remainingTime / 60);
-          const title = "Time Tracking Warning";
+          const title = 'Time Tracking Warning';
           const message = `Time tracking will stop in ${remainingMinutes} minutes`;
 
           if (trackingSettings.notificationsEnabled) {
@@ -161,9 +260,9 @@ export const TimeTracker: React.FC = () => {
 
         // Auto-stop if max duration reached
         if (elapsed >= trackingSettings.maxDuration) {
-          stopTracking();
-          const title = "Time Tracking Stopped";
-          const message = "Maximum duration reached";
+          stopTrackingCallback();
+          const title = 'Time Tracking Stopped';
+          const message = 'Maximum duration reached';
 
           if (trackingSettings.notificationsEnabled) {
             addWarningNotification(title, message, currentActivity?.id);
@@ -173,7 +272,16 @@ export const TimeTracker: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isTracking, startTime, trackingSettings, currentActivity, warningShown, addWarningNotification, showWarning]);
+  }, [
+    isTracking,
+    startTime,
+    trackingSettings,
+    currentActivity,
+    warningShown,
+    addWarningNotification,
+    showWarning,
+    stopTrackingCallback,
+  ]);
 
   const startTracking = async (activity: Activity) => {
     if (isTracking) return;
@@ -195,7 +303,7 @@ export const TimeTracker: React.FC = () => {
         updatedAt: now,
       });
 
-      const title = "Time Tracking Started";
+      const title = 'Time Tracking Started';
       const message = `Started tracking: ${activity.name}`;
 
       if (trackingSettings.notificationsEnabled) {
@@ -205,8 +313,8 @@ export const TimeTracker: React.FC = () => {
     } catch (error) {
       console.error('Error starting time tracking:', error);
 
-      const title = "Time Tracking Error";
-      const message = "Failed to start time tracking";
+      const title = 'Time Tracking Error';
+      const message = 'Failed to start time tracking';
 
       if (trackingSettings.notificationsEnabled) {
         addErrorNotification(title, message, activity.id);
@@ -219,70 +327,82 @@ export const TimeTracker: React.FC = () => {
     }
   };
 
-  const stopTracking = async () => {
-    if (!isTracking || !currentActivity || !startTime) return;
-
-    const now = new Date();
-    const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-
-    // Round up to nearest 15 minutes (900 seconds) - always round up, never down
-    const roundedDuration = Math.ceil(duration / 900) * 900;
-
-    try {
-      // Find the most recent open entry for this activity
-      const openEntry = dbOpenEntries.find(entry =>
-        entry.activityId === currentActivity.id && entry.endTime === null
-      );
-
-      if (openEntry) {
-        await updateTimeEntry.mutateAsync({
-          id: openEntry.id,
-          activityId: currentActivity.id!,
-          startTime: startTime,
-          endTime: now,
-          duration: roundedDuration,
-          notes: '',
-          createdAt: startTime,
-          updatedAt: now,
-        });
-      }
-
-      setIsTracking(false);
-      setCurrentActivity(null);
-      setStartTime(null);
-      setElapsedTime(0);
-
-      const title = "Time Tracking Completed";
-      const message = `Stopped tracking: ${currentActivity.name} (${formatDuration(roundedDuration)})`;
-
-      if (trackingSettings.notificationsEnabled) {
-        addInfoNotification(title, message, currentActivity.id);
-      }
-      showSuccess(message, 4000);
-    } catch (error) {
-      console.error('Error stopping time tracking:', error);
-
-      const title = "Time Tracking Error";
-      const message = "Failed to stop time tracking";
-
-      if (trackingSettings.notificationsEnabled) {
-        addErrorNotification(title, message, currentActivity?.id);
-      }
-      showError(message);
-    }
-  };
+  // stopTracking function moved to stopTrackingCallback above to fix useEffect dependencies
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${hours}h ${minutes}m`;
+  };
+
+  // Calculate goal progress for an activity
+  const getGoalProgress = (activity: ActivityWithStats) => {
+    const activityGoals = allGoals.filter(
+      (goal) => goal.activityId === activity.id,
+    );
+    if (activityGoals.length === 0) return null;
+
+    // For simplicity, let's show the first goal's progress
+    const goal = activityGoals[0];
+    const now = new Date();
+    let startDate: Date;
+
+    switch (goal.period) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'weekly': {
+        startDate = new Date(now);
+        const day = startDate.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+        startDate.setDate(now.getDate() + diff);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'monthly':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'yearly':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        return null;
+    }
+
+    // Filter time entries for the goal period
+    const relevantEntries = allTimeEntries.filter(
+      (entry: TimeEntry) =>
+        entry.activityId === activity.id &&
+        entry.endTime &&
+        new Date(entry.startTime) >= startDate &&
+        new Date(entry.startTime) <= now,
+    );
+
+    const progressSeconds = relevantEntries.reduce(
+      (total: number, entry: TimeEntry) => total + (entry.duration || 0),
+      0,
+    );
+    const progressHours = progressSeconds / 3600;
+    const progressPercentage = Math.min(
+      (progressHours / goal.targetHours) * 100,
+      100,
+    );
+
+    return {
+      goal,
+      progressHours,
+      progressPercentage,
+      period: goal.period,
+    };
   };
 
   const handleOpenDetail = (activity: ActivityWithStats) => {
@@ -317,7 +437,7 @@ export const TimeTracker: React.FC = () => {
       duration: formData.duration,
       notes: formData.notes,
       createdAt: editingEntry?.createdAt || new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     try {
@@ -373,7 +493,7 @@ export const TimeTracker: React.FC = () => {
 
   const handleStopFromDialog = () => {
     setShowExtendDialog(false);
-    stopTracking();
+    stopTrackingCallback();
   };
 
   const handleCloseExtendDialog = () => {
@@ -381,95 +501,154 @@ export const TimeTracker: React.FC = () => {
   };
 
   // Render compact activity card for desktop
-  const renderActivityCard = (activity: ActivityWithStats) => (
-    <Card
-      elevation={2}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        '&:hover': {
-          elevation: 4,
-          transform: 'translateY(-2px)',
-          transition: 'all 0.2s ease-in-out'
-        }
-      }}
-    >
-      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" component="h3" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-            {activity.name}
-          </Typography>
-          <Tooltip title="View History">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDetail(activity)}
-              sx={{ ml: 1 }}
-            >
-              <History fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+  const renderActivityCard = (activity: ActivityWithStats) => {
+    const goalProgress = getGoalProgress(activity);
 
-        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-          <Chip
-            icon={<Category />}
-            label={activity.category}
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.75rem' }}
-          />
-          <Chip
-            icon={<Timer />}
-            label={formatDuration(activity.totalDuration)}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontSize: '0.75rem' }}
-          />
-        </Stack>
-
-        {activity.description && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
+    return (
+      <Card
+        elevation={2}
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          '&:hover': {
+            elevation: 4,
+            transform: 'translateY(-2px)',
+            transition: 'all 0.2s ease-in-out',
+          },
+        }}
+      >
+        <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+          <Box
             sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
               mb: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              fontSize: '0.875rem'
             }}
           >
-            {activity.description}
-          </Typography>
-        )}
+            <Typography
+              variant="h6"
+              component="h3"
+              sx={{ fontWeight: 600, fontSize: '1rem' }}
+            >
+              {activity.name}
+            </Typography>
+            <Tooltip title="View History">
+              <IconButton
+                size="small"
+                onClick={() => handleOpenDetail(activity)}
+                sx={{ ml: 1 }}
+              >
+                <History fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
 
-        {activity.externalSystem && (
-          <Typography variant="caption" color="text.secondary" display="block">
-            External: {activity.externalSystem}
-          </Typography>
-        )}
-      </CardContent>
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Chip
+              icon={<Category />}
+              label={activity.category}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem' }}
+            />
+            <Chip
+              icon={<Timer />}
+              label={formatDuration(activity.totalDuration)}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem' }}
+            />
+          </Stack>
 
-      <Box sx={{ p: 2, pt: 0 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          startIcon={<PlayArrow />}
-          onClick={() => startTracking(activity)}
-          disabled={isTracking}
-          size="small"
-        >
-          {isTracking && currentActivity?.id === activity.id ? 'Tracking...' : 'Start Tracking'}
-        </Button>
-      </Box>
-    </Card>
-  );
+          {/* Goal Progress */}
+          {goalProgress && (
+            <Box sx={{ mb: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 0.5,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary">
+                  {goalProgress.goal.targetHours}h {goalProgress.period}ly goal
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {goalProgress.progressHours.toFixed(1)}h (
+                  {goalProgress.progressPercentage.toFixed(0)}%)
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={goalProgress.progressPercentage}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  bgcolor: 'action.hover',
+                  '& .MuiLinearProgress-bar': {
+                    borderRadius: 3,
+                    bgcolor:
+                      goalProgress.progressPercentage >= 100
+                        ? 'success.main'
+                        : 'primary.main',
+                  },
+                }}
+              />
+            </Box>
+          )}
+
+          {activity.description && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mb: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                fontSize: '0.875rem',
+              }}
+            >
+              {activity.description}
+            </Typography>
+          )}
+
+          {activity.externalSystem && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              display="block"
+            >
+              External: {activity.externalSystem}
+            </Typography>
+          )}
+        </CardContent>
+
+        <Box sx={{ p: 2, pt: 0 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            startIcon={<PlayArrow />}
+            onClick={() => startTracking(activity)}
+            disabled={isTracking}
+            size="small"
+          >
+            {isTracking && currentActivity?.id === activity.id
+              ? 'Tracking...'
+              : 'Start Tracking'}
+          </Button>
+        </Box>
+      </Card>
+    );
+  };
 
   // Render mobile list item
   const renderMobileActivityItem = (activity: ActivityWithStats) => (
@@ -497,11 +676,7 @@ export const TimeTracker: React.FC = () => {
               </Typography>
             </Box>
             {activity.description && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 {activity.description}
               </Typography>
             )}
@@ -511,9 +686,7 @@ export const TimeTracker: React.FC = () => {
               </Typography>
             )}
           </Box>
-          <Box
-            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
-          >
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
             <Tooltip title="View History">
               <IconButton
                 onClick={() => handleOpenDetail(activity)}
@@ -546,14 +719,14 @@ export const TimeTracker: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: { xs: '100%', xl: '1400px' }, mx: 'auto' }}>
+    <Box sx={{ maxWidth: { xs: '100%', xl: '1400px' }, mx: 'auto', py: 3 }}>
       {/* Header */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 3,
+          mb: 4,
         }}
       >
         <Typography variant="h4" gutterBottom>
@@ -604,7 +777,7 @@ export const TimeTracker: React.FC = () => {
               variant="contained"
               color="error"
               startIcon={<Stop />}
-              onClick={stopTracking}
+              onClick={stopTrackingCallback}
               size="large"
             >
               Stop Tracking
@@ -626,9 +799,7 @@ export const TimeTracker: React.FC = () => {
         // Mobile: List view
         <List>
           {activities.map((activity) => (
-            <Box key={activity.id}>
-              {renderMobileActivityItem(activity)}
-            </Box>
+            <Box key={activity.id}>{renderMobileActivityItem(activity)}</Box>
           ))}
         </List>
       ) : (
@@ -636,44 +807,47 @@ export const TimeTracker: React.FC = () => {
         <Box>
           {Object.keys(activitiesByCategory).length === 0 ? (
             <Typography variant="body1" color="text.secondary" align="center">
-              No activities found. Create some activities in the Activity Manager to get started.
+              No activities found. Create some activities in the Activity
+              Manager to get started.
             </Typography>
           ) : (
-            Object.entries(activitiesByCategory).map(([category, categoryActivities]) => (
-              <Box key={category} sx={{ mb: 4 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    mb: 2,
-                    color: 'primary.main',
-                    fontWeight: 600,
-                    borderBottom: `2px solid ${theme.palette.primary.main}`,
-                    pb: 1,
-                    display: 'inline-block'
-                  }}
-                >
-                  {category}
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: '1fr',
-                      sm: 'repeat(2, 1fr)',
-                      lg: 'repeat(3, 1fr)',
-                      xl: 'repeat(4, 1fr)'
-                    },
-                    gap: 3
-                  }}
-                >
-                  {categoryActivities.map((activity) => (
-                    <Box key={activity.id}>
-                      {renderActivityCard(activity)}
-                    </Box>
-                  ))}
+            Object.entries(activitiesByCategory).map(
+              ([category, categoryActivities]) => (
+                <Box key={category} sx={{ mb: 4 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mb: 2,
+                      color: 'primary.main',
+                      fontWeight: 600,
+                      borderBottom: `2px solid ${theme.palette.primary.main}`,
+                      pb: 1,
+                      display: 'inline-block',
+                    }}
+                  >
+                    {category}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'repeat(2, 1fr)',
+                        lg: 'repeat(3, 1fr)',
+                        xl: 'repeat(4, 1fr)',
+                      },
+                      gap: 3,
+                    }}
+                  >
+                    {categoryActivities.map((activity) => (
+                      <Box key={activity.id}>
+                        {renderActivityCard(activity)}
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-              </Box>
-            ))
+              ),
+            )
           )}
         </Box>
       )}
@@ -720,7 +894,9 @@ export const TimeTracker: React.FC = () => {
 
       <ExtendTimeDialog
         open={showExtendDialog}
-        remainingMinutes={Math.ceil((trackingSettings.maxDuration - elapsedTime) / 60)}
+        remainingMinutes={Math.ceil(
+          (trackingSettings.maxDuration - elapsedTime) / 60,
+        )}
         onExtend={handleExtendTime}
         onStop={handleStopFromDialog}
         onClose={handleCloseExtendDialog}

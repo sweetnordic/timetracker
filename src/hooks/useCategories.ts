@@ -42,8 +42,13 @@ export const useUpdateCategoryOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ categoryId, newOrder }: { categoryId: string; newOrder: number }) =>
-      db.updateCategoryOrder(categoryId, newOrder),
+    mutationFn: ({
+      categoryId,
+      newOrder,
+    }: {
+      categoryId: string;
+      newOrder: number;
+    }) => db.updateCategoryOrder(categoryId, newOrder),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CATEGORIES_QUERY_KEY] });
     },

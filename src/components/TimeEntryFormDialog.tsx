@@ -7,7 +7,7 @@ import {
   Button,
   TextField,
   Stack,
-  Alert
+  Alert,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -36,13 +36,13 @@ export const TimeEntryFormDialog: React.FC<TimeEntryFormDialogProps> = ({
   onClose,
   onSave,
   formatDuration,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState<TimeEntryFormData>({
     startTime: new Date(),
     endTime: new Date(),
     duration: 0,
-    notes: ''
+    notes: '',
   });
   const [timeError, setTimeError] = useState<string | null>(null);
 
@@ -50,31 +50,37 @@ export const TimeEntryFormDialog: React.FC<TimeEntryFormDialogProps> = ({
     if (editingEntry) {
       setFormData({
         startTime: new Date(editingEntry.startTime),
-        endTime: editingEntry.endTime ? new Date(editingEntry.endTime) : new Date(),
+        endTime: editingEntry.endTime
+          ? new Date(editingEntry.endTime)
+          : new Date(),
         duration: editingEntry.duration || 0,
-        notes: editingEntry.notes
+        notes: editingEntry.notes,
       });
     } else {
       setFormData({
         startTime: new Date(),
         endTime: new Date(),
         duration: 0,
-        notes: ''
+        notes: '',
       });
     }
     setTimeError(null);
   }, [editingEntry, open]);
 
-  const handleFormChange = (field: keyof TimeEntryFormData, value: Date | string) => {
-    setFormData(prev => ({
+  const handleFormChange = (
+    field: keyof TimeEntryFormData,
+    value: Date | string,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // If start or end time changes, update duration
     if (field === 'startTime' || field === 'endTime') {
-      const start = field === 'startTime' ? value as Date : formData.startTime;
-      const end = field === 'endTime' ? value as Date : formData.endTime;
+      const start =
+        field === 'startTime' ? (value as Date) : formData.startTime;
+      const end = field === 'endTime' ? (value as Date) : formData.endTime;
 
       if (start && end) {
         const duration = Math.floor((end.getTime() - start.getTime()) / 1000);
@@ -85,9 +91,9 @@ export const TimeEntryFormDialog: React.FC<TimeEntryFormDialogProps> = ({
           setTimeError(null);
         }
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          duration: Math.max(0, Math.ceil(duration / 900) * 900) // Round up to nearest 15 minutes
+          duration: Math.max(0, Math.ceil(duration / 900) * 900), // Round up to nearest 15 minutes
         }));
       }
     }
@@ -109,12 +115,7 @@ export const TimeEntryFormDialog: React.FC<TimeEntryFormDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {editingEntry ? 'Edit Time Entry' : 'Add Time Entry'}
       </DialogTitle>
